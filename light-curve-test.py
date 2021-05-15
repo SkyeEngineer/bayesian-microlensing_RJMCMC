@@ -2,23 +2,20 @@ import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
 
-def chi2_for_model(theta, event, parameters_to_fit):
-    """for given event set attributes from parameters_to_fit
-    (list of str) to values from the theta list"""
-    for (key, parameter) in enumerate(parameters_to_fit):
-        setattr(event.model.parameters, parameter, theta[key])
-    return event.get_chi2()
 
+# Synthetic Event Parameters/Initialisation
 my_1S2L_model = mm.Model({'t_0': 2452848.06, 'u_0': 0.133,
      't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120,
      'alpha': 223.8})
-
 my_1S2L_model.set_magnification_methods([2452833., 'VBBL', 2452845.])
+
 t=my_1S2L_model.set_times()
+# Generate Synthetic Lightcurve
 my_data = mm.MulensData(data_list=[t, my_1S2L_model.magnification(t), my_1S2L_model.magnification(t)*0+0.003]) #orignally 0.03
 
 print(my_1S2L_model.magnification(t))
 
+# Get chi2 by creating a new model and fitting to previously generated data
 def func(t_0, u_0, t_E, rho, q, s, alpha, my_data):
     my_f_model = mm.Model({'t_0': t_0, 'u_0': u_0,
      't_E': t_E, 'rho': rho, 'q': q, 's': s,
