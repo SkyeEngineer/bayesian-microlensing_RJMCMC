@@ -73,17 +73,18 @@ def log_prob(p):
 
 
 #EMCEE
-burn=10#50
-runs=100
+burn=100#50
+runs=400
 
 true=[2452848.06-2450000, 0.133, 61.5, 0.0039, 1.120, 223.8] # Not searching on rho?
+#36
 
 # Diagonal
 cov=np.multiply(0.1,[0.72, 0.02, 1, 0.01, 0.05, 5])#0.5
 #genrange=[72, 2, 0, 1-10e-6, 4.8, 360]
 #base=[0, 0, 0, 10e-6, 0.2, 0]
 
-n=12
+n=6
 
 #i = np.array(base+np.multiply(np.random.rand(n, 6), genrange))
 #i = true+np.multiply(np.random.rand(n, 6)-1,cov)
@@ -101,6 +102,9 @@ a, b = (np.log(1) - np.log(10**1.15)) / np.log(10**0.45), (np.log(100) - np.log(
 t_E = truncnorm.rvs(a, b, size=n)
 t_E = np.exp(t_E)
 
+
+
+
 #print(s)
 #print(alpha)
 #print(t_E)
@@ -116,6 +120,8 @@ sampler = emcee.EnsembleSampler(n, 6, log_prob, moves=[emcee.moves.GaussianMove(
 
 
 state = sampler.run_mcmc(i, burn, skip_initial_state_check=True)
+walkB=sampler.get_chain(flat=True)
+
 sampler.reset()
 sampler.run_mcmc(state, runs, skip_initial_state_check=True)
 #, skip_initial_state_check=True
@@ -146,6 +152,7 @@ print(acc)
 
 #print(walk[:,4])
 plt.scatter(np.abs(walk[:,4]), np.abs(walk[:,3]), alpha=0.5)
+plt.scatter(np.abs(walkB[:,4]), np.abs(walkB[:,3]), alpha=0.5, c='r')
 plt.xlabel('s [Einstein Ring Radius]') # Set the y axis label of the current axis.
 plt.ylabel('q') # Set a title.
 plt.title('sep/mfrac Walk: Acc: ['+str(acc)+']'+' Runs: ['+str(runs*n)+']'+' Burns: ['+str(burn)+']')
