@@ -3,6 +3,42 @@ import Functions
 import random
 import numpy as np
 
+
+
+
+m = random.randint(1,3)
+J = 1 #THIS IS NOT CORRECT
+
+ms = np.zeros((iterations))
+ms[0] = m
+
+covProp
+covProp[1], h = AdaptiveMCMC(1, data, SurrogatePosterior[1].rvs, covariance, 200)
+covProp[2], h = AdaptiveMCMC(2, data, SurrogatePosterior[2].rvs, covariance, 200)
+
+states = []#np.zeros((iterations))
+
+
+
+for i in range(iterations):]
+
+    mProp = random.randint(1,3)
+    thetaProp = RJCenteredProposal(m, mProp, theta, covProp[mProp], priors[mProp], centers)
+
+    acc = Likelihood(mProp, Data, thetaProp)/Likelihood(m, Data, theta) * PriorRatio(m, mProp, theta, thetaProp, priors) * J#???
+    
+    if random.rand <= acc:
+        theta = thetaProp
+        m = mProp
+    
+    states.append(theta)
+    ms[i] = m
+
+
+
+
+
+
 def AdaptiveMCMC(m, data, theta, covariance, iterations):
     '''
     Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”.

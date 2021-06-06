@@ -1,6 +1,7 @@
 import math
 import random
 import MulensModel as mm
+import numpy as np
 from scipy.stats import truncnorm, loguniform, uniform
 
 
@@ -8,6 +9,23 @@ from scipy.stats import truncnorm, loguniform, uniform
 def GaussianProposal(theta,covp):
     '''comment'''
     return multivariate_normal.rvs(mean=theta, cov=covp)
+
+def RJCenteredProposal(m, mProp, theta, covProp, priors, center):
+    
+    if m == mProp: return multivariate_normal.rvs(mean=theta, cov=covProp)
+    
+    else:
+        l = (theta - center[m])/center[m]
+
+        if mProp == 0: return l[0:2] * center[mProp]
+        
+        if mProp == 1: 
+            u = SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
+
+            return np.concatenate((l * center[mProp][0:2], u[3:9]))
+
+
+
 
 
 
@@ -36,11 +54,15 @@ def RJAuxiliaryProposal(m,m_prop,theta,covp,priors,params):
 
         return theta_prop
 
+#priors currently dict
 
+def D(m):
+    D = [0, 3, 8]
+    return D[m]
 
-    #priors currently dict
-    #m==1 implies D==3
-    #m==2 implies D==8
+    #if m == 1: return 3
+    #elif m == 2: return 8
+    #else: return 0 
 
 def Posterior(m,t,y,theta,cov,priors):
     '''comment'''
@@ -70,7 +92,7 @@ def PosteriorRatio(t,y,m,m_prop,theta,theta_prop,cov,priors):
 
 
 
-def Likelihood(m,t,y,theta,cov):
+def Likelihood(m, Data, theta):
     '''comment'''
     z=-Inf
 
@@ -108,7 +130,7 @@ def ProposalRatio(m,m_prop,theta,thetaProp,priors):
     productDen=1.
     for p in range(DProp-1, D): productNum*=priors[p].pdf(thetaProp[p])
     for p in range(D-1, Dprop): productDen*=priors[p].pdf(theta[p])
-    
+
     # If Auxiliary proposal, need?
 
     #   elif(m_prop==1 and m==1):
