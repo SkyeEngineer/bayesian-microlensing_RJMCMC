@@ -1,31 +1,62 @@
-import MCMC
-import Functions
+import MulensModel as mm
+import Functions as mc
 import random
 import numpy as np
 
+from scipy.stats import truncnorm, loguniform, uniform
 
 
 
+
+
+# Synthetic Event Parameters/Initialisation
+SBModel = mm.Model({'t_0': 72, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
+SBModel.set_magnification_methods([0., 'VBBL', 144.])
+
+t=SBModel.set_times(n_epochs = 100)
+# Generate Synthetic Lightcurve
+Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)*0+0.003]) #orignally 0.03
+
+th1 = [71, 0.123, 62]
+th2 = [73, 0.14, 62, 0.005, 0.005, 1.05, 222]
+#################
+
+#priors
+s_pi = mc.loguni(0.2, 5)
+q_pi = mc.loguni(10e-6, 1)
+alpha_pi = mc.uni(0, 360)
+u0_pi = mc.uni(0, 2)
+t0_pi = mc.uni(0, 72)
+tE_pi = mc.trunclognorm(1, 100, 0.45, 1.15)
+priors = [s_pi, q_pi, alpha_pi, u0_pi, t0_pi, tE_pi]
+
+# Initialise
 m = random.randint(1,3)
 J = 1 #THIS IS NOT CORRECT
+iterations = 100
 
 ms = np.zeros((iterations))
 ms[0] = m
 
-covProp
-covProp[1], h = AdaptiveMCMC(1, data, SurrogatePosterior[1].rvs, covariance, 200)
-covProp[2], h = AdaptiveMCMC(2, data, SurrogatePosterior[2].rvs, covariance, 200)
+# Diagonal
+covariance=np.multiply(0.1,[0.72, 0.02, 1, 0.01, 0.05, 5])#0.5
+#SurrogatePosterior[1].rvs
+#SurrogatePosterior[2].rvs
+covProp = []
+covProp[1], h = mc.AdaptiveMCMC(1, Data, th1, covariance, 200)
+covProp[2], h = mc.AdaptiveMCMC(2, Data, th2, covariance, 200)
+
 
 states = []#np.zeros((iterations))
 
+centers = [th1, th2]
 
-
-for i in range(iterations):]
+for i in range(iterations):
 
     mProp = random.randint(1,3)
-    thetaProp = RJCenteredProposal(m, mProp, theta, covProp[mProp], priors[mProp], centers)
+    thetaProp = mc.RJCenteredProposal(m, mProp, theta, covProp[mProp], centers[mProp])
 
-    acc = Likelihood(mProp, Data, thetaProp)/Likelihood(m, Data, theta) * PriorRatio(m, mProp, theta, thetaProp, priors) * J#???
+    acc = mc.Likelihood(mProp, Data, thetaProp)/mc.Likelihood(m, Data, theta) * mc.PriorRatio(m, mProp, theta, thetaProp, priors) * J#???
     
     if random.rand <= acc:
         theta = thetaProp
@@ -39,61 +70,3 @@ for i in range(iterations):]
 
 
 
-def AdaptiveMCMC(m, data, theta, covariance, iterations):
-    '''
-    Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”.
-    Currently only used to initialise a covariance matrix for RJMCMC, but could be extended.
-    '''
-
-    initialRuns = 10  # Arbitrary Value
-    if iterations <= initialRuns:
-        raise ValueError("Not enough iterations to establish an empirical covariance matrix")
-    
-    # initialise
-    d = len(theta)
-
-    states = np.zeros((d, iterations))
-    states[:, 0] = theta
-
-    means = np.zeros((d, iterations))
-    means[:, 0] = theta
-
-    s = 2.4**2/d # Arbitrary, good value from Haario et al
-    eps = 1e-2 #* s? or the size of the prior space according to paper 
-    I = np.identity(d)
-
-    pi = Functions.Likelihood(m, data, theta, covariance)
-
-
-    for i in range(1, initialRuns): # warm up walk
-        proposed = MCMC.GaussianProposal(theta, covariance)
-        piProposed = Functions.Likelihood(m, data, proposed, covariance)
-
-        if random.rand < piProposed/pi: # metropolis acceptance
-            theta = proposed
-            pi = piProposed
-        
-        states[:, i] = theta
-        means[:, i] = (means[:, i]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
-
-
-    covariance = s*np.cov(states) + s*eps*I # emperical adaption
-
-    for i in range(iterations-initialRuns): # adaptive walk
-        proposed = MCMC.GaussianProposal(theta, covariance)
-        piProposed = Functions.Likelihood(m, data, proposed, covariance)
-
-        if random.rand < piProposed/pi: # metropolis acceptance
-            theta = proposed
-            pi = piProposed
- 
-        t = i + initialRuns # global index
-        
-        states[:, t] = theta
-        means[:, t] = (means[:, t]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
-
-        # update
-        covariance = (t + 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
-
-
-    return covariance, states
