@@ -1,31 +1,30 @@
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
-
+import Functions as mc
 
 # Synthetic Event Parameters/Initialisation
-my_1S2L_model = mm.Model({'t_0': 2452848.06, 'u_0': 0.133,
-     't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120,
-     'alpha': 223.8})
-my_1S2L_model.set_magnification_methods([2452833., 'VBBL', 2452845.])
+SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
+SBModel.set_magnification_methods([0., 'VBBL', 72.])
 
-t=my_1S2L_model.set_times()
+t=SBModel.set_times(n_epochs = 100)
 # Generate Synthetic Lightcurve
-my_data = mm.MulensData(data_list=[t, my_1S2L_model.magnification(t), my_1S2L_model.magnification(t)*0+0.003]) #orignally 0.03
-
-print(my_1S2L_model.magnification(t))
+Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)/100], phot_fmt='flux', chi2_fmt='flux')
 
 # Get chi2 by creating a new model and fitting to previously generated data
-def func(t_0, u_0, t_E, rho, q, s, alpha, my_data):
-    my_f_model = mm.Model({'t_0': t_0, 'u_0': u_0,
-     't_E': t_E, 'rho': rho, 'q': q, 's': s,
-     'alpha': alpha})
-    my_f_model.set_magnification_methods([2452833., 'VBBL', 2452845.])
+def func(t_0, u_0, t_E, rho, q, s, alpha, Data):
+    my_f_model = mm.Model({'t_0': t_0, 'u_0': u_0,'t_E': t_E, 'rho': rho, 'q': q, 's': s,'alpha': alpha})
+    my_f_model.set_magnification_methods([0., 'VBBL', 72.])
 
-    my_event = mm.Event(datasets=my_data, model=my_f_model)
+    my_event = mm.Event(datasets=Data, model=my_f_model)
+    #print(my_event.get_chi2())
     return my_event.get_chi2()
+    #return np.exp(mc.Likelihood(2, Data, [t_0, u_0, t_E, rho, q, s, alpha,], 5))
 
-de=15
+
+
+'''
+
 toaxis = np.linspace(2452843.06, 2452853.06, de)
 teaxis = np.linspace(56.5, 66.5, de)
 result=np.zeros((de,de))
@@ -43,9 +42,22 @@ plt.xlabel('te [days]') # Set the y axis label of the current axis.
 plt.ylabel('to-2450000 [days]') # Set a title.
 plt.title('Closest Approach/Crossing Time Chi Squared over parameter space')
 plt.savefig('teto.png')
+'''
+de=5
+print(func(36, 0.133, 61.5, 0.00096, 0.0039, 1.120, 223.8, Data))
 
-qaxis = np.linspace(0.001, 0.2, de)
-saxis = np.linspace(1, 1.3, de)
+#a=1e-6
+#b=1.0
+#c=0.2
+#d=5.0
+
+a=1e-6
+b=0.1
+c=0.75
+d=1.25
+
+qaxis = np.linspace(a, b, de)
+saxis = np.linspace(c, d, de)
 result=np.zeros((de,de))
 x=-1
 y=-1
@@ -54,23 +66,19 @@ for i in qaxis:
     y=-1
     for j in saxis:
         y=y+1
-        result[x][y] = func(2452848.06, 0.133, 61.5, 0.00096, i, j, 223.8, my_data)
+        result[x][y] = func(36, 0.133, 61.5, 0.00096, i, j, 223.8, Data)
 
-plt.imshow(result, cmap='hot', interpolation='none', extent=[1, 1.3, 0.2, 0.001,])
-plt.xlabel('s [Einstein Ring Radius]') # Set the y axis label of the current axis.
-plt.ylabel('q') # Set a title.
-plt.title('Separation/Mass Fraction Chi Squared over parameter space')
-plt.savefig('sq.png')
+result=np.flip(result, 0)
 
-
-#parameters_to_fit = ['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha']
-#initial_guess = [t_0, u_0, t_E, rho, q, s, alpha]
-#initial_guess = [2452848.06, 0.133, 61.5, 0.00096, 0.0039, 1.120, 223.8]
-
-
-#print(chi2_for_model(initial_guess, my_event, parameters_to_fit))
+plt.imshow(np.sqrt(result), interpolation='none', extent=[c, d, a, b,], aspect=(d-c)/(b-a))#plt.cm.BuPu_r
+plt.xlabel('s [Einstein Ring Radius]')
+plt.ylabel('q [Unitless]')
+plt.title('Mass Fraction / Separation Chi^2 Statistic')
+cbar=plt.colorbar(fraction=0.046, pad=0.04)
+cbar.set_label('sqrt(Chi^2)', rotation=90)
+plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker=7)#2 is chevron triangle
+plt.savefig('temp.png')
 
 #plt.figure()
-#my_1S2L_model.plot_magnification(t_range=[2452810, 2452890],
-#    subtract_2450000=True, color='black')
-#plt.savefig('books_read.png')
+#SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+#plt.savefig('curve-strong-binary.png')

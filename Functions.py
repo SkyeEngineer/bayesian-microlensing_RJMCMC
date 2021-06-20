@@ -1,45 +1,49 @@
 import math
 import random
+import matplotlib.pyplot as plt
+from numpy.lib.function_base import cov
 import MulensModel as mm
 import numpy as np
 from numpy.core.numeric import Inf
-from scipy.stats import truncnorm, loguniform, uniform, multivariate_normal
+from scipy.stats import truncnorm, lognorm, norm, loguniform, uniform, multivariate_normal
 
 class uni(object):
     def __init__(self,left,right):
         self.left, self.right = left, right
         self.dist = uniform(left,right)
-    def draw(self):
-        return self.dist.rvs(self.left, self.right)
     def pdf(self,x):
-        return self.dist.pdf(x)
+        return self.dist.logpdf(x)
 
 class loguni(object):
     def __init__(self, a, b):
         self.a, self.b = a, b
         self.dist = loguniform(a, b)
-    def draw(self):
-        return self.dist.rvs(self.a, self.b)
     def pdf(self, x):
-        return self.dist.pdf(x)
+        return self.dist.logpdf(x)
 
 class trunclognorm(object):
-    def __init__(self, left, right, x, y):
-        self.a, self.b = (np.log(left) - np.log(10**y)) / np.log(10**x), (np.log(right) - np.log(10**y)) / np.log(10**x)
-        self.dist = truncnorm(self.a, self.b)
-    def draw(self):
-        return np.exp(self.dist.rvs(self.a, self.b))
+    def __init__(self, left, right, mu, sd):
+        #mu = np.exp(mud+sdd**2/2)
+        #sd = ((np.exp(sdd**2)-1)*(np.exp(2*mud+sdd**2)))**0.5
+        #self.a, self.b = (np.log(left) - np.log(mu)) / np.log(sd), (np.log(Right) - np.log(mu)) / np.log(sd)
+        #self.a, self.b = (np.log(left) - mu) / sd, (np.log(Right) - mu) / sd
+        #self.dist = truncnorm(self.a, self.b)
+        self.a=left
+        self.b=right
+        self.dist = lognorm(scale=np.exp(np.log(mu)), s=(np.log(sd)))
+        self.trunc = (self.dist.cdf((left))+1-self.dist.cdf((right)))/((right)-(left))
     def pdf(self, x):
-        return self.dist.pdf(np.log(x))
+        if self.a<=x<=self.b: return np.log((self.dist.pdf(x))+self.trunc)
+        else: return -Inf
 
 
-def AdaptiveMCMC(m, data, theta, covariance, iterations):
+def AdaptiveMCMC(m, data, theta, covariance, noise, iterations):
     '''
     Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”.
     Currently only used to initialise a covariance matrix for RJMCMC, but could be extended.
     '''
 
-    initialRuns = 10  # Arbitrary Value
+    initialRuns = 250  # Arbitrary Value
     if iterations <= initialRuns:
         raise ValueError("Not enough iterations to establish an empirical covariance matrix")
     
@@ -56,30 +60,38 @@ def AdaptiveMCMC(m, data, theta, covariance, iterations):
     eps = 1e-2 #* s? or the size of the prior space according to paper 
     I = np.identity(d)
 
-    pi = Likelihood(m, data, theta)
-
+    pi = Likelihood(m, data, theta, noise)
+    yes=0
 
     for i in range(1, initialRuns): # warm up walk
+        #print(theta)
+        #print(covariance)
         proposed = GaussianProposal(theta, covariance)
-        piProposed = Likelihood(m, data, proposed)
+        piProposed = Likelihood(m, data, proposed, noise)
 
-        if random.rand < piProposed/pi: # metropolis acceptance
+
+        if random.random() < np.exp(piProposed - pi): # metropolis acceptance
+            yes+=1
             theta = proposed
             pi = piProposed
+        #else: print('No :(')
         
         states[:, i] = theta
         means[:, i] = (means[:, i]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
 
     covariance = s*np.cov(states) + s*eps*I # emperical adaption
+    #print(np.linalg.det(covariance))
 
     for i in range(iterations-initialRuns): # adaptive walk
         proposed = GaussianProposal(theta, covariance)
-        piProposed = Likelihood(m, data, proposed, covariance)
+        piProposed = Likelihood(m, data, proposed, noise)
 
-        if random.rand < piProposed/pi: # metropolis acceptance
+        if random.random() < np.exp(piProposed - pi): # metropolis acceptance
+            yes+=1
             theta = proposed
             pi = piProposed
+        #else: print('No :(')
  
         t = i + initialRuns # global index
         
@@ -89,6 +101,7 @@ def AdaptiveMCMC(m, data, theta, covariance, iterations):
         # update
         covariance = (t + 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
 
+    print(yes/(iterations), m)
 
     return covariance, states
 
@@ -98,17 +111,22 @@ def GaussianProposal(theta,covp):
 
 def RJCenteredProposal(m, mProp, theta, covProp, center):
     
+    #print(m, mProp, theta, covProp, center)
     if m == mProp: return multivariate_normal.rvs(mean=theta, cov=covProp)
     
     else:
-        l = (theta - center[m])/center[m]
+        l = (theta - center[m-1])/center[m-1]
+        #print(l)
 
-        if mProp == 0: return l[0:2] * center[mProp]
+        if mProp == 1: return l[0:3] * center[mProp-1] + center[mProp-1]
         
-        if mProp == 1: 
-            u = [1, 1, 1, 1, 1]#SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
-
-            return np.concatenate((l * center[mProp][0:2], u[3:9]))
+        if mProp == 2: 
+            u = center[mProp-1][3:] #SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
+            #print(center[mProp-1][0:3])
+            thetaProp=np.concatenate(((l * center[mProp-1][0:3]+center[mProp-1][0:3]), u))
+            #print('l: '+str(l))
+            print('prop: '+str(thetaProp))
+            return thetaProp
 
 
 
@@ -143,7 +161,7 @@ def RJAuxiliaryProposal(m,m_prop,theta,covp,priors,params):
 #priors currently dict
 
 def D(m):
-    D = [0, 3, 8]
+    D = [0, 3, 7]
     return D[m]
 
     #if m == 1: return 3
@@ -163,12 +181,20 @@ def Posterior(m,t,y,theta,cov,priors):
 def PriorRatio(m,mProp,theta,thetaProp,priors):
     '''comment'''
     
-    productNum=1.
-    productDen=1.
-    for p in range(D(mProp)): productNum*=priors[p].pdf(thetaProp[p])
-    for p in range(D(m)): productDen*=priors[p].pdf(theta[p])
+    productNum=0.
+    productDen=0.
+    for p in range(D(mProp)): 
+        productNum+=(priors[p].pdf(thetaProp[p]))
+        #print(np.exp(priors[p].pdf(thetaProp[p])), thetaProp[p], p)
+
+    for p in range(D(m)): 
+        productDen+=(priors[p].pdf(theta[p]))
+        #print(np.exp(priors[p].pdf(theta[p])), theta[p], p)
+
+    #print(productNum)
+    #print(productDen)
     
-    return productNum/productDen
+    return productNum-productDen
 
 
 
@@ -178,7 +204,7 @@ def PosteriorRatio(t,y,m,m_prop,theta,theta_prop,cov,priors):
 
 
 
-def Likelihood(m, Data, theta):
+def Likelihood(m, Data, theta, noise):
     '''comment'''
     z=-Inf
 
@@ -188,31 +214,46 @@ def Likelihood(m, Data, theta):
     if m==1:
         try: #for when moves out of bounds of model valididty
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
-            #Model.set_magnification_methods([0., 'PSPL', 177.]) #?
+            Model.set_magnification_methods([0., 'point_source', 72.]) #?
             Event = mm.Event(datasets=Data, model=Model)
 
         except: #make more specific
             return z
 
-        return math.exp(-Event.get_chi2()/2)
+        #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+        #plt.savefig('like.png')
+
+        #pred = Model.magnification(Model.set_times())
+        #return multivariate_normal.logpdf(np.zeros(np.shape(pred)), mean = Data-pred, cov = noise)
+        return -Event.get_chi2()/2
 
 
     if m==2:
         try: #for when moves out of bounds of model valididty
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
-            Model.set_magnification_methods([0., 'VBBL', 177.]) #?
+            Model.set_magnification_methods([0., 'VBBL', 72.]) #?
             Event = mm.Event(datasets=Data, model=Model)
 
         except: #make more specific
             return z
-            
-        return math.exp(-Event.get_chi2()/2)
+        
+        #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+        #plt.savefig('pike.png')
+        #print(Event.get_chi2())
+
+        #pred = Model.magnification(Model.set_times())
+        #X=(Data-pred)
+        #return np.exp(-np.dot(X.transpose(),np.dot(np.linalg.pinv(noise),X))/2)
+        #return multivariate_normal.logpdf(np.zeros(np.shape(pred)), mean = Data-pred, cov = noise)
+        #print(Model.magnification(Model.set_times()))
+        return -Event.get_chi2()/2
 
 def PriorBounds(m, theta):
 
     if m==1:
 
         t_0, u_0, t_E = theta
+
         if (u_0<0 or u_0>2):
             return 0
 
@@ -223,12 +264,16 @@ def PriorBounds(m, theta):
             return 0
     
     elif m==2:
+        #print(theta)
+        t_0, u_0, t_E, rho, q, s, alpha = theta
 
-        t_0, u_0, t_E, q, s, alpha = theta
         if (s<0.2 or s>5):
             return 0
 
         if (q<10e-6 or q>1):
+            return 0
+
+        if (rho<10**-4 or rho> 10**-2 ):
             return 0
 
         if (alpha<0 or alpha>360):
