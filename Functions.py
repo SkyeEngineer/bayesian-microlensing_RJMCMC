@@ -37,71 +37,79 @@ class trunclognorm(object):
         else: return -Inf
 
 
-def AdaptiveMCMC(m, data, theta, covariance, noise, iterations):
+def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     '''
     Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”.
     Currently only used to initialise a covariance matrix for RJMCMC, but could be extended.
     '''
 
-    initialRuns = 250  # Arbitrary Value
-    if iterations <= initialRuns:
+    initialRuns = burns  # Arbitrary Value
+    if burns <= 0:
         raise ValueError("Not enough iterations to establish an empirical covariance matrix")
     
     # initialise
     d = len(theta)
 
-    states = np.zeros((d, iterations))
+    states = np.zeros((d, iterations+burns))
     states[:, 0] = theta
 
-    means = np.zeros((d, iterations))
+    means = np.zeros((d, iterations+burns))
     means[:, 0] = theta
 
-    s = 2.4**2/d # Arbitrary, good value from Haario et al
-    eps = 1e-2 #* s? or the size of the prior space according to paper 
+    s = 1#2.4**2/d # Arbitrary, good value from Haario et al
+    eps = 1e-8 #* s? or the size of the prior space according to paper 
     I = np.identity(d)
 
-    pi = Likelihood(m, data, theta, noise)
+    pi = Likelihood(m, data, theta, 5)
     yes=0
 
     for i in range(1, initialRuns): # warm up walk
         #print(theta)
         #print(covariance)
         proposed = GaussianProposal(theta, covariance)
-        piProposed = Likelihood(m, data, proposed, noise)
+        piProposed = Likelihood(m, data, proposed, 5)
+        priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
+        #print(priorRatio)
 
-
-        if random.random() < np.exp(piProposed - pi): # metropolis acceptance
+        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance
             yes+=1
             theta = proposed
             pi = piProposed
         #else: print('No :(')
         
         states[:, i] = theta
-        means[:, i] = (means[:, i]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
+        means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
 
-    covariance = s*np.cov(states) + s*eps*I # emperical adaption
+    covariance = s*np.cov(states) + s*eps*I # emperical adaptionnp.cov(states)#
     #print(np.linalg.det(covariance))
-
-    for i in range(iterations-initialRuns): # adaptive walk
+    t = initialRuns
+    for i in range(iterations): # adaptive walk
         proposed = GaussianProposal(theta, covariance)
-        piProposed = Likelihood(m, data, proposed, noise)
+        piProposed = Likelihood(m, data, proposed, 5)
 
-        if random.random() < np.exp(piProposed - pi): # metropolis acceptance
+        priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
+        #print(priorRatio)
+
+        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance
             yes+=1
             theta = proposed
             pi = piProposed
         #else: print('No :(')
  
-        t = i + initialRuns # global index
+        
         
         states[:, t] = theta
-        means[:, t] = (means[:, t]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
-
+        means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
+        
         # update
-        covariance = (t + 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
 
-    print(yes/(iterations), m)
+        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
+        #covariance = s*np.cov(states) + s*eps*I
+        
+        t +=1 # global index
+
+    print(yes/(iterations+initialRuns), m)
 
     return covariance, states
 
@@ -118,14 +126,16 @@ def RJCenteredProposal(m, mProp, theta, covProp, center):
         l = (theta - center[m-1])/center[m-1]
         #print(l)
 
-        if mProp == 1: return l[0:3] * center[mProp-1] + center[mProp-1]
+        if mProp == 1:
+            #print('wow!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            return l[0:3] * center[mProp-1] + center[mProp-1]
         
         if mProp == 2: 
             u = center[mProp-1][3:] #SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
             #print(center[mProp-1][0:3])
             thetaProp=np.concatenate(((l * center[mProp-1][0:3]+center[mProp-1][0:3]), u))
             #print('l: '+str(l))
-            print('prop: '+str(thetaProp))
+            #print('prop: '+str(thetaProp))
             return thetaProp
 
 

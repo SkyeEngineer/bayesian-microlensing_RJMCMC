@@ -1,3 +1,4 @@
+from math import pi
 import MulensModel as mm
 import Functions as mc
 import random
@@ -20,10 +21,11 @@ Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnificati
 #SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('RJLike.png')
 
-th1 = np.array([36, 0.133, 61.5])
-th2 = np.array([36, 0.134, 61.5, 0.00091, 0.004, 1.119, 223.8])
-print(np.exp(mc.Likelihood(1, Data, th1, 5)))
-print(np.exp(mc.Likelihood(2, Data, th2, 5)))
+th1 = np.array([36., 0.133, 61.5])
+#th2 = np.array([36, 0.134, 61.5, 0.00091, 0.004, 1.119, 223.8])
+th2 = np.array([36., 0.133, 61.5, 0.001, 0.0045, 1.11, 223.8])
+#print(np.exp(mc.Likelihood(1, Data, th1, 5)))
+#print(np.exp(mc.Likelihood(2, Data, th2, 5)))
 
 #noise=w
 
@@ -46,46 +48,54 @@ priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 # Initialise
 m = 1#random.randint(1,2)
 J = 1 #THIS IS NOT CORRECT
-iterations = 1000
+iterations = 100
 
-ms = np.zeros((iterations))
+ms = np.zeros((iterations), dtype=int)
 ms[0] = m
+#ms = [m]
 
 # Diagonal
-covariance1=np.multiply(0.1, [0.01, 0.01, 0.1])
-covariance2=np.multiply(0.01, [0.01, 0.01, 0.1, 0.0001, 0.001, 0.01, 0.1])#0.5
+covariance1=np.multiply(0.0001, [0.01, 0.01, 0.1])
+covariance2=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
 #SurrogatePosterior[1].rvs
 #SurrogatePosterior[2].rvs
 
-#covProp1, h1 = mc.AdaptiveMCMC(1, Data, th1, covariance1, noise, 1000)
-#covProp2, h2 = mc.AdaptiveMCMC(2, Data, th2, covariance2, noise, 500)
-#covProp = [covProp1, covProp2]
-covProp = [covariance1, covariance2]
+covProp1, h1 = mc.AdaptiveMCMC(1, Data, th1, priors, covariance1, 10, 10)
+covProp2, h2 = mc.AdaptiveMCMC(2, Data, th2, priors, covariance2, 100, 100)
+covProp = [covProp1, covProp2]
+#covProp = [covariance1, covariance2]
 
 states = []#np.zeros((iterations))
 
 centers = [th1, th2]
-theta = th1 #random sample
+#random sample
+thet = h2[:,-1]#th1
+theta = thet[0:3]#th1
 
-'''
 #print(h1)
 #print(h2)
 #print((covProp1))
 #print((covProp2))
-print(np.linalg.det(covProp2))
+print(np.prod(covariance1))
+print(np.prod(covariance2))
 print(np.linalg.det(covProp1))
-print(np.linalg.det(np.cov(h1)))
-print(np.linalg.det(np.cov(h2)))
+print(np.linalg.det(covProp2))
+#print(np.linalg.det(np.cov(h1)))
+#print(np.linalg.det(np.cov(h2)))
+
 
 plt.scatter((h2[5,:]), (h2[4,:]), alpha=0.5)
 #plt.scatter(np.abs(walkB[:,4]), np.abs(walkB[:,3]), alpha=0.5, c='r')
 plt.xlabel('s [Einstein Ring Radius]') # Set the y axis label of the current axis.
 plt.ylabel('q') # Set a title.
 plt.title('Adaptive Walk:')
-plt.savefig('CovSampWalk.png')
-'''
-#q=w
+plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker=7)#2 is chevron triangle
+plt.scatter(th2[5], th2[4], c=[(0,1,0)], marker=7)#2 is chevron triangle
+plt.savefig('Plots/Covariance-Sample-Walk.png')
+plt.clf()
+
 score=0
+
 
 for i in range(iterations):
 
@@ -94,12 +104,14 @@ for i in range(iterations):
     #print('prop: '+str(thetaProp))
 
 
-    piRatio = mc.PriorRatio(m, mProp, theta, thetaProp, priors)
-    #print(num, den)
-    acc = piRatio + mc.Likelihood(mProp, Data, thetaProp, 5) -  mc.Likelihood(m, Data, theta, 5)#???
-    #print(np.exp(acc))
+    priorRatio = np.exp(mc.PriorRatio(m, mProp, theta, thetaProp, priors))
+    #print(priorRatio)
+    piProp = np.exp(mc.Likelihood(mProp, Data, thetaProp, 5))
+    pi = np.exp(mc.Likelihood(m, Data, theta, 5))
+    acc =  piProp/pi * priorRatio #???
+    #print(piProp, pi)
     
-    if random.random() <= np.exp(acc)*J:
+    if random.random() <= (acc)*J:
         theta = thetaProp
         m = mProp
         score+=1
@@ -107,11 +119,25 @@ for i in range(iterations):
     
     states.append(theta)
     ms[i] = m
+    #ms.append(m)
 
 print(score/iterations)
-print(ms)
+#print(states)
 
-
+#ms=ms.astype(int)
+#states2=states[ms==2]
+s2=[]
+for i in range(iterations):
+    if ms[i]==2: s2.append(states[i])
+#s2=states[(np.where(ms==2)[0])]
+s2=np.array(s2)
+#print(s2)
+plt.scatter((s2[:,5]), (s2[:,4]), alpha=0.5)
+plt.xlabel('s [Einstein Ring Radius]')
+plt.ylabel('q')
+plt.title('Walk:')
+plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker="2")#2 is chevron triangle
+plt.savefig('Plots/RJ-Walk.png')
 
 
 
