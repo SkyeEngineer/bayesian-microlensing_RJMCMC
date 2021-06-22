@@ -57,7 +57,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     means[:, 0] = theta
 
     s = 1#2.4**2/d # Arbitrary, good value from Haario et al
-    eps = 1e-8 #* s? or the size of the prior space according to paper 
+    eps = 1e-8 #-6/-2?* s? or the size of the prior space according to paper 
     I = np.identity(d)
 
     pi = Likelihood(m, data, theta, 5)
@@ -81,8 +81,9 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
 
-    covariance = s*np.cov(states) + s*eps*I # emperical adaptionnp.cov(states)#
+    covariance = s*np.cov(states)# + s*eps*I # emperical adaptionnp.cov(states)#
     #print(np.linalg.det(covariance))
+    
     t = initialRuns
     for i in range(iterations): # adaptive walk
         proposed = GaussianProposal(theta, covariance)
@@ -104,7 +105,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         
         # update
 
-        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
+        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) #+ 0*eps*I)
+        
         #covariance = s*np.cov(states) + s*eps*I
         
         t +=1 # global index
@@ -131,7 +133,9 @@ def RJCenteredProposal(m, mProp, theta, covProp, center):
             return l[0:3] * center[mProp-1] + center[mProp-1]
         
         if mProp == 2: 
-            u = center[mProp-1][3:] #SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
+            r = random.random()
+            #u = np.multiply(r, [0.001, 0.00059, 1.238, 223.7])+np.multiply((1-r), [0.00099, 0.0009, 1.2, 223.5])#multivariate_normal.rvs(mean=center[mProp-1][3:], cov=covProp[3:] * np.average(l)) #center[mProp-1][3:] * np.average(l)#SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
+            u = center[mProp-1][3:]
             #print(center[mProp-1][0:3])
             thetaProp=np.concatenate(((l * center[mProp-1][0:3]+center[mProp-1][0:3]), u))
             #print('l: '+str(l))

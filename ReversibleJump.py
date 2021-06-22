@@ -11,12 +11,17 @@ from scipy.stats import truncnorm, loguniform, uniform
 
 
 # Synthetic Event Parameters/Initialisation
-SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
+#SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8}) #strong
+#SBModel.set_magnification_methods([0., 'VBBL', 72.])
+#SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0004, 's': 1.33, 'alpha': 223.8}) #weak
+#SBModel.set_magnification_methods([0., 'VBBL', 72.])
+SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.000002, 's': 4.9, 'alpha': 223.8}) #single
 SBModel.set_magnification_methods([0., 'VBBL', 72.])
+
 
 t=SBModel.set_times(n_epochs = 100)
 # Generate Synthetic Lightcurve
-Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)/100], phot_fmt='flux', chi2_fmt='flux') #orignally 0.03, last entry represents noise
+Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)/20], phot_fmt='flux', chi2_fmt='flux') #orignally 0.03, last entry represents noise
 #Data = SBModel.magnification(t)
 #SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('RJLike.png')
@@ -26,6 +31,9 @@ th1 = np.array([36., 0.133, 61.5])
 th2 = np.array([36., 0.133, 61.5, 0.001, 0.0045, 1.11, 223.8])
 #print(np.exp(mc.Likelihood(1, Data, th1, 5)))
 #print(np.exp(mc.Likelihood(2, Data, th2, 5)))
+th1 = np.array([36., 0.133, 61.5])
+#th2 = np.array([36., 0.133, 61.5, 0.00096, 0.0004, 1.33, 223.8])
+th2 = np.array([36., 0.133, 61.5, 0.00096, 0.000002, 4.9, 223.8])
 
 #noise=w
 
@@ -48,7 +56,7 @@ priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 # Initialise
 m = 1#random.randint(1,2)
 J = 1 #THIS IS NOT CORRECT
-iterations = 100
+iterations = 1000
 
 ms = np.zeros((iterations), dtype=int)
 ms[0] = m
@@ -60,26 +68,32 @@ covariance2=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])
 #SurrogatePosterior[1].rvs
 #SurrogatePosterior[2].rvs
 
-covProp1, h1 = mc.AdaptiveMCMC(1, Data, th1, priors, covariance1, 10, 10)
-covProp2, h2 = mc.AdaptiveMCMC(2, Data, th2, priors, covariance2, 100, 100)
-covProp = [covProp1, covProp2]
-#covProp = [covariance1, covariance2]
+#covProp1, h1 = mc.AdaptiveMCMC(1, Data, th1, priors, covariance1, 200, 200)
+#covProp2, h2 = mc.AdaptiveMCMC(2, Data, th2, priors, covariance2, 200, 200)
+#covProp = [covProp1, covProp2]
+covProp = [covariance1, covariance2]
 
 states = []#np.zeros((iterations))
 
 centers = [th1, th2]
 #random sample
-thet = h2[:,-1]#th1
-theta = thet[0:3]#th1
+#thet = h2[:,-1]#th1
+#theta = thet[0:3]#th1
+theta=th1
 
-#print(h1)
-#print(h2)
-#print((covProp1))
-#print((covProp2))
+#print(np.cov(h1))
+#print(np.cov(h2))
+
+
+'''
+print((covProp1))
+print((covProp2))
+
 print(np.prod(covariance1))
 print(np.prod(covariance2))
-print(np.linalg.det(covProp1))
-print(np.linalg.det(covProp2))
+#print(np.linalg.det(covProp1))
+#print(np.linalg.det(covProp2))
+
 #print(np.linalg.det(np.cov(h1)))
 #print(np.linalg.det(np.cov(h2)))
 
@@ -92,7 +106,9 @@ plt.title('Adaptive Walk:')
 plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker=7)#2 is chevron triangle
 plt.scatter(th2[5], th2[4], c=[(0,1,0)], marker=7)#2 is chevron triangle
 plt.savefig('Plots/Covariance-Sample-Walk.png')
+#plt.savefig('Plots/Walk.png')
 plt.clf()
+'''
 
 score=0
 
@@ -121,7 +137,9 @@ for i in range(iterations):
     ms[i] = m
     #ms.append(m)
 
-print(score/iterations)
+print("acc: "+str(score/iterations))
+print("1: "+str(1-np.sum(ms-1)/iterations))
+print("2: "+str(np.sum(ms-1)/iterations))
 #print(states)
 
 #ms=ms.astype(int)
@@ -136,9 +154,27 @@ plt.scatter((s2[:,5]), (s2[:,4]), alpha=0.5)
 plt.xlabel('s [Einstein Ring Radius]')
 plt.ylabel('q')
 plt.title('Walk:')
-plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker="2")#2 is chevron triangle
-plt.savefig('Plots/RJ-Walk.png')
+plt.scatter(1.33, 0.0004, c=[(1,0,0)], marker="2")#2 is chevron triangle
+plt.savefig('Plots/RJ-binary-Walk.png')
+plt.clf()
+'''
+s1=[]
+for i in range(iterations):
+    if ms[i]==1: s1.append(states[i])
+#s2=states[(np.where(ms==2)[0])]
+s1=np.array(s1)
+#print(s2)
+plt.scatter((s1[:,2]), (s2[:,1]), alpha=0.5)
+plt.xlabel('u0')
+plt.ylabel('tE')
+plt.title('Walk:')
+plt.scatter(61.5, 0.133, c=[(1,0,0)], marker="2")#2 is chevron triangle
+plt.savefig('Plots/RJ-single-Walk.png')
+plt.clf()
+'''
 
 
-
+plt.plot(np.linspace(1, iterations, num=iterations), ms)
+plt.savefig('Plots/Trace.png')
+plt.clf()
 
