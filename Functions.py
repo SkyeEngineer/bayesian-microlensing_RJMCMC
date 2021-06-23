@@ -17,7 +17,7 @@ class uni(object):
 class loguni(object):
     def __init__(self, a, b):
         self.a, self.b = a, b
-        self.dist = loguniform(a, b)
+        self.dist = loguniform((a), (b))
     def pdf(self, x):
         return self.dist.logpdf(x)
 
@@ -52,12 +52,13 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
     states = np.zeros((d, iterations+burns))
     states[:, 0] = theta
+    dec = np.zeros((iterations+burns))
 
     means = np.zeros((d, iterations+burns))
     means[:, 0] = theta
 
-    s = 1#2.4**2/d # Arbitrary, good value from Haario et al
-    eps = 1e-8 #-6/-2?* s? or the size of the prior space according to paper 
+    s = 2.4**2/d # Arbitrary, good value from Haario et al
+    eps = 1e-12 #-6/-2?* s? or the size of the prior space according to paper 
     I = np.identity(d)
 
     pi = Likelihood(m, data, theta, 5)
@@ -75,13 +76,15 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             yes+=1
             theta = proposed
             pi = piProposed
-        #else: print('No :(')
+            dec[i]=1
+
+        else: dec[i]=0
         
         states[:, i] = theta
         means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
 
-    covariance = s*np.cov(states)# + s*eps*I # emperical adaptionnp.cov(states)#
+    covariance = s*np.cov(states) + s*eps*I # emperical adaptionnp.cov(states)#
     #print(np.linalg.det(covariance))
     
     t = initialRuns
@@ -96,6 +99,10 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             yes+=1
             theta = proposed
             pi = piProposed
+            dec[t]=1
+
+        else: dec[t]=0
+        
         #else: print('No :(')
  
         
@@ -105,15 +112,15 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         
         # update
 
-        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) #+ 0*eps*I)
+        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) + eps*I
         
         #covariance = s*np.cov(states) + s*eps*I
         
         t +=1 # global index
 
-    print(yes/(iterations+initialRuns), m)
+    print("Adaptive Acc: "+str(yes/(iterations+initialRuns))+", Model: "+str(m))
 
-    return covariance, states
+    return covariance, states, dec
 
 def GaussianProposal(theta,covp):
     '''comment'''
@@ -135,8 +142,9 @@ def RJCenteredProposal(m, mProp, theta, covProp, center):
         if mProp == 2: 
             r = random.random()
             #u = np.multiply(r, [0.001, 0.00059, 1.238, 223.7])+np.multiply((1-r), [0.00099, 0.0009, 1.2, 223.5])#multivariate_normal.rvs(mean=center[mProp-1][3:], cov=covProp[3:] * np.average(l)) #center[mProp-1][3:] * np.average(l)#SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
-            u = center[mProp-1][3:]
-            #print(center[mProp-1][0:3])
+            #u = np.append((center[mProp-1][3:6] + center[mProp-1][3:6] * np.average(l)), center[mProp-1][6])
+            u = center[mProp-1][3:] + center[mProp-1][3:] * np.average(l)
+            #print(u)
             thetaProp=np.concatenate(((l * center[mProp-1][0:3]+center[mProp-1][0:3]), u))
             #print('l: '+str(l))
             #print('prop: '+str(thetaProp))

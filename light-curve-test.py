@@ -2,11 +2,12 @@ import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
 import Functions as mc
+import matplotlib.patches as mpatches
 
 # Synthetic Event Parameters/Initialisation
 #SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
-SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.00001, 's': 2.0, 'alpha': 223.8})
-SBModel.set_magnification_methods([0., 'VBBL', 72.])
+SBModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.000002, 's': 4.2, 'alpha': 223.8})
+SBModel.set_magnification_methods([0., 'VBBL', 144.])
 
 SSModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
 SSModel.set_magnification_methods([0., 'point_source', 72.])
@@ -14,8 +15,13 @@ SSModel.set_magnification_methods([0., 'point_source', 72.])
 #SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('Plots/curve-strong-binary.png')
 
-
-SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+t=SBModel.set_times(n_epochs = 500)
+SBModel.plot_magnification(t_range=[0, 144], subtract_2450000=False, color='black')
+plt.title('Weakly binary lightcurve')
+red_patch = mpatches.Patch(label='Uncertainty', alpha=0.5)
+plt.legend(handles=[red_patch])
+plt.fill_between(t[np.where(np.logical_and(t>=0, t<=144))], SBModel.magnification(t[np.where(np.logical_and(t>=0, t<=144))])-SBModel.magnification(t[np.where(np.logical_and(t>=0, t<=144))])/10, SBModel.magnification(t[np.where(np.logical_and(t>=0, t<144))])+SBModel.magnification(t[np.where(np.logical_and(t>=0, t<=144))])/10, alpha=0.25)
+#plt.axis('square')
 plt.savefig('Plots/curve-weak-binary.png')
 plt.clf()
 
@@ -23,7 +29,7 @@ SSModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black
 plt.savefig('Plots/curve-weak-single.png')
 plt.clf()
 
-
+d=d
 
 t=SBModel.set_times(n_epochs = 100)
 # Generate Synthetic Lightcurve

@@ -21,19 +21,20 @@ SBModel.set_magnification_methods([0., 'VBBL', 72.])
 
 t=SBModel.set_times(n_epochs = 100)
 # Generate Synthetic Lightcurve
-Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)/20], phot_fmt='flux', chi2_fmt='flux') #orignally 0.03, last entry represents noise
+Data = mm.MulensData(data_list=[t, SBModel.magnification(t), SBModel.magnification(t)/5], phot_fmt='flux', chi2_fmt='flux') #orignally 0.03, last entry represents noise
 #Data = SBModel.magnification(t)
 #SBModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('RJLike.png')
-
-th1 = np.array([36., 0.133, 61.5])
-#th2 = np.array([36, 0.134, 61.5, 0.00091, 0.004, 1.119, 223.8])
-th2 = np.array([36., 0.133, 61.5, 0.001, 0.0045, 1.11, 223.8])
+iterations = 200
+#th1 = np.array([36., 0.133, 61.5])
+th2 = np.array([36, 0.133, 61.5, 0.00096, 0.000002, 3.3, 223.8]) # nice reesults for adaption
+#th2 = np.array([36., 0.133, 61.5, 0.0014, 0.00096, 1.2, 224.]) # nice results for model!!!!!!!!!!!!!!!
+#th2 = np.array([36., 0.133, 61.5, 0.001, 0.00095, 1.23, 223.7])
 #print(np.exp(mc.Likelihood(1, Data, th1, 5)))
 #print(np.exp(mc.Likelihood(2, Data, th2, 5)))
 th1 = np.array([36., 0.133, 61.5])
 #th2 = np.array([36., 0.133, 61.5, 0.00096, 0.0004, 1.33, 223.8])
-th2 = np.array([36., 0.133, 61.5, 0.00096, 0.000002, 4.9, 223.8])
+#th2 = np.array([36., 0.133, 61.5, 0.00096, 0.000002, 4.9, 223.8])
 
 #noise=w
 
@@ -54,9 +55,9 @@ rho_pi =  mc.loguni(10**-4, 10**-2)
 priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
 # Initialise
-m = 1#random.randint(1,2)
+m = 2#random.randint(1,2)
 J = 1 #THIS IS NOT CORRECT
-iterations = 1000
+
 
 ms = np.zeros((iterations), dtype=int)
 ms[0] = m
@@ -67,45 +68,64 @@ covariance1=np.multiply(0.0001, [0.01, 0.01, 0.1])
 covariance2=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
 #SurrogatePosterior[1].rvs
 #SurrogatePosterior[2].rvs
-
-#covProp1, h1 = mc.AdaptiveMCMC(1, Data, th1, priors, covariance1, 200, 200)
-#covProp2, h2 = mc.AdaptiveMCMC(2, Data, th2, priors, covariance2, 200, 200)
-#covProp = [covProp1, covProp2]
 covProp = [covariance1, covariance2]
+'''
+burns=2
+iters=2
+#covProp1, h1, dec1 = mc.AdaptiveMCMC(1, Data, th1, priors, covariance1, 200, 200)
+covProp2, h2, dec2 = mc.AdaptiveMCMC(2, Data, th2, priors, covariance2, burns, iters)
 
+
+yes=[]
+size=40
+bins=int((burns+iters)/size)
+for bin in range(bins):
+    yes.append(np.sum(dec2[size*bin:size*(bin+1)])/size)
+
+#print(dec2)
+plt.plot(np.linspace(1, bins, num=bins), yes)
+plt.xlabel('Iterations [bins]')
+plt.ylabel('Acceptance rate')
+plt.title('Adaptive MCMC acceptance timeline')
+plt.savefig('Plots/Adaptive-MCMC-acceptance-progression.png')
+plt.clf()
+
+#covProp = [covProp1, covProp2]
+
+'''
 states = []#np.zeros((iterations))
 
 centers = [th1, th2]
 #random sample
 #thet = h2[:,-1]#th1
 #theta = thet[0:3]#th1
-theta=th1
+theta=[36., 0.133, 61.5, 0.0014, 0.0009, 1.26, 224.]
 
 #print(np.cov(h1))
 #print(np.cov(h2))
-
-
 '''
-print((covProp1))
+
+#print((covProp1))
 print((covProp2))
 
-print(np.prod(covariance1))
+#print(np.prod(covariance1))
 print(np.prod(covariance2))
 #print(np.linalg.det(covProp1))
 #print(np.linalg.det(covProp2))
 
 #print(np.linalg.det(np.cov(h1)))
-#print(np.linalg.det(np.cov(h2)))
+print((np.cov(h2))) # clearly, adaption is calculating wrong
 
 
-plt.scatter((h2[5,:]), (h2[4,:]), alpha=0.5)
+plt.scatter((h2[5,:]), (h2[4,:]), alpha=0.25)
 #plt.scatter(np.abs(walkB[:,4]), np.abs(walkB[:,3]), alpha=0.5, c='r')
 plt.xlabel('s [Einstein Ring Radius]') # Set the y axis label of the current axis.
 plt.ylabel('q') # Set a title.
-plt.title('Adaptive Walk:')
-plt.scatter(1.120, 0.0039, c=[(1,0,0)], marker=7)#2 is chevron triangle
-plt.scatter(th2[5], th2[4], c=[(0,1,0)], marker=7)#2 is chevron triangle
-plt.savefig('Plots/Covariance-Sample-Walk.png')
+plt.title('Adaptive MCMC walk over binary model space')
+plt.scatter(1.33, 0.0004, c=[(0,0,1)], marker='2', label='True', s=50)#2 is chevron triangle
+plt.scatter(th2[5], th2[4], c=[(1,0,0)], marker='2', label='Initial\nPosition', s=50)#2 is chevron triangle
+plt.legend()
+plt.savefig('Plots/Adaptive-Covariance-Sampleing-Walk.png')
 #plt.savefig('Plots/Walk.png')
 plt.clf()
 '''
@@ -141,7 +161,7 @@ print("acc: "+str(score/iterations))
 print("1: "+str(1-np.sum(ms-1)/iterations))
 print("2: "+str(np.sum(ms-1)/iterations))
 #print(states)
-
+'''
 #ms=ms.astype(int)
 #states2=states[ms==2]
 s2=[]
@@ -150,14 +170,19 @@ for i in range(iterations):
 #s2=states[(np.where(ms==2)[0])]
 s2=np.array(s2)
 #print(s2)
-plt.scatter((s2[:,5]), (s2[:,4]), alpha=0.5)
+markersize=50
+plt.scatter((s2[:,5]), (s2[:,4]), alpha=0.25)
 plt.xlabel('s [Einstein Ring Radius]')
-plt.ylabel('q')
-plt.title('Walk:')
-plt.scatter(1.33, 0.0004, c=[(1,0,0)], marker="2")#2 is chevron triangle
+plt.ylabel('q [Unitless]')
+plt.title('RJ binary model walk through Mass Fraction / Separation space\nwith centreing function')
+plt.scatter(s2[0,5], s2[0,4], c=[(0,1,0)], marker='2', label='Initial\nPosition', s=markersize)#2 is chevron triangle
+plt.scatter(th2[5], th2[4], c=[(1,0,0)], marker='2', label='Centreing\npoint', s=markersize)#2 is chevron triangle
+plt.scatter(1.33, 0.0004, c=[(0,0,1)], marker='2', label='True', s=markersize)
+plt.legend()
 plt.savefig('Plots/RJ-binary-Walk.png')
 plt.clf()
-'''
+
+
 s1=[]
 for i in range(iterations):
     if ms[i]==1: s1.append(states[i])
@@ -168,13 +193,17 @@ plt.scatter((s1[:,2]), (s2[:,1]), alpha=0.5)
 plt.xlabel('u0')
 plt.ylabel('tE')
 plt.title('Walk:')
-plt.scatter(61.5, 0.133, c=[(1,0,0)], marker="2")#2 is chevron triangle
+plt.scatter(th1[2], th1[1], c=[(1,0,0)], marker="2")#2 is chevron triangle
 plt.savefig('Plots/RJ-single-Walk.png')
 plt.clf()
-'''
+
 
 
 plt.plot(np.linspace(1, iterations, num=iterations), ms)
+plt.title('RJ Weak binary event with centreing function\nmodel trace')
+plt.xlabel('Iteration')
+plt.ylabel('Model Index')
+plt.locator_params(axis="y", nbins=2)
 plt.savefig('Plots/Trace.png')
 plt.clf()
-
+'''
