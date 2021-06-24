@@ -38,7 +38,7 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
 # Define Prior Class
 class uniprior(object):
     def __init__(self,left,right):
-        self.left = left
+        self.left = left 6
         self.right = right
         self.range = (right-left)/2.0
         self.dist = uniform(left,right)
