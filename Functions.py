@@ -21,7 +21,13 @@ class uniDist(object):
     right: the upper bound for values 
     '''
     def __init__(self, left, right):
+        self.lb = left
+        self.rb = right
         self.dist = uniform(left, right)
+
+    def inBounds(self, x):
+        if self.lb <= x <= self.rb: return 1
+        else: return 0
 
     def logPDF(self, x):
         return self.dist.logpdf(x)
@@ -37,7 +43,13 @@ class logUniDist(object):
     right: the upper bound for values in true units
     '''
     def __init__(self, left, right):
+        self.lb = left
+        self.rb = right
         self.dist = loguniform(left, right)
+
+    def inBounds(self, x):
+        if self.lb <= x <= self.rb: return 1
+        else: return 0
 
     def logPDF(self, x):
         return self.dist.logpdf(x)
@@ -56,15 +68,19 @@ class truncatedLogNormDist(object):
     sd: the standard deviation of the underlying normal distribution in true units
     '''
     def __init__(self, left, right, mu, sd):
-        self.left = left
-        self.right = right
+        self.lb = left
+        self.rb = right
         self.dist = lognorm(scale = np.exp(np.log(mu)), s = (np.log(sd))) # (Scipy takes specefic shape parameters)
 
         # Probability that is otherwise truncated to zero, distributed uniformly into the valid range
         self.truncation = (self.dist.cdf(left) + 1 - self.dist.cdf(right)) / (right - left)
 
+    def inBounds(self, x):
+        if self.lb <= x <= self.rb: return 1
+        else: return 0
+
     def logPDF(self, x):
-        if self.left <= x <= self.right: return self.dist.logpdf(x) * np.log(self.truncation)
+        if self.lb <= x <= self.rb: return self.dist.logpdf(x) * np.log(self.truncation)
         else: return -Inf
 
 
@@ -77,7 +93,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     m: the index of the microlensing model to use (1 or 2, single or binary)
     data: the data of the microlensing event to analyse, as a mulensModel data object
     theta: the parameter values in the associated model space to initiliase from
-    prior: an array of prior distributions for the lensing parameters, in the order of entries in theta
+    priors: an array of prior distribution objects for the lensing parameters, in the order of entries in theta
     covariance: the covariance to initialise with when proposing a gaussian move. 
                 Can be the diagonal entries only or a complete matrix
     burns: how many iterations to perform before beginning to adapt the covaraince matrix
@@ -115,10 +131,11 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         piProposed = logLikelihood(m, data, proposed)
         priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
 
-        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance step
+        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
             theta = proposed
             pi = piProposed
             c[i] = 1
+
         else: c[i] = 0
         
         states[:, i] = theta
@@ -135,10 +152,11 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         piProposed = logLikelihood(m, data, proposed)
         priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
 
-        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance
+        if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
             theta = proposed
             pi = piProposed
             c[t]=1
+
         else: c[t]=0
  
         states[:, t] = theta
@@ -149,15 +167,14 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
         t += 1
 
-    # performance output
+    # performance diagnostic
     print("Adaptive Acc: " + str(np.sum(c) / (iterations + burns)) + ", Model: "+str(m))
 
     return covariance, states, c
 
 
-
+'''
 def GaussianProposal(theta, covariance):
-    '''
     Takes a single step in a guassian walk process
     ----------------------------------------------
     theta: the parameter values to step from
@@ -166,9 +183,9 @@ def GaussianProposal(theta, covariance):
                 or a complete matrix
 
     Returns: a new point in parameter space
-    '''
-    return multivariate_normal.rvs(mean = theta, cov = covariance)
 
+    return multivariate_normal.rvs(mean = theta, cov = covariance)
+'''
 
 
 def RJCenteredProposal(m, mProp, theta, covariance, centers):
@@ -187,7 +204,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
     Returns: a new point in the parameter space a jump was proposed too
     '''
     
-    if m == mProp: return GaussianProposal(theta, covariance) # intra-modal move
+    if m == mProp: return multivariate_normal.rvs(mean = theta, cov = covariance) # intra-modal move
     
     else: # inter-model move
         l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
@@ -214,7 +231,7 @@ def D(m):
     dimensionality in the context of microlensing.
     --------------------------------------------
     if m == 1: return 3
-    elif m == 2: return 8
+    elif m == 2: return 7
     else: return 0 
     '''
 
@@ -224,70 +241,43 @@ def D(m):
 
 
 def PriorRatio(m,mProp,theta,thetaProp,priors):
-    '''comment'''
+    '''
+    Calculates the ratio of the product of the priors of the proposed point to the
+    initial point, in log units.
+    --------------------------------------------
+    m: the index of the microlensing model to jump from (1 or 2, single or binary)
+    mProp: the index of the microlensing model to jump to
+    theta: the parameter values in the associated model space to jump from
+    thetaProp: the parameter values in the associated model space to jump to
+    priors: an array of prior distribution objects for the lensing parameters, in the order of entries in theta
+    '''
     
-    productNum=0.
-    productDen=0.
-    for p in range(D(mProp)): 
-        productNum+=(priors[p].pdf(thetaProp[p]))
-        #print(np.exp(priors[p].pdf(thetaProp[p])), thetaProp[p], p)
+    productNumerator = 0.
+    productDenomenator = 0.
 
-    for p in range(D(m)): 
-        productDen+=(priors[p].pdf(theta[p]))
-        #print(np.exp(priors[p].pdf(theta[p])), theta[p], p)
+    for parameter in range(D(mProp)): # cycle through each parameter and associated prior
+        productNumerator += (priors[parameter].logPDF(thetaProp[parameter])) # product using log rules
 
-    #print(productNum)
-    #print(productDen)
+    for parameter in range(D(m)): # cycle through each parameter and associated prior
+        productDenomenator += (priors[parameter].logPDF(theta[parameter])) # product using log rules
     
-    return productNum-productDen
+    return productNumerator - productDenomenator # ratio using log rules
 
 
-
-def Likelihood(m, Data, theta, noise):
-    '''comment'''
-    z=-Inf
-
-    if PriorBounds(m, theta)==0: return z
-
-    #this is possibly very wrong
-    if m==1:
-        try: #for when moves out of bounds of model valididty
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
-            Model.set_magnification_methods([0., 'point_source', 72.]) #?
-            Event = mm.Event(datasets=Data, model=Model)
-
-        except: #make more specific
-            return z
-
-        #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-        #plt.savefig('like.png')
-
-        #pred = Model.magnification(Model.set_times())
-        #return multivariate_normal.logpdf(np.zeros(np.shape(pred)), mean = Data-pred, cov = noise)
-        return -Event.get_chi2()/2
-
-
-    if m==2:
-        try: #for when moves out of bounds of model valididty
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
-            Model.set_magnification_methods([0., 'VBBL', 72.]) #?
-            Event = mm.Event(datasets=Data, model=Model)
-
-        except: #make more specific
-            return z
-        
-        #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-        #plt.savefig('pike.png')
-        #print(Event.get_chi2())
-
-        #pred = Model.magnification(Model.set_times())
-        #X=(Data-pred)
-        #return np.exp(-np.dot(X.transpose(),np.dot(np.linalg.pinv(noise),X))/2)
-        #return multivariate_normal.logpdf(np.zeros(np.shape(pred)), mean = Data-pred, cov = noise)
-        #print(Model.magnification(Model.set_times()))
-        return -Event.get_chi2()/2
-
-def PriorBounds(m, theta):
+'''
+def PriorBounds(m, theta, priors):
+    
+    Check if a position in parameter space is within the bounds of the priors
+    --------------------------------------------
+    m: the index of the microlensing model to jump from (1 or 2, single or binary)
+    mProp: the index of the microlensing model to jump to
+    theta: the parameter values in the associated model space to jump from
+    thetaProp: the parameter values in the associated model space to jump to
+    priors: an array of prior distribution objects for the lensing parameters, in the order of entries in theta
+    
+    for parameter in range(D(m)): 
+        if not priors[parameter].inBounds(theta[parameter]): return 0
+        productDenomenator += (priors[parameter].logPDF(theta[parameter]))
 
     if m==1:
 
@@ -303,7 +293,6 @@ def PriorBounds(m, theta):
             return 0
     
     elif m==2:
-        #print(theta)
         t_0, u_0, t_E, rho, q, s, alpha = theta
 
         if (s<0.2 or s>5):
@@ -328,6 +317,50 @@ def PriorBounds(m, theta):
             return 0
     
     return 1
+'''
+
+
+def logLikelihood(m, Data, theta, priors):
+    '''
+    Calculate the log likelihood that a lightcurve represents observed lightcurve data, upto linear proportionality
+
+    Note: When used in the ratio for a metropolis hastings step, linear proportionality is sufficient as the shared
+    linear coeffiecnt will be present in the numerator and denominator and get cancelled.
+    --------------------------------------------
+    m: the index of the microlensing model (1 or 2, single or binary)
+    data: the data of the microlensing event to analyse, as a mulensModel data object
+    theta: the parameter values in the associated model space to jump from
+    priors: an array of prior distribution objects for the lensing parameters, in the order of entries in theta
+    '''
+
+    #if PriorBounds(m, theta, priors)==0: return -Inf
+
+    # check if parameter is not in prior bounds, and ensure it is not accepted if so
+    for parameter in range(D(m)):
+        if not priors[parameter].inBounds(theta[parameter]): return -Inf
+
+    if m==1:
+        try: # for when moves are out of bounds of model valididty
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+            Model.set_magnification_methods([0., 'point_source', 72.])
+            Event = mm.Event(datasets=Data, model=Model)
+
+        except: # if a point is uncomputable, return true probability zero
+            return -Inf
+
+        return -Event.get_chi2()/2 # exponentially linearly proportional to likelihood
+
+
+    if m==2:
+        try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
+            Model.set_magnification_methods([0., 'VBBL', 72.]) #?
+            Event = mm.Event(datasets=Data, model=Model)
+
+        except: # if a point is uncomputable, return true probability zero
+            return -Inf
+        
+        return -Event.get_chi2()/2 # exponentially linearly proportional to likelihood
 
 
 
@@ -361,7 +394,7 @@ def Posterior(m,t,y,theta,cov,priors):
 
 def PosteriorRatio(t,y,m,m_prop,theta,theta_prop,cov,priors):
     return Posterior(m_prop,t,y,theta_prop,cov,priors)/Posterior(m,t,y,theta,cov,priors)
-    
+
 
 
 def ProposalRatio(m,m_prop,theta,thetaProp,priors):

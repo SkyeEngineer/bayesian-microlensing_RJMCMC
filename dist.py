@@ -13,14 +13,14 @@ t0_pi = mc.uni(0, 72)
 tE_pi = mc.trunclognorm(1, 100, 10**1.15, 10**0.45)
 rho_pi =  mc.loguni(10**-4, 10**-2)
 
+dist = q_pi
+
 y=[]
-x=np.linspace(0, 1, 100)
+x=np.linspace(0, 1, 250)
 for i in x:
-    y.append(np.exp(q_pi.pdf(i)))
+    y.append(np.exp(dist.logPDF(i)))
 plt.plot(x, y)
-plt.xlabel('value') # Set the y axis label of the current axis.
-plt.ylabel('density') # Set a title.
-plt.title('pdfs')
+plt.xlabel('Parameter Value')
+plt.ylabel('Probability Density')
+plt.title(str(dist.__init__())+" probability density function")
 plt.savefig('Plots/pdf-test.png')
-#print(tE_pi.a)
-#print(tE_pi.b)
