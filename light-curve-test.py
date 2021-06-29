@@ -18,8 +18,8 @@ def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
 
 
 # Synthetic Events
-#BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
-BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8})
+BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.1, 'q': 0.05, 's': 1.120, 'alpha': 223.8})
+#BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8})
 BinaryModel.set_magnification_methods([0., 'VBBL', 72.])
 
 SingleModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
@@ -28,7 +28,7 @@ SingleModel.set_magnification_methods([0., 'point_source', 72.])
 # initialise
 t = BinaryModel.set_times(n_epochs = 500)
 i = np.where(np.logical_and(0 <= t, t <= 72))
-binaryError = BinaryModel.magnification(t[i])/20 + 0.25
+binaryError = BinaryModel.magnification(t[i])/30 + 0.2
 
 
 

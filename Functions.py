@@ -80,7 +80,7 @@ class truncatedLogNormDist(object):
         else: return 0
 
     def logPDF(self, x):
-        if self.lb <= x <= self.rb: return self.dist.logpdf(x) * np.log(self.truncation)
+        if self.lb <= x <= self.rb: return np.log(self.dist.pdf(x) + self.truncation)
         else: return -Inf
 
 
@@ -124,12 +124,12 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     means[:, 0] = theta
 
 
-    pi = logLikelihood(m, data, theta)
+    pi = logLikelihood(m, data, unscale(m, theta), priors)
     for i in range(1, burns): # warm up walk to establish an empirical covariance
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
-        piProposed = logLikelihood(m, data, proposed, priors)
-        priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
+        piProposed = logLikelihood(m, data, unscale(m, proposed), priors)
+        priorRatio = np.exp(PriorRatio(m, m, unscale(m, theta), unscale(m, proposed), priors))
 
         if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
             theta = proposed
@@ -138,7 +138,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
         else: c[i] = 0
         
-        states[:, i] = theta
+        states[:, i] = theta#unscale(m, theta)
         means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
     # initiliase empirical covaraince
@@ -149,8 +149,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     for i in range(iterations): # adaptive walk
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
-        piProposed = logLikelihood(m, data, proposed, priors)
-        priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
+        piProposed = logLikelihood(m, data, unscale(m, proposed), priors)
+        priorRatio = np.exp(PriorRatio(m, m, unscale(m, theta), unscale(m, proposed), priors))
 
         if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
             theta = proposed
@@ -159,7 +159,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
         else: c[t]=0
  
-        states[:, t] = theta
+        states[:, t] = theta#unscale(m, theta)
         means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
         
         # update step (recursive covariance)
@@ -170,7 +170,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     # performance diagnostic
     print("Adaptive Acc: " + str(np.sum(c) / (iterations + burns)) + ", Model: "+str(m))
 
-    return covariance, states, c
+    return covariance, states, means, c
 
 
 
@@ -283,15 +283,16 @@ def PriorRatio(m,mProp,theta,thetaProp,priors):
     productDenomenator = 0.
 
     #print(theta, 99)
-    thetaT = unscale(m, theta)
-    thetaTProp = unscale(mProp, thetaProp)
+    #thetaT = unscale(m, theta)
+    #thetaTProp = unscale(mProp, thetaProp)
     #print(thetaT, 99)
 
     for parameter in range(D(mProp)): # cycle through each parameter and associated prior
-        productNumerator += (priors[parameter].logPDF(thetaTProp[parameter])) # product using log rules
+        productNumerator += (priors[parameter].logPDF(thetaProp[parameter])) # product using log rules
 
     for parameter in range(D(m)): # cycle through each parameter and associated prior
-        productDenomenator += (priors[parameter].logPDF(thetaT[parameter])) # product using log rules
+        #print(np.exp(priors[parameter].logPDF(theta[parameter])), parameter, m)
+        productDenomenator += (priors[parameter].logPDF(theta[parameter])) # product using log rules
     
     #print(productNumerator, productDenomenator)
     
@@ -368,15 +369,15 @@ def logLikelihood(m, Data, theta, priors):
     '''
 
     #if PriorBounds(m, theta, priors)==0: return -Inf
-    thetaT = unscale(m, theta)
+    #thetaT = unscale(m, theta)
 
     # check if parameter is not in prior bounds, and ensure it is not accepted if so
     for parameter in range(D(m)):
-        if not priors[parameter].inBounds(thetaT[parameter]): return -Inf
+        if not priors[parameter].inBounds(theta[parameter]): return -Inf
 
     if m==1:
         try: # for when moves are out of bounds of model valididty
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], thetaT)))
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
             Model.set_magnification_methods([0., 'point_source', 72.])
             Event = mm.Event(datasets=Data, model=Model)
 
@@ -388,7 +389,7 @@ def logLikelihood(m, Data, theta, priors):
 
     if m==2:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], thetaT)))
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
             Model.set_magnification_methods([0., 'VBBL', 72.]) #?
             Event = mm.Event(datasets=Data, model=Model)
 
