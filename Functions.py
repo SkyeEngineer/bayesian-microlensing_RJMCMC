@@ -10,7 +10,7 @@ from numpy.lib.function_base import cov
 import numpy as np
 from numpy.core.numeric import Inf
 from scipy.stats import truncnorm, lognorm, norm, loguniform, uniform, multivariate_normal
-
+import copy
 
 
 class uniDist(object):
@@ -105,14 +105,14 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     c: a list of values for each iteration, 1 if the move was accepted, 0 otherwise
     '''
 
-    if burns <= 10:
+    if burns <= 0: #
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix")
     
     # initialise
     d = len(theta)
 
     I = np.identity(d)
-    s = 2.4**2 / d # Arbitrary, good value from Haario et al
+    s = 2.4**2 / d # Arbitrary(ish), good value from Haario et al
     eps = 1e-12 # Needs to be smaller than the scale of parameter values
 
     c = np.zeros((iterations + burns))
@@ -128,7 +128,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     for i in range(1, burns): # warm up walk to establish an empirical covariance
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
-        piProposed = logLikelihood(m, data, proposed)
+        piProposed = logLikelihood(m, data, proposed, priors)
         priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
 
         if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
@@ -142,14 +142,14 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
 
     # initiliase empirical covaraince
-    covariance = s*np.cov(states) + s*eps*I
+    covariance = s*np.cov(states[:, 0:burns]) + s*eps*I
     
     t = burns # global index
 
     for i in range(iterations): # adaptive walk
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
-        piProposed = logLikelihood(m, data, proposed)
+        piProposed = logLikelihood(m, data, proposed, priors)
         priorRatio = np.exp(PriorRatio(m, m, theta, proposed, priors))
 
         if random.random() < priorRatio * np.exp(piProposed - pi): # metropolis acceptance using log rules
@@ -173,8 +173,9 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     return covariance, states, c
 
 
-'''
+
 def GaussianProposal(theta, covariance):
+    '''
     Takes a single step in a guassian walk process
     ----------------------------------------------
     theta: the parameter values to step from
@@ -183,9 +184,9 @@ def GaussianProposal(theta, covariance):
                 or a complete matrix
 
     Returns: a new point in parameter space
-
+    '''
     return multivariate_normal.rvs(mean = theta, cov = covariance)
-'''
+
 
 
 def RJCenteredProposal(m, mProp, theta, covariance, centers):
@@ -204,7 +205,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
     Returns: a new point in the parameter space a jump was proposed too
     '''
     
-    if m == mProp: return multivariate_normal.rvs(mean = theta, cov = covariance) # intra-modal move
+    if m == mProp: return GaussianProposal(theta, covariance) # intra-modal move
     
     else: # inter-model move
         l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
@@ -240,6 +241,32 @@ def D(m):
 
 
 
+def unscale(m, theta): ############make this into a class
+    '''
+    Helper function. Maps the model index to the associated 
+    dimensionality in the context of microlensing.
+    --------------------------------------------
+    if m == 1: return 3
+    elif m == 2: return 7
+    else: return 0 
+    '''
+
+    thetaT=copy.deepcopy(theta)
+
+    if m == 1:
+        thetaT[2] = np.exp(theta[2])
+        return thetaT
+    
+    if m == 2:
+        thetaT[2] = np.exp(theta[2])
+        thetaT[3] = np.exp(theta[3])
+        thetaT[4] = np.exp(theta[4])
+        thetaT[5] = np.exp(theta[5])
+        return thetaT
+
+    return 0
+
+
 def PriorRatio(m,mProp,theta,thetaProp,priors):
     '''
     Calculates the ratio of the product of the priors of the proposed point to the
@@ -255,11 +282,18 @@ def PriorRatio(m,mProp,theta,thetaProp,priors):
     productNumerator = 0.
     productDenomenator = 0.
 
+    #print(theta, 99)
+    thetaT = unscale(m, theta)
+    thetaTProp = unscale(mProp, thetaProp)
+    #print(thetaT, 99)
+
     for parameter in range(D(mProp)): # cycle through each parameter and associated prior
-        productNumerator += (priors[parameter].logPDF(thetaProp[parameter])) # product using log rules
+        productNumerator += (priors[parameter].logPDF(thetaTProp[parameter])) # product using log rules
 
     for parameter in range(D(m)): # cycle through each parameter and associated prior
-        productDenomenator += (priors[parameter].logPDF(theta[parameter])) # product using log rules
+        productDenomenator += (priors[parameter].logPDF(thetaT[parameter])) # product using log rules
+    
+    #print(productNumerator, productDenomenator)
     
     return productNumerator - productDenomenator # ratio using log rules
 
@@ -334,14 +368,15 @@ def logLikelihood(m, Data, theta, priors):
     '''
 
     #if PriorBounds(m, theta, priors)==0: return -Inf
+    thetaT = unscale(m, theta)
 
     # check if parameter is not in prior bounds, and ensure it is not accepted if so
     for parameter in range(D(m)):
-        if not priors[parameter].inBounds(theta[parameter]): return -Inf
+        if not priors[parameter].inBounds(thetaT[parameter]): return -Inf
 
     if m==1:
         try: # for when moves are out of bounds of model valididty
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], thetaT)))
             Model.set_magnification_methods([0., 'point_source', 72.])
             Event = mm.Event(datasets=Data, model=Model)
 
@@ -353,7 +388,7 @@ def logLikelihood(m, Data, theta, priors):
 
     if m==2:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
+            Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], thetaT)))
             Model.set_magnification_methods([0., 'VBBL', 72.]) #?
             Event = mm.Event(datasets=Data, model=Model)
 

@@ -19,7 +19,7 @@ def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
 
 # Synthetic Events
 #BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8})
-BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.000002, 's': 4.2, 'alpha': 223.8})
+BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8})
 BinaryModel.set_magnification_methods([0., 'VBBL', 72.])
 
 SingleModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
@@ -27,8 +27,8 @@ SingleModel.set_magnification_methods([0., 'point_source', 72.])
 
 # initialise
 t = BinaryModel.set_times(n_epochs = 500)
-i = np.where(np.logical_and(t >= 0, t <= 72))
-binaryError = BinaryModel.magnification(t[i]) / 5
+i = np.where(np.logical_and(0 <= t, t <= 72))
+binaryError = BinaryModel.magnification(t[i])/20 + 0.25
 
 
 
@@ -56,11 +56,11 @@ plt.ylabel('Magnification [?]')
 plt.savefig('Plots/curve-single.png')
 plt.clf()
 
-
+r=r
 
 ## PLOT POSTERIOR SURFACES ##
 
-Data = mm.MulensData(data_list=[t, BinaryModel.magnification(t), binaryError], phot_fmt='flux', chi2_fmt='flux')
+Data = mm.MulensData(data_list=[t, BinaryModel.magnification(t), BinaryModel.magnification(t)/20 + 0.25], phot_fmt='flux', chi2_fmt='flux')
 
 density = 5
 print(chi2(36, 0.133, 61.5, 0.00096, 0.0039, 1.120, 223.8, Data))

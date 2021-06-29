@@ -9,6 +9,40 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
 
+# TESTING
+
+states = np.zeros((2, 3))
+states[:, 0] = [1, 0.5]
+
+means = np.zeros((2, 3))
+means[:, 0] = [1, 0.5]
+
+t=1
+theta = [2, 0.75]
+states[:, t] = theta
+means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
+
+
+#print(states[:, 0:2])
+
+t=2
+theta = [0.75, 1]
+states[:, 2] = theta
+means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
+#print(means)
+
+covariance = np.cov(np.transpose(states[:, 0:2]))
+print(covariance)
+
+# update step (recursive covariance)
+covariance = (t-1)/t * covariance + (1/t) * (t*np.outer(means[:, t - 1], means[:, t - 1]) - (t + 1)*np.outer(means[:, t-0], means[:, t-0]) + np.outer(states[:, t-0], states[:, t-0]))
+
+print(covariance)
+print(np.cov(states))
+print((1/t) * (t*(means[:, t - 1].T).dot(means[:, t - 1]) - (t + 1)*(means[:, t-0].T).dot(means[:, t-0]) + (states[:, t-0].T).dot(states[:, t-0])))
+print(np.outer(means[:, t-0], means[:, t-0].T))
+
+g=h
 
 # INITIALISATION
 
