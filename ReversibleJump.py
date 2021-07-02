@@ -15,9 +15,9 @@ from scipy.stats import truncnorm, loguniform, uniform
 
 # Synthetic Event Parameters
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8}) # strong binary
-Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
+#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0007, 's': 1.3, 'alpha': 210.8}) # weak binary2
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
+Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5}) #  Single
@@ -28,7 +28,7 @@ plt.savefig('temp.jpg')
 plt.clf()
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 150)
+t = Model.set_times(n_epochs = 350)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -59,12 +59,13 @@ priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 m_pi = [0.5, 0.5]
 
 # centreing points for inter-model jumps
-center_1 = np.array([36., 0.133, np.log(61.5)])
+center_1 = np.array([36., 0.133, (61.5)])
 #center_1 = np.array([36., 0.133, 61.5])
 #center_2 = np.array([36, 0.133, 61.5, 0.00096, 0.000002, 3.3, 223.8]) # nice results for adaption strong
-center_2 = np.array([36., 0.133, np.log(61.5), np.log(0.005), np.log(0.0007), np.log(1.25), 210.]) #weak1
-#center_2 = np.array([36., 0.133, np.log(61.5), np.log(0.0052), np.log(0.0006), np.log(1.29), 210.9]) #weak2
-#center_2 = np.array([36., 0.133, np.log(61.5), np.log(0.0096), np.log(0.00002), np.log(0.25), 223.8]) #single
+#center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
+#center_2 = np.array([36., 0.133, (61.5), (0.005), np.log(0.0007), (1.25), 210.]) #weak1
+#center_2 = np.array([36., 0.133, (61.5), (0.0052), np.log(0.0006), (1.29), 210.9]) #weak2
+center_2 = np.array([36., 0.133, (61.5), (0.0096), np.log(0.00002), (4.25), 223.8]) #single
 
 # print(np.exp(f.logLikelihood(1, Data, center_1)))
 # print(np.exp(f.logLikelihood(2, Data, center_2)))
@@ -87,11 +88,11 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 2000
-
-theta = [36., 0.133, np.log(61.5)]#, 0.0014, 0.0009, 1.26, 224.]
+iterations = 500
+print(states_1[:, -1])
+theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
-pi = np.exp(f.logLikelihood(m, Data, f.unscale(m, theta), priors))
+pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
 #print(pi)
 
 ms = np.zeros(iterations, dtype=int)
@@ -114,16 +115,29 @@ means = [np.zeros((3, iters+burns+iterations)), np.zeros((7, iters+burns+iterati
 means[0][:, 0:burns+iters] = means_1
 means[1][:, 0:burns+iters] = means_2
 
+print('Running RJMCMC')
+
+            
+
+
+
 for i in range(iterations): # loop through RJMCMC steps
+    
+    #diagnostics
+    #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
+    cf = i/(iterations-1);
+    print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
     mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
     thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers) #print('prop: '+str(thetaProp))
-    piProp = np.exp(f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
+
     priorRatio = np.exp(f.PriorRatio(m, mProp, f.unscale(m, theta), f.unscale(mProp, thetaProp), priors))
     
-    #if mProp == 1: print(piProp/pi, priorRatio, mProp)
+    piProp = (f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
+
+    #print(piProp, pi, priorRatio, mProp)
     
-    if random.random() <= piProp/pi * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
+    if random.random() <= np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         theta = thetaProp
         m = mProp
         score += 1
@@ -144,21 +158,26 @@ for i in range(iterations): # loop through RJMCMC steps
     t[m-1] += 1
 
 # performance diagnostics:
-print("acc: "+str(score/iterations))
-print("1: "+str(1-np.sum(ms-1)/iterations))
-print("2: "+str(np.sum(ms-1)/iterations))
+print("\nAccepted Move Fraction: "+str(score/iterations))
+print("P(Singular): "+str(1-np.sum(ms-1)/iterations))
+print("P(Binary): "+str(np.sum(ms-1)/iterations))
 #print(states)
 
 
 
 ## PLOT RESULTS ##
 
-markerSize=50
+markerSize=75
 
-states_2 = [] 
+states_2 = []
+h_states_2=[]
 for i in range(iterations): # record all binary model states in the chain
-    if ms[i] == 2: states_2.append(f.unscale(2, states[i]))
+    if ms[i] == 2: 
+        states_2.append(f.unscale(2, states[i]))
+        if ms[i-1] == 1: h_states_2.append(f.unscale(2, states[i]))
+
 states_2=np.array(states_2)
+h_states_2=np.array(h_states_2)
 
 
 meanState_2 = np.median((states_2), axis=0)
@@ -172,22 +191,28 @@ plt.savefig('Plots/BinaryFit.png')
 plt.clf()
 
 
-plt.scatter(states_2[:,5], ((states_2[:,4])), alpha=0.25)
+plt.scatter(states_2[:,5], (states_2[:,4]), c=np.linspace(0.0, 1.0, len(states_2)), cmap='spring', alpha=0.25, marker="o")
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
+cbar.set_label('Time', rotation = 90)
+plt.scatter(h_states_2[:,5], h_states_2[:,4], c='black', alpha=0.1, marker=".", label='Jump from M1', s=1)
 plt.xlabel('s [Einstein Ring Radius]')
 plt.ylabel('q [Unitless]')
 plt.title('RJ binary model walk through Mass Fraction / Separation space\nwith centreing function')
-plt.scatter((states_2[0,5]), (states_2[0,4]), c=[(0,1,0)], marker='2', label='Initial\nPosition', s=markerSize)
-plt.scatter(np.exp(center_2[5]), np.exp(center_2[4]), c=[(1,0,0)], marker='2', label='Centreing\npoint', s=markerSize)
-plt.scatter(1.3, 0.0009, c=[(0,0,1)], marker='2', label='True', s=markerSize)
+plt.scatter((center_2[5]), np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
+#plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
 plt.legend()
 plt.savefig('Plots/RJ-binary-Walk.png')
 plt.clf()
 
 
 states_1 = []
+h_states_1 = []
 for i in range(iterations): # record all single model states in the chain
-    if ms[i] == 1: states_1.append(f.unscale(1, states[i]))
+    if ms[i] == 1: 
+        states_1.append(f.unscale(1, states[i]))
+        if ms[i-1] == 2: h_states_1.append(f.unscale(1, states[i]))
 states_1=np.array(states_1)
+h_states_1=np.array(h_states_1)
 
 
 meanState_1 = np.median(states_1, axis=0)
@@ -201,13 +226,17 @@ plt.clf()
 
 
 
-plt.scatter((states_1[:,2]), (states_1[:,1]), alpha=0.25)
+plt.scatter((states_1[:,2]), (states_1[:,1]), c=np.linspace(0.0, 1.0, len(states_1)), cmap='spring', alpha=0.25, marker="o")
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
+cbar.set_label('Time', rotation = 90)
+plt.scatter(h_states_1[:,2], h_states_1[:,1], c='black', alpha=0.1, marker=".", label='Jump from M2', s=1)
 plt.xlabel('u0 [?]')
 plt.ylabel('tE [?]')
 plt.title('RJ single model walk through minimum impact parameter / Einstein crossing time \nwith centreing function')
-plt.scatter(states_1[0,2], states_1[0,1], c=[(0,1,0)], marker='2', label='Initial\nPosition', s=markerSize)
-plt.scatter(np.exp(center_1[2]), center_1[1], c=[(1,0,0)], marker='2', label='Centreing\npoint', s=markerSize)
-plt.scatter(61.5, 0.133, c=[(0,0,1)], marker='2', label='True', s=markerSize)
+
+plt.scatter(center_1[2], center_1[1], marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
+#plt.scatter(61.5, 0.133, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+
 plt.legend()
 plt.savefig('Plots/RJ-single-Walk.png')
 plt.clf()

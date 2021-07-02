@@ -54,7 +54,7 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
 t = Model.set_times(n_epochs = 100)
-error = Model.magnification(t)/5
+error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
 # priors (Zhang et al)
@@ -68,9 +68,9 @@ rho_pi =  f.logUniDist(10**-4, 10**-2)
 priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
 # initial points
-theta_1i = np.array([36., 0.133, np.log(61.5)])
+theta_1i = np.array([36., 0.133, (61.5)])
 #theta_1i = np.array([36., 0.133, 61.5])
-theta_2i = np.array([36, 0.133, np.log(61.5), np.log(0.0093), np.log(0.021), np.log(1.13), 223.8]) # nice results for adaption
+theta_2i = np.array([36, 0.133, (61.5), (0.00958), np.log(0.029), (1.05), 223.8]) # nice results for adaption
 #theta_2i = np.array([36., 0.133, 61.5, 0.0014, 0.00096, 1.2, 224.]) # nice results for model
 # print(np.exp(f.logLikelihood(1, Data, theta_1i)))
 # print(np.exp(f.logLikelihood(2, Data, theta_2i)))
@@ -79,21 +79,22 @@ theta_2i = np.array([36, 0.133, np.log(61.5), np.log(0.0093), np.log(0.021), np.
 covariance_1i=np.multiply(0.0001, [0.01, 0.01, 0.1])
 covariance_2i=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])
 
-burns=10
-iters=1000
+burns=5
+iters=2045
 
 #covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
-covariance_2p, states_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
+covariance_2p, states_2, means_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
 
 # Create and plot the accepatnce ratio over time
 acc = []
-size = 10
+size = 50
 bins = int((burns + iters) / size)
 
 for bin in range(bins): # record the ratio of acceptance for each bin
     acc.append(np.sum(c_2[size*bin:size*(bin+1)]) / size)
 
 plt.plot(np.linspace(1, bins, num=bins), acc)
+plt.ylim((0.0, 1.0))
 plt.xlabel('Iterations [bins]')
 plt.ylabel('Acceptance rate')
 plt.title('Adaptive MCMC acceptance timeline')
@@ -117,12 +118,16 @@ print(np.linalg.det(np.cov(states_2)), 'empirical')
 #print((np.cov(states_2))) # clearly, adaption is calculating wrong
 
 # plot the points visited during the walk
-plt.scatter(np.exp(states_2[5,:]), np.exp(states_2[4,:]), alpha=0.25)
+
+plt.scatter(states_2[5,:], np.exp(states_2[4,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
+cbar.set_label('Time', rotation = 90)
 plt.xlabel('s [Einstein Ring Radius]')
 plt.ylabel('q')
 plt.title('Adaptive f walk over binary model space')
-plt.scatter(1.1, 0.0002, c=[(0,0,1)], marker='2', label='True', s=50)
-plt.scatter(np.exp(theta_2i[5]), np.exp(theta_2i[4]), c=[(1,0,0)], marker='2', label='Initial\nPosition', s=50)
-plt.legend()
+#plt.scatter(1.1, 0.02, c=[(0,0,1)], marker='2', label='True', s=50)
+#plt.scatter(np.exp(theta_2i[5]), np.exp(theta_2i[4]), c=[(1,0,0)], marker='2', label='Initial\nPosition', s=50)
+#plt.legend()
+plt.gca().ticklabel_format(useOffset=False)
 plt.savefig('Plots/Adaptive-Covariance-Sampleing-Walk.png')
 plt.clf()

@@ -168,7 +168,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         t += 1
 
     # performance diagnostic
-    print("Adaptive Acc: " + str(np.sum(c) / (iterations + burns)) + ", Model: "+str(m))
+    print(f"Adaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}")
 
     return covariance, states, means, c
 
@@ -219,7 +219,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
             #u = np.multiply(r, [0.001, 0.00059, 1.238, 223.7])+np.multiply((1-r), [0.00099, 0.0009, 1.2, 223.5])#multivariate_normal.rvs(mean=center[mProp-1][3:], cov=covProp[3:] * np.average(l)) #center[mProp-1][3:] * np.average(l)#SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
             #u = np.append((center[mProp-1][3:6] + center[mProp-1][3:6] * np.average(l)), center[mProp-1][6])
 
-            u = centers[mProp-1][3:] + centers[mProp-1][3:] * np.average(l) # semi-randomly sample the non shared parameters
+            u = centers[mProp-1][3:] + centers[mProp-1][3:] * np.average(l)# * random.random() # semi-randomly sample the non shared parameters
             thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
 
             return thetaProp
@@ -254,14 +254,10 @@ def unscale(m, theta): ############make this into a class
     thetaT=copy.deepcopy(theta)
 
     if m == 1:
-        thetaT[2] = np.exp(theta[2])
         return thetaT
     
     if m == 2:
-        thetaT[2] = np.exp(theta[2])
-        thetaT[3] = np.exp(theta[3])
         thetaT[4] = np.exp(theta[4])
-        thetaT[5] = np.exp(theta[5])
         return thetaT
 
     return 0
