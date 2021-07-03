@@ -163,7 +163,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
         
         # update step (recursive covariance)
-        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) + eps*I
+        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) #+ eps*I
 
         t += 1
 
@@ -219,7 +219,18 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
             #u = np.multiply(r, [0.001, 0.00059, 1.238, 223.7])+np.multiply((1-r), [0.00099, 0.0009, 1.2, 223.5])#multivariate_normal.rvs(mean=center[mProp-1][3:], cov=covProp[3:] * np.average(l)) #center[mProp-1][3:] * np.average(l)#SurrogatePosterior[mProp].rvs #THIS FUNCTION MIGHT NOT BE DIFFERENTIABLE, JACOBIAN TROUBLES?
             #u = np.append((center[mProp-1][3:6] + center[mProp-1][3:6] * np.average(l)), center[mProp-1][6])
 
-            u = centers[mProp-1][3:] + centers[mProp-1][3:] * np.average(l)# * random.random() # semi-randomly sample the non shared parameters
+            #u = centers[mProp-1][3:] + centers[mProp-1][3:] * np.average(l)# * random.random() # semi-randomly sample the non shared parameters
+            
+            #M = np.zeros((4, 3))
+            #M[[0, 1, 2, 3], random.randint(0, 2)] = 1
+            #u = centers[mProp-1][3:] + M * l
+            
+            u = np.append(l, np.average(l))
+            #print(u)
+            np.random.shuffle(u)
+            #print(u)
+            u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], u)
+
             thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
 
             return thetaProp

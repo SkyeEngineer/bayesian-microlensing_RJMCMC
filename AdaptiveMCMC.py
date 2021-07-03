@@ -9,6 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
 
+
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+
+
 # TESTING
 '''
 states = np.zeros((2, 3))
@@ -80,7 +85,7 @@ covariance_1i=np.multiply(0.0001, [0.01, 0.01, 0.1])
 covariance_2i=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])
 
 burns=5
-iters=2045
+iters=245
 
 #covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
 covariance_2p, states_2, means_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
@@ -130,4 +135,63 @@ plt.title('Adaptive f walk over binary model space')
 #plt.legend()
 plt.gca().ticklabel_format(useOffset=False)
 plt.savefig('Plots/Adaptive-Covariance-Sampleing-Walk.png')
+plt.clf()
+
+
+
+
+
+#https://scipython.com/blog/visualizing-the-bivariate-gaussian-distribution/
+
+# Our 2-dimensional distribution will be over variables X and Y
+N = 60
+X = np.linspace(0, 1, N)
+Y = np.linspace(0, 2, N)
+X, Y = np.meshgrid(X, Y)
+
+# Mean vector and covariance matrix
+mu = np.array([0.1, 1.1])
+Sigma = np.array([[covariance_2p[4][4], covariance_2p[4][5]], [covariance_2p[5][4], covariance_2p[5][5]]])
+print(Sigma)
+H=G
+# Pack X and Y into a single 3-dimensional array
+pos = np.empty(X.shape + (2,))
+pos[:, :, 0] = X
+pos[:, :, 1] = Y
+
+def multivariate_gaussian(pos, mu, Sigma):
+    """Return the multivariate Gaussian distribution on array pos.
+
+    pos is an array constructed by packing the meshed arrays of variables
+    x_1, x_2, x_3, ..., x_k into its _last_ dimension.
+
+    """
+
+    n = mu.shape[0]
+    Sigma_det = np.linalg.det(Sigma)
+    Sigma_inv = np.linalg.inv(Sigma)
+    N = np.sqrt((2*np.pi)**n * Sigma_det)
+    # This einsum call calculates (x-mu)T.Sigma-1.(x-mu) in a vectorized
+    # way across all the input variables.
+    fac = np.einsum('...k,kl,...l->...', pos-mu, Sigma_inv, pos-mu)
+
+    return np.exp(-fac / 2) / N
+
+# The distribution on the variables X, Y packed into pos.
+Z = multivariate_gaussian(pos, mu, Sigma)
+
+# Create a surface plot and projected filled contour plot under it.
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+ax.plot_surface(X, Y, Z, rstride=3, cstride=3, linewidth=1, antialiased=True,
+                cmap=cm.viridis)
+
+cset = ax.contourf(X, Y, Z, zdir='z', offset=-0.15, cmap=cm.viridis)
+
+# Adjust the limits, ticks and view angle
+ax.set_zlim(-0.15,0.2)
+ax.set_zticks(np.linspace(0,0.2,5))
+ax.view_init(27, -21)
+
+plt.savefig('Plots/Adaptive-Normal.png')
 plt.clf()

@@ -15,9 +15,9 @@ from scipy.stats import truncnorm, loguniform, uniform
 
 # Synthetic Event Parameters
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8}) # strong binary
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
+Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0007, 's': 1.3, 'alpha': 210.8}) # weak binary2
-Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
+#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5}) #  Single
@@ -28,7 +28,7 @@ plt.savefig('temp.jpg')
 plt.clf()
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 350)
+t = Model.set_times(n_epochs = 100)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -61,11 +61,11 @@ m_pi = [0.5, 0.5]
 # centreing points for inter-model jumps
 center_1 = np.array([36., 0.133, (61.5)])
 #center_1 = np.array([36., 0.133, 61.5])
-#center_2 = np.array([36, 0.133, 61.5, 0.00096, 0.000002, 3.3, 223.8]) # nice results for adaption strong
-#center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
+#center_2 = np.array([36, 0.133, 61.5, 0.0096, np.log(0.0039), 1.14, 223.8]) # nice results for adaption strong
+center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
 #center_2 = np.array([36., 0.133, (61.5), (0.005), np.log(0.0007), (1.25), 210.]) #weak1
 #center_2 = np.array([36., 0.133, (61.5), (0.0052), np.log(0.0006), (1.29), 210.9]) #weak2
-center_2 = np.array([36., 0.133, (61.5), (0.0096), np.log(0.00002), (4.25), 223.8]) #single
+#center_2 = np.array([36., 0.133, (61.5), (0.0096), np.log(0.00002), (4.25), 223.8]) #single
 
 # print(np.exp(f.logLikelihood(1, Data, center_1)))
 # print(np.exp(f.logLikelihood(2, Data, center_2)))
@@ -74,11 +74,16 @@ centers = [center_1, center_2]
 # initial covariances (diagonal)
 covariance_1 = np.multiply(0.0001, [0.01, 0.01, 0.1])
 covariance_2 = np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
+
+#covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
+#covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
+#covariance_1 = np.outer(covariance_1s, covariance_1s)
+#covariance_2 = np.outer(covariance_2s, covariance_2s)
 #covariance_p = [covariance_1, covariance_2]
 
 # Use adaptiveMCMC to calculate initial covariances
-burns = 5
-iters = 250
+burns = 2
+iters = 1000
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -88,7 +93,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 500
+iterations = 1000
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -151,14 +156,15 @@ for i in range(iterations): # loop through RJMCMC steps
     means[m-1][:, tr] = (means[m-1][:, tr-1]*tr + theta)/(tr + 1) # recursive mean (offsets indices starting at zero by one)    
     # update step (recursive covariance)
 
-    covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) + eps*I[m-1]
+    covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) #+ eps*I[m-1]
 
 
 
     t[m-1] += 1
 
 # performance diagnostics:
-print("\nAccepted Move Fraction: "+str(score/iterations))
+print("\nIterations: "+str(iterations))
+print("Accepted Move Fraction: "+str(score/iterations))
 print("P(Singular): "+str(1-np.sum(ms-1)/iterations))
 print("P(Binary): "+str(np.sum(ms-1)/iterations))
 #print(states)
@@ -171,10 +177,15 @@ markerSize=75
 
 states_2 = []
 h_states_2=[]
+h_ind = []
+h=0
 for i in range(iterations): # record all binary model states in the chain
     if ms[i] == 2: 
         states_2.append(f.unscale(2, states[i]))
-        if ms[i-1] == 1: h_states_2.append(f.unscale(2, states[i]))
+        if ms[i-1] == 1: 
+            h_states_2.append(f.unscale(2, states[i]))
+            h_ind.append(len(states_2))
+
 
 states_2=np.array(states_2)
 h_states_2=np.array(h_states_2)
@@ -191,7 +202,7 @@ plt.savefig('Plots/BinaryFit.png')
 plt.clf()
 
 
-plt.scatter(states_2[:,5], (states_2[:,4]), c=np.linspace(0.0, 1.0, len(states_2)), cmap='spring', alpha=0.25, marker="o")
+plt.scatter(states_2[:,5], states_2[:,4], c=np.linspace(0.0, 1.0, len(states_2)), cmap='spring', alpha=0.25, marker="o")
 cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
 cbar.set_label('Time', rotation = 90)
 plt.scatter(h_states_2[:,5], h_states_2[:,4], c='black', alpha=0.1, marker=".", label='Jump from M1', s=1)
@@ -199,10 +210,37 @@ plt.xlabel('s [Einstein Ring Radius]')
 plt.ylabel('q [Unitless]')
 plt.title('RJ binary model walk through Mass Fraction / Separation space\nwith centreing function')
 plt.scatter((center_2[5]), np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
-#plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
 plt.legend()
 plt.savefig('Plots/RJ-binary-Walk.png')
 plt.clf()
+
+
+
+#plt.scatter(h_ind, h_states_2[:,4], alpha=0.25, marker="*", label='Jump from M1')
+plt.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:,4])
+plt.xlabel('Binary Iteration')
+plt.ylabel('q [Unitless]')
+plt.title('RJ binary model walk through q')
+#plt.hlines(np.exp(center_2[4]), 0, len(states_2), label='Centre', color='black')
+plt.hlines(0.0009, 0, len(states_2), label='True', color='red')#r'$\circledast$'
+plt.legend()
+plt.savefig('Plots/RJ-q-binary-Walk.png')
+plt.clf()
+
+
+
+plt.hist(states_2[:,4], bins=50, density=True)
+plt.vlines(0.0009, 0, plt.gca().get_ylim()[1], label='True', color='red')
+plt.vlines(np.exp(center_2[4]), 0, plt.gca().get_ylim()[1], label='Centre', color='black')
+plt.legend()
+plt.savefig('Plots/RJ-Binary-q-dist')
+plt.clf()
+
+
+
+## SINGLE MODEL ##
+
 
 
 states_1 = []
