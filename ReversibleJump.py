@@ -8,14 +8,31 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
+from matplotlib.collections import LineCollection
+
+
+
+plt.rcParams["font.family"] = "serif"
+plt.rcParams['font.size'] = 12
+
+plt.style.use('seaborn-bright')
+
+plt.rcParams["legend.edgecolor"] = '0'
+plt.rcParams["legend.framealpha"] = 1
+plt.rcParams["legend.title_fontsize"] = 10
+plt.rcParams["legend.fontsize"] = 9
+
+plt.rcParams["grid.linestyle"] = 'dashed' 
+plt.rcParams["grid.alpha"] = 0.25
+
 
 
 
 ## INITIALISATION ##
 
 # Synthetic Event Parameters
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8}) # strong binary
-Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
+Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.002, 's': 1.27, 'alpha': 210.8}) # strong binary
+#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0007, 's': 1.3, 'alpha': 210.8}) # weak binary2
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
 Model.set_magnification_methods([0., 'VBBL', 72.])
@@ -26,6 +43,8 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 plt.savefig('temp.jpg')
 plt.clf()
+
+
 
 # Generate "Synthetic" Lightcurve
 t = Model.set_times(n_epochs = 100)
@@ -61,8 +80,8 @@ m_pi = [0.5, 0.5]
 # centreing points for inter-model jumps
 center_1 = np.array([36., 0.133, (61.5)])
 #center_1 = np.array([36., 0.133, 61.5])
-#center_2 = np.array([36, 0.133, 61.5, 0.0096, np.log(0.0039), 1.14, 223.8]) # nice results for adaption strong
-center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
+center_2 = np.array([36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8]) # nice results for adaption strong
+#center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
 #center_2 = np.array([36., 0.133, (61.5), (0.005), np.log(0.0007), (1.25), 210.]) #weak1
 #center_2 = np.array([36., 0.133, (61.5), (0.0052), np.log(0.0006), (1.29), 210.9]) #weak2
 #center_2 = np.array([36., 0.133, (61.5), (0.0096), np.log(0.00002), (4.25), 223.8]) #single
@@ -83,7 +102,7 @@ covariance_2 = np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.00
 
 # Use adaptiveMCMC to calculate initial covariances
 burns = 2
-iters = 1000
+iters = 2500
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -93,7 +112,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 1000
+iterations = 7500
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -203,37 +222,71 @@ plt.clf()
 
 
 plt.scatter(states_2[:,5], states_2[:,4], c=np.linspace(0.0, 1.0, len(states_2)), cmap='spring', alpha=0.25, marker="o")
-cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
-cbar.set_label('Time', rotation = 90)
-plt.scatter(h_states_2[:,5], h_states_2[:,4], c='black', alpha=0.1, marker=".", label='Jump from M1', s=1)
-plt.xlabel('s [Einstein Ring Radius]')
-plt.ylabel('q [Unitless]')
-plt.title('RJ binary model walk through Mass Fraction / Separation space\nwith centreing function')
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
+#cbar.set_label('Time', rotation = 90, fontsize=10)
+ax=plt.gca()
+cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+cbar.ax.yaxis.set_label_position('right')
+#plt.scatter(h_states_2[:,5], h_states_2[:,4], c='black', alpha=0.5, marker=".", label='Jump', s=0.5)
+plt.xlabel(r'Separation [$E_r$]')
+plt.ylabel('Mass Ratio')
+plt.title('RJMCMC walk\nprojected onto Binary (s, q) space')
 plt.scatter((center_2[5]), np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
-plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+#plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+plt.scatter(1.27, 0.002, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
 plt.legend()
+plt.grid()
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+plt.tight_layout()
 plt.savefig('Plots/RJ-binary-Walk.png')
 plt.clf()
 
 
 
 #plt.scatter(h_ind, h_states_2[:,4], alpha=0.25, marker="*", label='Jump from M1')
-plt.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:,4])
-plt.xlabel('Binary Iteration')
-plt.ylabel('q [Unitless]')
-plt.title('RJ binary model walk through q')
+#plt.hlines(0.0009, 0, len(states_2), label='True', color='red')
+plt.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:,4], linewidth=0.5)
+plt.xlabel('Binary Steps')
+plt.ylabel('Mass Ratio')
+plt.title('RJMCMC Binary model q Trace')
 #plt.hlines(np.exp(center_2[4]), 0, len(states_2), label='Centre', color='black')
-plt.hlines(0.0009, 0, len(states_2), label='True', color='red')#r'$\circledast$'
+#r'$\circledast$'
+
+plt.grid()
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+
+#plt.axhline(0.0009, label='True', color='red')
+plt.axhline(0.002, label='True', color='red')
+plt.axhline(np.exp(center_2[4]), label='Centre', color='black')
 plt.legend()
+
+plt.tight_layout()
 plt.savefig('Plots/RJ-q-binary-Walk.png')
 plt.clf()
 
 
 
 plt.hist(states_2[:,4], bins=50, density=True)
-plt.vlines(0.0009, 0, plt.gca().get_ylim()[1], label='True', color='red')
-plt.vlines(np.exp(center_2[4]), 0, plt.gca().get_ylim()[1], label='Centre', color='black')
+#h=plt.gca().get_ylim()[1]
+
+#plt.vlines(np.exp(center_2[4]), 0, h, label='Centre', color='black')
+plt.xlabel('Mass Ratio')
+plt.ylabel('Probability Density')
+plt.title('RJMCMC Binary model q\ndistribution')
+
+plt.grid()
+plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
+
+#plt.axvline(0.0009, label='True', color='red')
+plt.axvline(0.002, label='True', color='red')
+plt.axvline(np.exp(center_2[4]), label='Centre', color='black')
+#col = LineCollection([((0.0009, -h), (0.0009, 2*h))])
+#ax.add_collection(col, autolim=False)
+
+
 plt.legend()
+plt.tight_layout()
 plt.savefig('Plots/RJ-Binary-q-dist')
 plt.clf()
 
@@ -280,10 +333,13 @@ plt.savefig('Plots/RJ-single-Walk.png')
 plt.clf()
 
 
-plt.plot(np.linspace(1, iterations, num=iterations), ms)
-plt.title('RJ Weak binary event with centreing function\nmodel trace')
-plt.xlabel('Iteration')
+plt.plot(np.linspace(1, iterations, num=iterations), ms, linewidth=0.5)
+plt.title('RJMCMC Model Trace')
+plt.xlabel('Iterations')
 plt.ylabel('Model Index')
 plt.locator_params(axis="y", nbins=2)
+#plt.legend()
+#plt.grid()
+plt.tight_layout()
 plt.savefig('Plots/Trace.png')
 plt.clf()

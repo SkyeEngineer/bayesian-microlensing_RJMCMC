@@ -49,6 +49,23 @@ print(np.cov(states), 'true cov')
 #print(np.outer(means[:, t-0], means[:, t-0].T))
 '''
 
+
+plt.rcParams["font.family"] = "serif"
+plt.rcParams['font.size'] = 12
+
+plt.style.use('seaborn-bright')
+
+plt.rcParams["legend.edgecolor"] = '0'
+plt.rcParams["legend.framealpha"] = 1
+plt.rcParams["legend.title_fontsize"] = 10
+plt.rcParams["legend.fontsize"] = 9
+
+plt.rcParams["grid.linestyle"] = 'dashed' 
+plt.rcParams["grid.alpha"] = 0.25
+
+
+
+
 # INITIALISATION
 
 # Synthetic Event Parameters
@@ -75,7 +92,7 @@ priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 # initial points
 theta_1i = np.array([36., 0.133, (61.5)])
 #theta_1i = np.array([36., 0.133, 61.5])
-theta_2i = np.array([36, 0.133, (61.5), (0.00958), np.log(0.029), (1.05), 223.8]) # nice results for adaption
+theta_2i = np.array([36, 0.133, (61.5), (0.00958), np.log(0.0205), (1.108), 223.8]) # nice results for adaption
 #theta_2i = np.array([36., 0.133, 61.5, 0.0014, 0.00096, 1.2, 224.]) # nice results for model
 # print(np.exp(f.logLikelihood(1, Data, theta_1i)))
 # print(np.exp(f.logLikelihood(2, Data, theta_2i)))
@@ -85,7 +102,7 @@ covariance_1i=np.multiply(0.0001, [0.01, 0.01, 0.1])
 covariance_2i=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])
 
 burns=5
-iters=245
+iters=2045
 
 #covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
 covariance_2p, states_2, means_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
@@ -98,11 +115,14 @@ bins = int((burns + iters) / size)
 for bin in range(bins): # record the ratio of acceptance for each bin
     acc.append(np.sum(c_2[size*bin:size*(bin+1)]) / size)
 
-plt.plot(np.linspace(1, bins, num=bins), acc)
+plt.plot((np.linspace(1, bins, num=bins)), acc)
 plt.ylim((0.0, 1.0))
-plt.xlabel('Iterations [bins]')
-plt.ylabel('Acceptance rate')
+plt.xlabel(f'Binned Iterations Over Time [Bins, n={size}]')
+plt.ylabel('Fraction of Accepted\nProposals '+r'[$Bins^{-1}$]')
 plt.title('Adaptive MCMC acceptance timeline')
+#plt.legend()
+plt.grid()
+plt.tight_layout()
 plt.savefig('Plots/Adaptive-MCMC-acceptance-progression.png')
 plt.clf()
 
@@ -115,28 +135,31 @@ plt.clf()
 #print((covariance_2p))
 
 #print(np.prod(covariance_1i))
-print(np.prod(covariance_2i), 'inititial')
+#print(np.prod(covariance_2i), 'inititial')
 #print(np.linalg.det(covariance_1p))
-print(np.linalg.det(covariance_2p), 'adapted')
+#print(np.linalg.det(covariance_2p), 'adapted')
 
-print(np.linalg.det(np.cov(states_2)), 'empirical')
+#print(np.linalg.det(np.cov(states_2)), 'empirical')
 #print((np.cov(states_2))) # clearly, adaption is calculating wrong
 
 # plot the points visited during the walk
 
 plt.scatter(states_2[5,:], np.exp(states_2[4,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
-cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
-cbar.set_label('Time', rotation = 90)
-plt.xlabel('s [Einstein Ring Radius]')
-plt.ylabel('q')
-plt.title('Adaptive f walk over binary model space')
-#plt.scatter(1.1, 0.02, c=[(0,0,1)], marker='2', label='True', s=50)
-#plt.scatter(np.exp(theta_2i[5]), np.exp(theta_2i[4]), c=[(1,0,0)], marker='2', label='Initial\nPosition', s=50)
-#plt.legend()
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
+#cbar.set_label('Time', rotation = 90, fontsize=10)
+ax=plt.gca()
+cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+cbar.ax.yaxis.set_label_position('right')
+plt.xlabel(r'Separation [$E_r$]')
+plt.ylabel('Mass Ratio')
+plt.title('Adaptive MCMC walk\nprojected onto Binary (s, q) space')
+#plt.scatter(1.1, 0.02, marker='*', label='True', s=75, c='black', alpha=1)#r'$\circledast$'
+plt.legend()
+plt.grid()
 plt.gca().ticklabel_format(useOffset=False)
+plt.tight_layout()
 plt.savefig('Plots/Adaptive-Covariance-Sampleing-Walk.png')
 plt.clf()
-
 
 
 

@@ -225,11 +225,15 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
             #M[[0, 1, 2, 3], random.randint(0, 2)] = 1
             #u = centers[mProp-1][3:] + M * l
             
-            u = np.append(l, np.average(l))
+            #u = np.append(l, np.average(l))
             #print(u)
-            np.random.shuffle(u)
+            #np.random.shuffle(u)
             #print(u)
+            #u = np.multiply(np.random.choice(l, 4), (1--0)*np.random.random((4))+0.5)
+            u = np.multiply(np.random.choice(l, 4), np.random.choice([1, -1], 4))
             u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], u)
+
+            #u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], np.random.choice([1, -1], 1) * np.average(l))
 
             thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
 
