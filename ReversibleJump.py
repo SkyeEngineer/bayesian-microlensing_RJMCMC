@@ -47,7 +47,7 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 100)
+t = Model.set_times(n_epochs = 40)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
