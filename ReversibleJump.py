@@ -4,6 +4,7 @@
 
 import MulensModel as mm
 import Functions as f
+import Autocorrelation as AC
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,14 +31,22 @@ plt.rcParams["grid.alpha"] = 0.25
 
 ## INITIALISATION ##
 
+sn = 1
+
 # Synthetic Event Parameters
-Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.002, 's': 1.27, 'alpha': 210.8}) # strong binary
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8}) # weak binary1
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0007, 's': 1.3, 'alpha': 210.8}) # weak binary2
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00002, 's': 4.9, 'alpha': 223.8}) # indistiguishable from single
+theta_Models = [
+    [36, 0.133, 61.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
+    [36, 0.133, 61.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
+    [36, 0.133, 61.5, 0.0056, 0.0007, 1.3, 210.8], # weak binary 2
+    [36, 0.133, 61.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
+    [36, 0.133, 61.5]  # single
+    ]
+theta_Model = np.array(theta_Models[sn])
+
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
-#Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5}) #  Single
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
 #Model.set_magnification_methods([0., 'point_source', 72.])
 
 Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
@@ -47,7 +56,7 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 40)
+t = Model.set_times(n_epochs = 50)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -61,7 +70,6 @@ t0_pi = f.uniDist(0, 72)
 tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
 rho_pi =  f.logUniDist(10**-4, 10**-2)
 a = 0.1
-
 #m_pi = [1-a, a]
 #priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
@@ -78,21 +86,24 @@ priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 m_pi = [0.5, 0.5]
 
 # centreing points for inter-model jumps
-center_1 = np.array([36., 0.133, (61.5)])
+center_1 = np.array([36., 0.133, 61.5])
 #center_1 = np.array([36., 0.133, 61.5])
-center_2 = np.array([36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8]) # nice results for adaption strong
-#center_2 = np.array([36., 0.133, (61.5), (0.00563), np.log(0.00091), (1.31), 210.8]) #weak1
-#center_2 = np.array([36., 0.133, (61.5), (0.005), np.log(0.0007), (1.25), 210.]) #weak1
-#center_2 = np.array([36., 0.133, (61.5), (0.0052), np.log(0.0006), (1.29), 210.9]) #weak2
-#center_2 = np.array([36., 0.133, (61.5), (0.0096), np.log(0.00002), (4.25), 223.8]) #single
 
+center_2s = [
+    [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
+    [36., 0.133, 61.5, 0.00963, np.log(0.00092), 1.31, 210.8], # weak binary 1
+    [36., 0.133, 61.5, 0.0052, np.log(0.0006), 1.29, 210.9], # weak binary 2
+    [36., 0.133, 61.5, 0.0096, np.log(0.00002), 4.25, 223.8], # indistiguishable from single
+    ]
+center_2 = np.array(center_2s[sn])
+#print(center_2)
 # print(np.exp(f.logLikelihood(1, Data, center_1)))
 # print(np.exp(f.logLikelihood(2, Data, center_2)))
 centers = [center_1, center_2]
 
 # initial covariances (diagonal)
-covariance_1 = np.multiply(0.0001, [0.01, 0.01, 0.1])
-covariance_2 = np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
+covariance_1 = np.multiply(1, [0.01, 0.01, 0.1])
+covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
 
 #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
 #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -102,17 +113,17 @@ covariance_2 = np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.00
 
 # Use adaptiveMCMC to calculate initial covariances
 burns = 2
-iters = 2500
+iters = 98
 theta_1i = center_1
 theta_2i = center_2
-covariance_1p, states_1, means_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
-covariance_2p, states_2, means_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
+covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
+covariance_2p, states_2, means_2, c_2, NULL = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
 
 covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 7500
+iterations = 100
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -142,7 +153,7 @@ means[1][:, 0:burns+iters] = means_2
 print('Running RJMCMC')
 
             
-
+mem_2 = states_2[:, -1]
 
 
 for i in range(iterations): # loop through RJMCMC steps
@@ -153,20 +164,32 @@ for i in range(iterations): # loop through RJMCMC steps
     print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
     mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers) #print('prop: '+str(thetaProp))
+    thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
 
     priorRatio = np.exp(f.PriorRatio(m, mProp, f.unscale(m, theta), f.unscale(mProp, thetaProp), priors))
     
     piProp = (f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
 
     #print(piProp, pi, priorRatio, mProp)
+    scale = 1
     
-    if random.random() <= np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
+    if mProp == 2 and m == 1: 
+        l = (theta - centers[m-1]) / centers[m-1]
+        scale = 1/(np.max(l) - np.min(l))
+    elif mProp == 1 and m == 2:
+        l = (thetaProp - centers[mProp-1]) / centers[mProp-1]
+        scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
+
+    scale = 1
+
+    if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         theta = thetaProp
         m = mProp
         score += 1
         pi = piProp
+        if mProp==2: mem_2 = thetaProp
     
+    scale = 1
     states.append(theta)
     ms[i] = m
 
@@ -210,7 +233,7 @@ states_2=np.array(states_2)
 h_states_2=np.array(h_states_2)
 
 
-meanState_2 = np.median((states_2), axis=0)
+meanState_2 = np.median(states_2, axis=0)
 #print(meanState_2)
 MeanModel_2 = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], meanState_2)))
 MeanModel_2.set_magnification_methods([0., 'VBBL', 72.])
@@ -231,9 +254,8 @@ cbar.ax.yaxis.set_label_position('right')
 plt.xlabel(r'Separation [$E_r$]')
 plt.ylabel('Mass Ratio')
 plt.title('RJMCMC walk\nprojected onto Binary (s, q) space')
-plt.scatter((center_2[5]), np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
-#plt.scatter(1.3, 0.0009, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
-plt.scatter(1.27, 0.002, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+plt.scatter(center_2[5], np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
+plt.scatter(theta_Model[5], theta_Model[4], marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
 plt.legend()
 plt.grid()
 plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
@@ -243,7 +265,7 @@ plt.clf()
 
 
 
-#plt.scatter(h_ind, h_states_2[:,4], alpha=0.25, marker="*", label='Jump from M1')
+plt.scatter(h_ind, h_states_2[:,4], alpha=0.25, marker="*", label='Jump from M1')
 #plt.hlines(0.0009, 0, len(states_2), label='True', color='red')
 plt.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:,4], linewidth=0.5)
 plt.xlabel('Binary Steps')
@@ -256,7 +278,7 @@ plt.grid()
 plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 
 #plt.axhline(0.0009, label='True', color='red')
-plt.axhline(0.002, label='True', color='red')
+plt.axhline(theta_Model[4], label='True', color='red')
 plt.axhline(np.exp(center_2[4]), label='Centre', color='black')
 plt.legend()
 
@@ -279,7 +301,7 @@ plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
 plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
 
 #plt.axvline(0.0009, label='True', color='red')
-plt.axvline(0.002, label='True', color='red')
+plt.axvline(theta_Model[4], label='True', color='red')
 plt.axvline(np.exp(center_2[4]), label='Centre', color='black')
 #col = LineCollection([((0.0009, -h), (0.0009, 2*h))])
 #ax.add_collection(col, autolim=False)
@@ -342,4 +364,38 @@ plt.locator_params(axis="y", nbins=2)
 #plt.grid()
 plt.tight_layout()
 plt.savefig('Plots/Trace.png')
+plt.clf()
+
+
+
+
+
+
+
+# Plot the comparisons
+#N=iterations
+N = np.exp(np.linspace(np.log(10), np.log(iterations), 10)).astype(int)
+new = np.empty(len(N))
+#y = np.array(AC.scalarPolyProjection(states))
+y = ms
+#y = states
+#y= states
+for i, n in enumerate(N):
+    #gw2010[i] = a.autocorr_gw2010(y[:, :n])
+    new[i] = AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
+
+#plt.loglog(N, gw2010, "o-", label="G&W 2010")
+
+plt.plot(N, new, "o-", label="new")
+#plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
+
+ylim = plt.gca().get_ylim()
+plt.gca().set_xscale('log')
+#plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
+#plt.axhline(true_tau, color="k", label="truth", zorder=-100)
+plt.ylim(ylim)
+plt.xlabel("number of samples, $N$")
+plt.ylabel(r"$\tau$ estimates")
+plt.legend(fontsize=14)
+plt.savefig('Plots/AutoCorr.png')
 plt.clf()

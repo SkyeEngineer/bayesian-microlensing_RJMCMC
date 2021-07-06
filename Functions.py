@@ -122,7 +122,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
     means = np.zeros((d, iterations + burns))
     means[:, 0] = theta
-
+    
+    covs = [covariance]
 
     pi = logLikelihood(m, data, unscale(m, theta), priors)
     for i in range(1, burns): # warm up walk to establish an empirical covariance
@@ -144,9 +145,16 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     # initiliase empirical covaraince
     covariance = s*np.cov(states[:, 0:burns]) + s*eps*I
     
+    covs.append(covariance)
+
     t = burns # global index
 
     for i in range(iterations): # adaptive walk
+
+
+        cf = i/(iterations-1);
+        print(f'Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
         piProposed = logLikelihood(m, data, unscale(m, proposed), priors)
@@ -164,13 +172,15 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         
         # update step (recursive covariance)
         covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) #+ eps*I
+        covs.append(covariance)
+
 
         t += 1
 
     # performance diagnostic
     print(f"Adaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}")
 
-    return covariance, states, means, c
+    return covariance, states, means, c, covs
 
 
 
@@ -189,7 +199,7 @@ def GaussianProposal(theta, covariance):
 
 
 
-def RJCenteredProposal(m, mProp, theta, covariance, centers):
+def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -236,8 +246,26 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers):
 
             #u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], np.random.choice([1, -1], 1) * np.average(l))
 
-            u = (np.max(l)-np.min(l))*np.random.random((4))+np.min(l)
-            u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], u)
+            #uniform displacement
+            #u = (np.max(l) - np.min(l)) * np.random.random((4)) + np.min(l)
+            #u = np.multiply(u, np.random.choice([1, -1], 4))
+            #u = centers[mProp-1][3:] + np.multiply(centers[mProp-1][3:], u)
+
+            #priorRatio = np.exp(PriorRatio(1, 2, unscale(1, theta), unscale(2, centers[mProp-1]), priors))
+
+            #u = u * priorRatio * 
+
+            #sample from mcmc
+            #u = (empDist[:, np.random.choice(empDist.shape[1], 1)][:])
+            #print(u)
+            #u = np.array(u[3:, 0])
+            #print(u)
+
+            #auxilliary ish
+            u = empDist[3:]
+
+
+
 
             thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
 

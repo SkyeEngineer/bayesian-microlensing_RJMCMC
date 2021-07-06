@@ -75,7 +75,7 @@ Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.02
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 100)
+t = Model.set_times(n_epochs = 50)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -92,20 +92,20 @@ priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 # initial points
 theta_1i = np.array([36., 0.133, (61.5)])
 #theta_1i = np.array([36., 0.133, 61.5])
-theta_2i = np.array([36, 0.133, (61.5), (0.00958), np.log(0.0205), (1.108), 223.8]) # nice results for adaption
+theta_2i = np.array([35, 0.125, 61.1, (0.00988), np.log(0.0305), (1.208), 223.3]) # nice results for adaption
 #theta_2i = np.array([36., 0.133, 61.5, 0.0014, 0.00096, 1.2, 224.]) # nice results for model
 # print(np.exp(f.logLikelihood(1, Data, theta_1i)))
 # print(np.exp(f.logLikelihood(2, Data, theta_2i)))
 
 # initial covariances (diagonal)
-covariance_1i=np.multiply(0.0001, [0.01, 0.01, 0.1])
-covariance_2i=np.multiply(0.0001, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])
+covariance_1i=np.multiply(1, [0.01, 0.01, 0.1]) #0.0001
+covariance_2i=np.multiply(1, [0.1, 0.01, 0.1, 0.001, 0.01, 0.1, 0.1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
 
 burns=5
-iters=2045
+iters=1045
 
 #covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
-covariance_2p, states_2, means_2, c_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
+covariance_2p, states_2, means_2, c_2, covs = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
 
 # Create and plot the accepatnce ratio over time
 acc = []
@@ -124,6 +124,39 @@ plt.title('Adaptive MCMC acceptance timeline')
 plt.grid()
 plt.tight_layout()
 plt.savefig('Plots/Adaptive-MCMC-acceptance-progression.png')
+plt.clf()
+
+
+print(len(covs))
+Trs = np.zeros((7, len(covs)))
+for i in range(1, len(covs)):
+    Mat = (covs[i])
+    #print(Mat)
+    #print('hi')
+    #print(Mat[1, :])
+    #print(Mat[:, 1])
+    #print('hi')
+    for j in range(7):
+        Trs[j, i] = Mat[j, j]#(np.sum(np.abs(Mat[j, :])) + np.sum(np.abs(Mat[:, j]))-np.abs(Mat[j,j])) ##
+
+#print(Trs[:, 0])
+#print(Trs[0, :])
+#Trs[:, 0]=covariance_2i
+
+
+ij = np.linspace(1, len(covs), num=len(covs))
+vars = ['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha']
+colors = [cm.rainbow(i) for i in np.linspace(0, 1, 7)]
+for j in range(7):
+    plt.plot(ij, Trs[j, :]/theta_2i[j], c=colors[j], label = vars[j], alpha=0.9)
+
+plt.xlabel(f'Iterations [{size}]')
+plt.ylabel('Pseudo Trace'+r'[$Bins^{-1}$]')
+plt.title('Adaptive MCMC size timeline')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('Plots/Adaptive-MCMC-size-progression.png')
 plt.clf()
 
 
