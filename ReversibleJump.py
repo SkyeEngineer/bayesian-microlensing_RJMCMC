@@ -5,6 +5,7 @@
 import MulensModel as mm
 import Functions as f
 import Autocorrelation as AC
+import emcee as MC
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +32,7 @@ plt.rcParams["grid.alpha"] = 0.25
 
 ## INITIALISATION ##
 
-sn = 1
+sn = 3
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -56,7 +57,7 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 50)
+t = Model.set_times(n_epochs = 40)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -112,8 +113,8 @@ covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0
 #covariance_p = [covariance_1, covariance_2]
 
 # Use adaptiveMCMC to calculate initial covariances
-burns = 2
-iters = 98
+burns = 50
+iters = 100
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -123,7 +124,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 100
+iterations = 1000
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -372,25 +373,38 @@ plt.clf()
 
 
 
+
+states_u = []
+for i in range(iterations): # record all single model states in the chain
+    states_u.append(states[i][1])
+states_u=np.array(states_u)
+
 # Plot the comparisons
 #N=iterations
-N = np.exp(np.linspace(np.log(10), np.log(iterations), 10)).astype(int)
+#N = np.exp(np.linspace(np.log(10), np.log(iterations), 10)).astype(int)
+N = np.linspace((100), iterations, 20).astype(int)
+
 new = np.empty(len(N))
-#y = np.array(AC.scalarPolyProjection(states))
-y = ms
+newm = np.empty(len(N))
+newu = np.empty(len(N))
+y = np.array(AC.scalarPolyProjection(states))
 #y = states
 #y= states
 for i, n in enumerate(N):
     #gw2010[i] = a.autocorr_gw2010(y[:, :n])
-    new[i] = AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
+    new[i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)#AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
+    newm[i] = MC.autocorr.integrated_time(h_states_2[:n, 4], c=5, tol=50, quiet=True)
+    newu[i] = MC.autocorr.integrated_time(states_u[:n], c=5, tol=50, quiet=True)
 
 #plt.loglog(N, gw2010, "o-", label="G&W 2010")
 
 plt.plot(N, new, "o-", label="new")
+plt.plot(N, newm, "--", label="newq")
+#plt.plot(N, newu, label="newu")
 #plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
 
 ylim = plt.gca().get_ylim()
-plt.gca().set_xscale('log')
+#plt.gca().set_xscale('log')
 #plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
 #plt.axhline(true_tau, color="k", label="truth", zorder=-100)
 plt.ylim(ylim)
@@ -398,4 +412,10 @@ plt.xlabel("number of samples, $N$")
 plt.ylabel(r"$\tau$ estimates")
 plt.legend(fontsize=14)
 plt.savefig('Plots/AutoCorr.png')
+plt.clf()
+
+#plt.plot(np.linspace(1, iterations, num=iterations), m, "o-", label="new")
+plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
+plt.legend(fontsize=14)
+plt.savefig('Plots/Temp.png')
 plt.clf()
