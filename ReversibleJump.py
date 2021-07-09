@@ -5,6 +5,7 @@
 import MulensModel as mm
 import Functions as f
 import Autocorrelation as AC
+import PlotFunctions as pltf
 import emcee as MC
 import random
 import numpy as np
@@ -32,7 +33,7 @@ plt.rcParams["grid.alpha"] = 0.25
 
 ## INITIALISATION ##
 
-sn = 3
+sn = 2
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -57,7 +58,7 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 40)
+t = Model.set_times(n_epochs = 50)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -113,8 +114,8 @@ covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0
 #covariance_p = [covariance_1, covariance_2]
 
 # Use adaptiveMCMC to calculate initial covariances
-burns = 50
-iters = 100
+burns = 25
+iters = 250
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -124,7 +125,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 1000
+iterations = 500
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -219,19 +220,19 @@ print("P(Binary): "+str(np.sum(ms-1)/iterations))
 markerSize=75
 
 states_2 = []
-h_states_2=[]
+jumpStates_2 = []
 h_ind = []
 h=0
 for i in range(iterations): # record all binary model states in the chain
     if ms[i] == 2: 
         states_2.append(f.unscale(2, states[i]))
         if ms[i-1] == 1: 
-            h_states_2.append(f.unscale(2, states[i]))
+            jumpStates_2.append(f.unscale(2, states[i]))
             h_ind.append(len(states_2))
 
 
 states_2=np.array(states_2)
-h_states_2=np.array(h_states_2)
+jumpStates_2 = np.array(jumpStates_2)
 
 
 meanState_2 = np.median(states_2, axis=0)
@@ -244,74 +245,15 @@ plt.title(np.exp(f.logLikelihood(2, Data, meanState_2, priors)))
 plt.savefig('Plots/BinaryFit.png')
 plt.clf()
 
+labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$rho$', r'$q$', r'$s$', r'$\alpha$']
+details = False
 
-plt.scatter(states_2[:,5], states_2[:,4], c=np.linspace(0.0, 1.0, len(states_2)), cmap='spring', alpha=0.25, marker="o")
-cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
-#cbar.set_label('Time', rotation = 90, fontsize=10)
-ax=plt.gca()
-cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
-cbar.ax.yaxis.set_label_position('right')
-#plt.scatter(h_states_2[:,5], h_states_2[:,4], c='black', alpha=0.5, marker=".", label='Jump', s=0.5)
-plt.xlabel(r'Separation [$E_r$]')
-plt.ylabel('Mass Ratio')
-plt.title('RJMCMC walk\nprojected onto Binary (s, q) space')
-plt.scatter(center_2[5], np.exp(center_2[4]), marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
-plt.scatter(theta_Model[5], theta_Model[4], marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
-plt.legend()
-plt.grid()
-plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-plt.tight_layout()
-plt.savefig('Plots/RJ-binary-Walk.png')
-plt.clf()
+pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
+pltf.TracePlot(4, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-
-plt.scatter(h_ind, h_states_2[:,4], alpha=0.25, marker="*", label='Jump from M1')
-#plt.hlines(0.0009, 0, len(states_2), label='True', color='red')
-plt.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:,4], linewidth=0.5)
-plt.xlabel('Binary Steps')
-plt.ylabel('Mass Ratio')
-plt.title('RJMCMC Binary model q Trace')
-#plt.hlines(np.exp(center_2[4]), 0, len(states_2), label='Centre', color='black')
-#r'$\circledast$'
-
-plt.grid()
-plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-
-#plt.axhline(0.0009, label='True', color='red')
-plt.axhline(theta_Model[4], label='True', color='red')
-plt.axhline(np.exp(center_2[4]), label='Centre', color='black')
-plt.legend()
-
-plt.tight_layout()
-plt.savefig('Plots/RJ-q-binary-Walk.png')
-plt.clf()
-
-
-
-plt.hist(states_2[:,4], bins=50, density=True)
-#h=plt.gca().get_ylim()[1]
-
-#plt.vlines(np.exp(center_2[4]), 0, h, label='Centre', color='black')
-plt.xlabel('Mass Ratio')
-plt.ylabel('Probability Density')
-plt.title('RJMCMC Binary model q\ndistribution')
-
-plt.grid()
-plt.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-plt.ticklabel_format(axis="x", style="sci", scilimits=(0,0))
-
-#plt.axvline(0.0009, label='True', color='red')
-plt.axvline(theta_Model[4], label='True', color='red')
-plt.axvline(np.exp(center_2[4]), label='Centre', color='black')
-#col = LineCollection([((0.0009, -h), (0.0009, 2*h))])
-#ax.add_collection(col, autolim=False)
-
-
-plt.legend()
-plt.tight_layout()
-plt.savefig('Plots/RJ-Binary-q-dist')
-plt.clf()
+pltf.DistPlot(4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
 
 
@@ -364,7 +306,7 @@ plt.locator_params(axis="y", nbins=2)
 #plt.legend()
 #plt.grid()
 plt.tight_layout()
-plt.savefig('Plots/Trace.png')
+plt.savefig('Plots/M-Trace.png')
 plt.clf()
 
 
@@ -393,13 +335,13 @@ y = np.array(AC.scalarPolyProjection(states))
 for i, n in enumerate(N):
     #gw2010[i] = a.autocorr_gw2010(y[:, :n])
     new[i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)#AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
-    newm[i] = MC.autocorr.integrated_time(h_states_2[:n, 4], c=5, tol=50, quiet=True)
+    newm[i] = MC.autocorr.integrated_time(jumpStates_2[:n, 4], c=5, tol=50, quiet=True)
     newu[i] = MC.autocorr.integrated_time(states_u[:n], c=5, tol=50, quiet=True)
 
 #plt.loglog(N, gw2010, "o-", label="G&W 2010")
 
-plt.plot(N, new, "o-", label="new")
-plt.plot(N, newm, "--", label="newq")
+plt.plot(N, new, "o-", label="Scalar")
+plt.plot(N, newm, "--", label="M")
 #plt.plot(N, newu, label="newu")
 #plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
 
@@ -414,8 +356,8 @@ plt.legend(fontsize=14)
 plt.savefig('Plots/AutoCorr.png')
 plt.clf()
 
-#plt.plot(np.linspace(1, iterations, num=iterations), m, "o-", label="new")
-plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
+#plt.plot(np.linspace(1, iterations, num=iterations), m, "o-", label="m")
+plt.plot(np.linspace(1, iterations, num=iterations), y, "-", label="scalar")
 plt.legend(fontsize=14)
 plt.savefig('Plots/Temp.png')
 plt.clf()
