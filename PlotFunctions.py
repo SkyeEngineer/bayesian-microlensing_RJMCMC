@@ -5,6 +5,7 @@ import emcee as MC
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 plt.rcParams["font.family"] = "serif"
 plt.rcParams['font.size'] = 12
@@ -78,7 +79,7 @@ def TracePlot(yi, states, jumpStates, jump_i, center, true, labels, symbols, det
 
 
 
-def DistPlot(xi, states, center, true, labels, symbols, details):
+def DistPlot(m, xi, states, center, true, labels, symbols, details):
     # Make sure to unscale centers
 
     plt.hist(states[:, xi], bins = 50, density = True)
@@ -96,6 +97,42 @@ def DistPlot(xi, states, center, true, labels, symbols, details):
     plt.grid()
     plt.tight_layout()
     plt.savefig('Plots/RJ-Binary-' + symbols[xi] + '-dist')
+    plt.clf()
+
+    return
+
+
+
+
+def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error):
+
+    if m == 1:
+        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
+        FitModel.set_magnification_methods([0., 'point_source', 72.])
+
+    if m == 2:
+        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], FitTheta)))
+        FitModel.set_magnification_methods([0., 'VBBL', 72.])
+
+    t_inb = np.where(np.logical_and(0 <= t, t <= 72))
+    error_inb = error[t_inb]
+    
+    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
+
+    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit')
+    plt.title('Best model '+str(m)+' fit: '+str(np.exp(f.logLikelihood(m, Data, FitTheta, priors))))
+    plt.xlabel('Time [days]')
+
+    #err = mpatches.Patch(label='Error', alpha=0.5)
+    #plt.legend(handles=[err])
+    lower = TrueModel.magnification(t[t_inb]) - error_inb / 2
+    upper = TrueModel.magnification(t[t_inb]) + error_inb / 2
+    plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = 'Error')
+
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig('Plots/' + str(m) + '-Fit.png')
     plt.clf()
 
     return

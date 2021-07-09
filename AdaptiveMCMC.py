@@ -75,7 +75,7 @@ Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 720)
+t = Model.set_times(n_epochs = 72)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 

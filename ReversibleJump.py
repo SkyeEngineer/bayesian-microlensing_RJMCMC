@@ -58,9 +58,12 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 50)
-error = Model.magnification(t)/50 + 0.1
-Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
+epochs = Model.set_times(n_epochs = 50)
+error = Model.magnification(epochs)/50 + 0.1
+Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
+
+
+
 
 
 # priors (Zhang et al)
@@ -115,7 +118,7 @@ covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0
 
 # Use adaptiveMCMC to calculate initial covariances
 burns = 25
-iters = 250
+iters = 125
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -125,7 +128,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 500
+iterations = 3000
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -151,6 +154,9 @@ means = [np.zeros((3, iters+burns+iterations)), np.zeros((7, iters+burns+iterati
 #print(means_1)
 means[0][:, 0:burns+iters] = means_1
 means[1][:, 0:burns+iters] = means_2
+
+bests = [0, 0]
+bestt = [[], []]
 
 print('Running RJMCMC')
 
@@ -190,6 +196,10 @@ for i in range(iterations): # loop through RJMCMC steps
         score += 1
         pi = piProp
         if mProp==2: mem_2 = thetaProp
+
+        if bests[mProp-1] < np.exp(piProp): 
+            bests[mProp-1] = np.exp(piProp)
+            bestt[mProp-1] = f.unscale(mProp, thetaProp)
     
     scale = 1
     states.append(theta)
@@ -215,6 +225,17 @@ print("P(Binary): "+str(np.sum(ms-1)/iterations))
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 ## PLOT RESULTS ##
 
 markerSize=75
@@ -235,31 +256,6 @@ states_2=np.array(states_2)
 jumpStates_2 = np.array(jumpStates_2)
 
 
-meanState_2 = np.median(states_2, axis=0)
-#print(meanState_2)
-MeanModel_2 = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], meanState_2)))
-MeanModel_2.set_magnification_methods([0., 'VBBL', 72.])
-Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-MeanModel_2.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red')
-plt.title(np.exp(f.logLikelihood(2, Data, meanState_2, priors)))
-plt.savefig('Plots/BinaryFit.png')
-plt.clf()
-
-labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
-symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$rho$', r'$q$', r'$s$', r'$\alpha$']
-details = False
-
-pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-pltf.TracePlot(4, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-pltf.DistPlot(4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-
-
-## SINGLE MODEL ##
-
-
 
 states_1 = []
 h_states_1 = []
@@ -271,40 +267,44 @@ states_1=np.array(states_1)
 h_states_1=np.array(h_states_1)
 
 
-meanState_1 = np.median(states_1, axis=0)
-MeanModel_1 = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], meanState_1)))
-MeanModel_1.set_magnification_methods([0., 'point_source', 72.])
-Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-MeanModel_1.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red')
-plt.title(np.exp(f.logLikelihood(1, Data, meanState_1, priors)))
-plt.savefig('Plots/SingleFit.png')
-plt.clf()
 
 
 
-plt.scatter((states_1[:,2]), (states_1[:,1]), c=np.linspace(0.0, 1.0, len(states_1)), cmap='spring', alpha=0.25, marker="o")
-cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
-cbar.set_label('Time', rotation = 90)
-plt.scatter(h_states_1[:,2], h_states_1[:,1], c='black', alpha=0.1, marker=".", label='Jump from M2', s=1)
-plt.xlabel('u0 [?]')
-plt.ylabel('tE [?]')
-plt.title('RJ single model walk through minimum impact parameter / Einstein crossing time \nwith centreing function')
 
-plt.scatter(center_1[2], center_1[1], marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
-#plt.scatter(61.5, 0.133, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+pltf.LightcurveFitError(2, bestt[1], priors, Data, Model, epochs, error)
 
-plt.legend()
-plt.savefig('Plots/RJ-single-Walk.png')
-plt.clf()
+pltf.LightcurveFitError(1, bestt[0], priors, Data, Model, epochs, error)
 
 
-plt.plot(np.linspace(1, iterations, num=iterations), ms, linewidth=0.5)
+
+labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$rho$', r'$q$', r'$s$', r'$\alpha$']
+details = False
+
+pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+
+pltf.TracePlot(4, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+
+pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details, )
+
+
+
+## SINGLE MODEL ##
+
+
+
+
+
+
+pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+
+
+
+plt.plot(np.linspace(1, iterations, num = iterations), ms, linewidth=0.5)
 plt.title('RJMCMC Model Trace')
 plt.xlabel('Iterations')
 plt.ylabel('Model Index')
 plt.locator_params(axis="y", nbins=2)
-#plt.legend()
-#plt.grid()
 plt.tight_layout()
 plt.savefig('Plots/M-Trace.png')
 plt.clf()

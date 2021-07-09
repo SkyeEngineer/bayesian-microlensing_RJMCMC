@@ -70,3 +70,40 @@ plt.tight_layout()
 plt.savefig('Plots/RJ-Binary-q-dist')
 plt.clf()
 '''
+
+
+'''
+plt.scatter((states_1[:,2]), (states_1[:,1]), c=np.linspace(0.0, 1.0, len(states_1)), cmap='spring', alpha=0.25, marker="o")
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04) # empirical nice auto sizing
+cbar.set_label('Time', rotation = 90)
+plt.scatter(h_states_1[:,2], h_states_1[:,1], c='black', alpha=0.1, marker=".", label='Jump from M2', s=1)
+plt.xlabel('u0 [?]')
+plt.ylabel('tE [?]')
+plt.title('RJ single model walk through minimum impact parameter / Einstein crossing time \nwith centreing function')
+plt.scatter(center_1[2], center_1[1], marker=r'$\odot$', label='Centre', s=markerSize, c='black', alpha=1)
+#plt.scatter(61.5, 0.133, marker='*', label='True', s=markerSize, c='black', alpha=1)#r'$\circledast$'
+plt.legend()
+plt.savefig('Plots/RJ-single-Walk.png')
+plt.clf()
+'''
+
+
+'''
+
+MeanModel_2.set_magnification_methods([0., 'VBBL', 72.])
+Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+MeanModel_2.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red')
+plt.title(np.exp(f.logLikelihood(2, Data, meanState_2, priors)))
+plt.savefig('Plots/BinaryFit.png')
+plt.clf()
+'''
+
+
+'''
+MeanModel_1.set_magnification_methods([0., 'point_source', 72.])
+Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+MeanModel_1.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red')
+plt.title(np.exp(f.logLikelihood(1, Data, meanState_1, priors)))
+plt.savefig('Plots/SingleFit.png')
+plt.clf()
+'''
