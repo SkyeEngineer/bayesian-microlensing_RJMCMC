@@ -14,6 +14,10 @@ from scipy.stats import truncnorm, loguniform, uniform
 from matplotlib.collections import LineCollection
 import seaborn as sns
 import pandas as pd
+from multiprocessing import Pool
+
+#pool = Pool(2)
+#poolSol = pool.map(Multi_Model_Function, evals)
 
 
 plt.rcParams["font.family"] = "serif"
@@ -52,14 +56,14 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 #Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
 #Model.set_magnification_methods([0., 'point_source', 72.])
 
-Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-plt.savefig('temp.jpg')
-plt.clf()
+#Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+#plt.savefig('temp.jpg')
+#plt.clf()
 
 
 
 # Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 720)
+epochs = Model.set_times(n_epochs = 10)
 error = Model.magnification(epochs)/50 + 0.1
 Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -129,7 +133,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 300
+iterations = 30000
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -336,8 +340,8 @@ states_u=np.array(states_u)
 
 # Plot the comparisons
 #N=iterations
-#N = np.exp(np.linspace(np.log(10), np.log(iterations), 10)).astype(int)
-N = np.linspace((100), iterations, 20).astype(int)
+N = np.exp(np.linspace(np.log(100), np.log(iterations), 10)).astype(int)
+#N = np.linspace((100), iterations, 20).astype(int)
 
 new = np.empty(len(N))
 newm = np.empty(len(N))
@@ -359,8 +363,9 @@ plt.plot(N, new, "o-", label="Scalar")
 #plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
 
 ylim = plt.gca().get_ylim()
-#plt.gca().set_xscale('log')
-#plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
+plt.gca().set_xscale('log')
+plt.gca().set_yscale('log')
+plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
 #plt.axhline(true_tau, color="k", label="truth", zorder=-100)
 plt.ylim(ylim)
 plt.xlabel("number of samples, $N$")

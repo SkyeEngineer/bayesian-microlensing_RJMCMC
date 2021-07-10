@@ -112,7 +112,7 @@ def TracePlot(yi, states, jumpStates, jump_i, center, true, labels, symbols, det
 
 def DistPlot(m, xi, states, center, true, labels, symbols, details):
     # Make sure to unscale centers
-    
+
     plt.grid()
     plt.hist(states[:, xi], bins = 50, density = True)
     plt.xlabel(labels[xi])
@@ -149,9 +149,7 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error):
     t_inb = np.where(np.logical_and(0 <= t, t <= 72))
     error_inb = error[t_inb]
     
-    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
 
-    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit')
     plt.title('Best model '+str(m)+' fit: '+str(np.exp(f.logLikelihood(m, Data, FitTheta, priors))))
     plt.xlabel('Time [days]')
 
@@ -161,8 +159,12 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error):
     upper = TrueModel.magnification(t[t_inb]) + error_inb / 2
     plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = 'Error')
 
+    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
+
+    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'dashed')
+
     plt.legend()
-    plt.grid()
+    #plt.grid()
     plt.tight_layout()
     plt.savefig('Plots/' + str(m) + '-Fit.png')
     plt.clf()
