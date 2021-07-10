@@ -12,7 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
 from matplotlib.collections import LineCollection
-
+import seaborn as sns
+import pandas as pd
 
 
 plt.rcParams["font.family"] = "serif"
@@ -28,12 +29,12 @@ plt.rcParams["legend.fontsize"] = 9
 plt.rcParams["grid.linestyle"] = 'dashed' 
 plt.rcParams["grid.alpha"] = 0.25
 
-
+plt.rc('axes.formatter', useoffset=False)
 
 
 ## INITIALISATION ##
 
-sn = 2
+sn = 3
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -58,7 +59,7 @@ plt.clf()
 
 
 # Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 50)
+epochs = Model.set_times(n_epochs = 720)
 error = Model.magnification(epochs)/50 + 0.1
 Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -107,8 +108,8 @@ center_2 = np.array(center_2s[sn])
 centers = [center_1, center_2]
 
 # initial covariances (diagonal)
-covariance_1 = np.multiply(1, [0.01, 0.01, 0.1])
-covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
+covariance_1 = np.multiply(0.01, [0.1, 0.01, 0.1])
+covariance_2 = np.multiply(0.01, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#0.5
 
 #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
 #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -118,7 +119,7 @@ covariance_2 = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0
 
 # Use adaptiveMCMC to calculate initial covariances
 burns = 25
-iters = 125
+iters = 25
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -128,7 +129,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 3000
+iterations = 300
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -267,7 +268,19 @@ states_1=np.array(states_1)
 h_states_1=np.array(h_states_1)
 
 
+labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
+details = False
 
+
+
+#states_2df = pd.DataFrame(data = states_2, columns = labels)
+#print(states_2df)
+
+#grid = sns.PairGrid(data = states_2df, vars = labels, height = 7)
+#grid = grid.map_upper(pltf.PPlotWalk)
+#plt.savefig('Plots/RJ-binary-pplot.png')
+#plt.clf()
 
 
 
@@ -277,16 +290,19 @@ pltf.LightcurveFitError(1, bestt[0], priors, Data, Model, epochs, error)
 
 
 
-labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
-symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$rho$', r'$q$', r'$s$', r'$\alpha$']
-details = False
+
 
 pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.TracePlot(4, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+pltf.PlotWalk(5, 6, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details, )
+pltf.TracePlot(5, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
+
+
+pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+
+pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
 
 ## SINGLE MODEL ##
@@ -313,9 +329,6 @@ plt.clf()
 
 
 
-
-
-
 states_u = []
 for i in range(iterations): # record all single model states in the chain
     states_u.append(states[i][1])
@@ -335,13 +348,13 @@ y = np.array(AC.scalarPolyProjection(states))
 for i, n in enumerate(N):
     #gw2010[i] = a.autocorr_gw2010(y[:, :n])
     new[i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)#AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
-    newm[i] = MC.autocorr.integrated_time(jumpStates_2[:n, 4], c=5, tol=50, quiet=True)
-    newu[i] = MC.autocorr.integrated_time(states_u[:n], c=5, tol=50, quiet=True)
+    #newm[i] = MC.autocorr.integrated_time(jumpStates_2[:n, 4], c=5, tol=50, quiet=True)
+    #newu[i] = MC.autocorr.integrated_time(states_u[:n], c=5, tol=50, quiet=True)
 
 #plt.loglog(N, gw2010, "o-", label="G&W 2010")
 
 plt.plot(N, new, "o-", label="Scalar")
-plt.plot(N, newm, "--", label="M")
+#plt.plot(N, newm, "--", label="M")
 #plt.plot(N, newu, label="newu")
 #plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
 

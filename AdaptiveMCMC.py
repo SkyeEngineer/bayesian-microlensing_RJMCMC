@@ -8,7 +8,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
-
+import PlotFunctions as pltf
 
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -75,7 +75,7 @@ Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 72)
+t = Model.set_times(n_epochs = 720)
 error = Model.magnification(t)/50 + 0.1
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -99,17 +99,18 @@ theta_2i = np.array([35, 0.125, 61.1, 0.00988, np.log(0.000305), 1.258, 222.8]) 
 
 # initial covariances (diagonal)
 covariance_1i=np.multiply(1, [0.01, 0.01, 0.1]) #0.0001
-covariance_2i=np.multiply(10, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
+covariance_2i=np.multiply(0.01, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
+#should be small to get a quick taste of size (too small makes growth to normal size to slow)
 
-burns=25
-iters=525
+burns = 25 #should be small to not bias later
+iters = 1025
 
 #covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
 covariance_2p, states_2, means_2, c_2, covs = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
 
 # Create and plot the accepatnce ratio over time
 acc = []
-size = 50
+size = 50#50
 bins = int((burns + iters) / size)
 
 for bin in range(bins): # record the ratio of acceptance for each bin
@@ -148,7 +149,7 @@ ij = np.linspace(1, len(covs), num=len(covs))
 vars = ['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha']
 colors = [cm.rainbow(i) for i in np.linspace(0, 1, 7)]
 for j in range(7):
-    plt.plot(ij, Trs[j, :]/theta_2i[j], c=colors[j], label = vars[j], alpha=0.9)
+    plt.plot(ij, Trs[j, :], c=colors[j], label = vars[j], alpha=0.9)#/theta_2i[j]
 
 plt.xlabel(f'Iterations [{size}]')
 plt.ylabel('Pseudo Trace'+r'[$Bins^{-1}$]')
@@ -159,6 +160,17 @@ plt.tight_layout()
 plt.savefig('Plots/Adaptive-MCMC-size-progression.png')
 plt.clf()
 
+
+
+plt.plot(ij, np.sum(Trs, axis=0), c=colors[j], label = 'Trace', alpha=0.9)
+plt.xlabel(f'Iterations [{size}]')
+plt.ylabel('Trace'+r'[$Bins^{-1}$]')
+plt.title('Adaptive MCMC size timeline')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('Plots/Adaptive-MCMC-Trace-progression.png')
+plt.clf()
 
 
 #print(np.cov(states_1))
@@ -176,6 +188,16 @@ plt.clf()
 #print((np.cov(states_2))) # clearly, adaption is calculating wrong
 
 # plot the points visited during the walk
+
+labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
+details = False
+
+
+for i in range(7):
+    #pltf.PlotWalk(4, 5, states_2, 1, 1, labels, symbols, details)
+    pltf.TracePlot(i, np.transpose(states_2), 1, 1, 1, 1, labels, symbols, details)
+
 
 plt.scatter(states_2[5,:], np.exp(states_2[4,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
 cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
