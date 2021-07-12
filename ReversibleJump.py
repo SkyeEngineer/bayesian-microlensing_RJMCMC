@@ -209,7 +209,8 @@ for i in range(iterations): # loop through RJMCMC steps
             bests[mProp-1] = np.exp(piProp)
             bestt[mProp-1] = f.unscale(mProp, thetaProp)
 
-    elif m != mProp: #Delayed rejection for Jump False: #
+
+    elif m != mProp and False: #Delayed rejection for Jump False: #
         Dtotal += 1
 
         thetaProp_2, piProp_2, acc_2 = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, True)

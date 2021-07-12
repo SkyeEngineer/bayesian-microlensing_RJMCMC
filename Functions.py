@@ -200,7 +200,7 @@ def GaussianProposal(theta, covariance):
 def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delayed):
 
     #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], centers, mem_2, priors, delayed) #states_2)
+    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], centers, mem_2, priors, delayed) #states_2)
     priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
     piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
 
@@ -208,8 +208,12 @@ def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delay
     #    J = 1/2**3
     #else:
     #    J = 1
+    if m != mProp:
+        gratio = 
+    else: 
+        gratio = 1
 
-    acc = np.exp(piProp-pi) * priorRatio # * J
+    acc = np.exp(piProp-pi) * priorRatio * gratio# * J
     
     return thetaProp, piProp, acc
 
@@ -230,7 +234,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
     Returns: a new point in the parameter space a jump was proposed too
     '''
     
-    if m == mProp: return GaussianProposal(theta, covariance) # intra-modal move
+    if m == mProp: return GaussianProposal(theta, covariance), 1 # intra-modal move
     
     else: # inter-model move
         #l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
@@ -240,7 +244,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             l = l/2
 
         if mProp == 1:
-            return centers[mProp-1] + l[0:3]
+            return centers[mProp-1] + l[0:3], q(theta[3:]|theta[0:2])/1
         
         if mProp == 2: 
 
@@ -281,15 +285,15 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             #print(u)
 
             #auxilliary ish
-            u = empDist[3:]
+            #u = empDist[3:]
 
-
+            u = q(l + centers[mProp-1][0:3]).rvs
 
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
             thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
 
-            return thetaProp
+            return thetaProp, 1/q(u|l + centers[mProp-1][0:3])
 
 
 
