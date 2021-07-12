@@ -197,9 +197,24 @@ def GaussianProposal(theta, covariance):
     '''
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
+def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delayed):
+
+    #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
+    thetaProp = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], centers, mem_2, priors, delayed) #states_2)
+    priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
+    piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
+
+    #if delayed == True:
+    #    J = 1/2**3
+    #else:
+    #    J = 1
+
+    acc = np.exp(piProp-pi) * priorRatio # * J
+    
+    return thetaProp, piProp, acc
 
 
-def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors):
+def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, delayed):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -218,10 +233,14 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors):
     if m == mProp: return GaussianProposal(theta, covariance) # intra-modal move
     
     else: # inter-model move
-        l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
+        #l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
+        l = theta - centers[m-1] # relative distance from the initial model's centre
+        
+        if delayed == True:
+            l = l/2
 
         if mProp == 1:
-            return l[0:3] * centers[mProp-1] + centers[mProp-1]
+            return centers[mProp-1] + l[0:3]
         
         if mProp == 2: 
 
@@ -267,7 +286,8 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors):
 
 
 
-            thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
+            #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
+            thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
 
             return thetaProp
 

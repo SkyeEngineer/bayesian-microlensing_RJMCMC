@@ -38,7 +38,7 @@ plt.rc('axes.formatter', useoffset=False)
 
 ## INITIALISATION ##
 
-sn = 3
+sn = 2
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -63,7 +63,7 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 
 
 # Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 10)
+epochs = Model.set_times(n_epochs = 72)
 error = Model.magnification(epochs)/50 + 0.1
 Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -123,7 +123,7 @@ covariance_2 = np.multiply(0.01, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#0.5
 
 # Use adaptiveMCMC to calculate initial covariances
 burns = 25
-iters = 25
+iters = 250#25
 theta_1i = center_1
 theta_2i = center_2
 covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -133,7 +133,7 @@ covariance_p = [covariance_1p, covariance_2p]
 
 
 # loop specific values
-iterations = 30000
+iterations = 1000
 print(states_1[:, -1])
 theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
 m = 1
@@ -144,6 +144,8 @@ ms = np.zeros(iterations, dtype=int)
 ms[0] = m
 states = []
 score = 0
+Dscore = 0
+Dtotal = 0
 J_2 = np.prod(center_2[0:3])
 J_1 = np.prod(center_1)
 J = np.abs([J_1/J_2, J_2/J_1])
@@ -177,25 +179,26 @@ for i in range(iterations): # loop through RJMCMC steps
     print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
     mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
+    #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
 
-    priorRatio = np.exp(f.PriorRatio(m, mProp, f.unscale(m, theta), f.unscale(mProp, thetaProp), priors))
+    #priorRatio = np.exp(f.PriorRatio(m, mProp, f.unscale(m, theta), f.unscale(mProp, thetaProp), priors))
     
-    piProp = (f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
+    #piProp = (f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
 
     #print(piProp, pi, priorRatio, mProp)
-    scale = 1
+    #scale = 1
     
-    if mProp == 2 and m == 1: 
-        l = (theta - centers[m-1]) / centers[m-1]
-        scale = 1/(np.max(l) - np.min(l))
-    elif mProp == 1 and m == 2:
-        l = (thetaProp - centers[mProp-1]) / centers[mProp-1]
-        scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
+    #if mProp == 2 and m == 1: 
+    #    l = (theta - centers[m-1]) / centers[m-1]
+    #    scale = 1/(np.max(l) - np.min(l))
+    #elif mProp == 1 and m == 2:
+    #    l = (thetaProp - centers[mProp-1]) / centers[mProp-1]
+    #    scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
 
-    scale = 1
-
-    if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
+    #scale = 1
+    thetaProp, piProp, acc = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, False)
+    #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
+    if random.random() <= acc: #*q!!!!!!!!!!!!# metropolis acceptance
         theta = thetaProp
         m = mProp
         score += 1
@@ -205,8 +208,29 @@ for i in range(iterations): # loop through RJMCMC steps
         if bests[mProp-1] < np.exp(piProp): 
             bests[mProp-1] = np.exp(piProp)
             bestt[mProp-1] = f.unscale(mProp, thetaProp)
-    
-    scale = 1
+
+    elif m != mProp: #Delayed rejection for Jump False: #
+        Dtotal += 1
+
+        thetaProp_2, piProp_2, acc_2 = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, True)
+
+        pi_2 = f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp_2), priors)
+        thetaProp_25, piProp_25, acc_25 = f.Propose(Data, mProp, mProp, thetaProp_2, pi_2, covariance_p, centers, mem_2, priors, False)
+        
+        if random.random() <= acc_2 * (1-acc_25)/(1 - acc) * 1/(2**3): #*q!!!!!!!!!!!!# delayed metropolis acceptance
+            theta = thetaProp_2
+            m = mProp
+            score += 1
+            Dscore += 1
+            pi = piProp_2
+            
+        if mProp==2: mem_2 = thetaProp_2
+
+        if bests[mProp-1] < np.exp(piProp_2): 
+            bests[mProp-1] = np.exp(piProp_2)
+            bestt[mProp-1] = f.unscale(mProp, thetaProp_2)
+
+    #scale = 1
     states.append(theta)
     ms[i] = m
 
@@ -224,6 +248,7 @@ for i in range(iterations): # loop through RJMCMC steps
 # performance diagnostics:
 print("\nIterations: "+str(iterations))
 print("Accepted Move Fraction: "+str(score/iterations))
+print("Accepted Delayed Move Fraction: "+str(Dscore/Dtotal))
 print("P(Singular): "+str(1-np.sum(ms-1)/iterations))
 print("P(Binary): "+str(np.sum(ms-1)/iterations))
 #print(states)
@@ -311,9 +336,9 @@ pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbo
 
 ## SINGLE MODEL ##
 
-
-
-
+pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+pltf.DistPlot(1, 2, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
 
 pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)

@@ -114,7 +114,7 @@ def DistPlot(m, xi, states, center, true, labels, symbols, details):
     # Make sure to unscale centers
 
     plt.grid()
-    plt.hist(states[:, xi], bins = 50, density = True)
+    plt.hist(states[:, xi], bins = 25, density = True)
     plt.xlabel(labels[xi])
     plt.ylabel('Probability Density')
     plt.title('RJMCMC Binary model ' + symbols[xi] + ' distribution')
