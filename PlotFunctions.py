@@ -134,7 +134,32 @@ def DistPlot(m, xi, states, center, true, labels, symbols, details):
     return
 
 
+def AdaptiveProgression(history, labels, p):
 
+    size = 50#50
+    
+    
+    for l in range(2):
+        for chain in range(p):
+            acc = []
+            bins = int(np.ceil(len(history[chain][l]) / size))
+            for bin in range(bins - 1): # record the ratio of acceptance for each bin
+                acc.append(np.sum(history[chain][l][size*bin:size*(bin+1)]) / size)
+            #print(chain, l, history[chain][l])
+
+            plt.plot((np.linspace(1, bins - 1, num = bins - 1)), acc, label = labels[l] + str(chain), alpha = 0.5)
+
+    plt.ylim((0.0, 1.0))
+    plt.xlabel(f'Binned Iterations Over Time [Bins, n={size}]')
+    plt.ylabel('Fraction of Accepted\nProposals '+r'[$Bins^{-1}$]')
+    plt.title('Adaptive RJMCMC acceptance timeline')
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression.png')
+    plt.clf()
+
+    return
 
 def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
 

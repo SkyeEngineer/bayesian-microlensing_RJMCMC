@@ -244,7 +244,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             l = l/2
 
         if mProp == 1:
-            return centers[mProp-1] + l[0:3], q(theta[3:]|theta[0:2])/1
+            return centers[mProp-1] + l[0:3], 1#q(theta[3:]|theta[0:2])/1
         
         if mProp == 2: 
 
@@ -285,15 +285,16 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             #print(u)
 
             #auxilliary ish
-            #u = empDist[3:]
+            u = empDist[3:]
 
-            u = q(l + centers[mProp-1][0:3]).rvs
+            #3surrogate draw
+            #u = q(u|l + centers[mProp-1][0:3]).rvs
 
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
             thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
 
-            return thetaProp, 1/q(u|l + centers[mProp-1][0:3])
+            return thetaProp, 1#1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
