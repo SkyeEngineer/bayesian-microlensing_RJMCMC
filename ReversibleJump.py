@@ -210,13 +210,13 @@ for i in range(iterations): # loop through RJMCMC steps
             bestt[mProp-1] = f.unscale(mProp, thetaProp)
 
 
-    elif m != mProp and False: #Delayed rejection for Jump False: #
+    elif m != mProp and random.random() <= 0.5 and False: #Delayed rejection for Jump False: #
         Dtotal += 1
 
         thetaProp_2, piProp_2, acc_2 = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, True)
 
         pi_2 = f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp_2), priors)
-        thetaProp_25, piProp_25, acc_25 = f.Propose(Data, mProp, mProp, thetaProp_2, pi_2, covariance_p, centers, mem_2, priors, False)
+        thetaProp_25, piProp_25, acc_25 = f.Propose(Data, mProp, m, thetaProp_2, pi_2, covariance_p, centers, mem_2, priors, False)
         
         if random.random() <= acc_2 * (1-acc_25)/(1 - acc) * 1/(2**3): #*q!!!!!!!!!!!!# delayed metropolis acceptance
             theta = thetaProp_2

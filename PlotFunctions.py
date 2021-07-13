@@ -136,7 +136,7 @@ def DistPlot(m, xi, states, center, true, labels, symbols, details):
 
 
 
-def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error):
+def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
 
     if m == 1:
         FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
@@ -146,18 +146,22 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error):
         FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], FitTheta)))
         FitModel.set_magnification_methods([0., 'VBBL', 72.])
 
-    t_inb = np.where(np.logical_and(0 <= t, t <= 72))
-    error_inb = error[t_inb]
-    
 
-    plt.title('Best model '+str(m)+' fit: '+str(np.exp(f.logLikelihood(m, Data, FitTheta, priors))))
+    
+    if details == True:
+        t_inb = np.where(np.logical_and(0 <= t, t <= 72))
+        error_inb = error[t_inb]
+        plt.title('Best model '+str(m)+' fit: '+str(np.exp(f.logLikelihood(m, Data, FitTheta, priors))))
+        lower = TrueModel.magnification(t[t_inb]) - error_inb / 2
+        upper = TrueModel.magnification(t[t_inb]) + error_inb / 2
+        plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = 'Error')
+
+
     plt.xlabel('Time [days]')
 
     #err = mpatches.Patch(label='Error', alpha=0.5)
     #plt.legend(handles=[err])
-    lower = TrueModel.magnification(t[t_inb]) - error_inb / 2
-    upper = TrueModel.magnification(t[t_inb]) + error_inb / 2
-    plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = 'Error')
+
 
     TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
 

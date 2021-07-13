@@ -208,10 +208,10 @@ def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delay
     #    J = 1/2**3
     #else:
     #    J = 1
-    if m != mProp:
-        gratio = 
-    else: 
-        gratio = 1
+    #if m != mProp:
+    #    gratio = 
+    #else: 
+    #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
     
@@ -294,8 +294,6 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
 
             return thetaProp, 1/q(u|l + centers[mProp-1][0:3])
-
-
 
 def D(m):
     '''
