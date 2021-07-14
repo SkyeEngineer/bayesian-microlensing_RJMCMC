@@ -30,7 +30,7 @@ if True:
     theta_a[6] = theta_a[6] + 120
     pltf.PlotLightcurve(2, theta_a, r"$\updownarrow \alpha^*$", "cyan", 0.25)
 
-    pltf.PlotLightcurve(2, theta_r, "Reference", "black", 1)
+    pltf.PlotLightcurve(2, theta_r, "Reference", "grey", 1)
 
 
     
@@ -62,7 +62,7 @@ if True:
     theta_tE[2] = theta_tE[2] + 25
     pltf.PlotLightcurve(1, theta_tE, r"$\uparrow t_E$", "red", 1)
 
-    pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1)
+    pltf.PlotLightcurve(1, theta_r, "Reference", "grey", 1)
 
     plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')
