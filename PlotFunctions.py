@@ -183,6 +183,7 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
 
 
     plt.xlabel('Time [days]')
+    plt.ylabel('Magnification')
 
     #err = mpatches.Patch(label='Error', alpha=0.5)
     #plt.legend(handles=[err])
@@ -198,4 +199,34 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
     plt.savefig('Plots/' + str(m) + '-Fit.png')
     plt.clf()
 
+    return
+
+
+def PlotLightcurve(m, Theta, label, color, alpha):
+
+    if m == 1:
+        Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], Theta)))
+        Model.set_magnification_methods([0., 'point_source', 72.])
+
+    if m == 2:
+        Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], Theta)))
+        Model.set_magnification_methods([0., 'VBBL', 72.])
+
+    Model.plot_magnification(t_range = [0, 72], subtract_2450000 = False, color = color, label = label, alpha = alpha)
+
+    return
+
+def Style():
+    plt.rcParams["font.family"] = "serif"
+    plt.rcParams['font.size'] = 12
+
+    plt.style.use('seaborn-bright')
+
+    plt.rcParams["legend.edgecolor"] = '0'
+    plt.rcParams["legend.framealpha"] = 1
+    plt.rcParams["legend.title_fontsize"] = 10
+    plt.rcParams["legend.fontsize"] = 9
+
+    plt.rcParams["grid.linestyle"] = 'dashed' 
+    plt.rcParams["grid.alpha"] = 0.25
     return
