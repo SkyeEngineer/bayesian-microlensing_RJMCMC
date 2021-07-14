@@ -37,10 +37,10 @@ def PlotWalk(xi, yi, states, center, true, labels, symbols, details):
     cbar.ax.yaxis.set_label_position('right')
     plt.xlabel(labels[xi])
     plt.ylabel(labels[yi])
-    plt.title('RJMCMC walk\nprojected onto Binary ('+symbols[xi]+', '+symbols[yi]+') space')
+    plt.title('RJMCMC walk projected\n onto binary ('+symbols[xi]+', '+symbols[yi]+') space')
     
     if details == True:
-        plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
+        #plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
         plt.scatter(true[xi], true[yi], marker = '*', label = 'True', s = markerSize, c = 'black', alpha = 1) # r'$\circledast$'
         plt.legend()
     
@@ -96,7 +96,7 @@ def TracePlot(yi, states, jumpStates, jump_i, center, true, labels, symbols, det
     if details == True:
         plt.scatter(jump_i, jumpStates[:, yi], alpha = 0.25, marker = "*", label = 'Jump')
         plt.axhline(true[yi], label = 'True', color = 'red')
-        plt.axhline(center[yi], label = 'Centre', color = 'black')
+        #plt.axhline(center[yi], label = 'Centre', color = 'black')
         plt.legend()
 
 
@@ -117,11 +117,11 @@ def DistPlot(m, xi, states, center, true, labels, symbols, details):
     plt.hist(states[:, xi], bins = 25, density = True)
     plt.xlabel(labels[xi])
     plt.ylabel('Probability Density')
-    plt.title('RJMCMC Binary model ' + symbols[xi] + ' distribution')
+    plt.title('RJMCMC binary model ' + symbols[xi] + ' distribution')
 
     if details == True:
         plt.axvline(true[xi], label = 'True', color = 'red')
-        plt.axvline(center[xi], label = 'Centre', color = 'black')
+        #plt.axvline(center[xi], label = 'Centre', color = 'black')
         plt.legend()
 
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))

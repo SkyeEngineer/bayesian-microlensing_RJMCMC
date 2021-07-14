@@ -123,7 +123,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     means = np.zeros((d, iterations + burns))
     means[:, 0] = theta
     
-    covs = [covariance]
+    covs = []
 
     pi = logLikelihood(m, data, unscale(m, theta), priors)
     for i in range(1, burns): # warm up walk to establish an empirical covariance
@@ -141,6 +141,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         
         states[:, i] = theta#unscale(m, theta)
         means[:, i] = (means[:, i-1]*i + theta)/(i + 1) # recursive mean (offsets indices starting at zero by one)
+        covs.append(covariance)
 
     # initiliase empirical covaraince
     covariance = s*np.cov(states[:, 0:burns]) + s*eps*I
@@ -293,6 +294,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
             thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
+            #thetaProp=GaussianProposal(thetaProp, covariance)
 
             return thetaProp, 1#1/q(u|l + centers[mProp-1][0:3])
 

@@ -8,6 +8,19 @@ import numpy as np
 import Functions as f
 import matplotlib.patches as mpatches
 
+plt.rcParams["font.family"] = "serif"
+plt.rcParams['font.size'] = 12
+
+plt.style.use('seaborn-bright')
+
+plt.rcParams["legend.edgecolor"] = '0'
+plt.rcParams["legend.framealpha"] = 1
+plt.rcParams["legend.title_fontsize"] = 10
+plt.rcParams["legend.fontsize"] = 9
+
+plt.rcParams["grid.linestyle"] = 'dashed' 
+plt.rcParams["grid.alpha"] = 0.25
+
 # Get chi2 by creating a new model and fitting to previously generated data
 def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
     Model = mm.Model({'t_0': t_0, 'u_0': u_0,'t_E': t_E, 'rho': rho, 'q': q, 's': s,'alpha': alpha})
@@ -18,7 +31,7 @@ def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
 
 
 # Synthetic Events
-BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.1, 'q': 0.05, 's': 1.120, 'alpha': 223.8})
+BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.001, 'q': 0.00005, 's': 1.12, 'alpha': 200.8})
 #BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8})
 BinaryModel.set_magnification_methods([0., 'VBBL', 72.])
 
@@ -33,6 +46,25 @@ binaryError = BinaryModel.magnification(t[i])/30 + 0.2
 
 
 ## PLOT LIGHTCURVES ##
+
+
+# plot binary
+plt.grid()
+BinaryModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red')
+#plt.title('Weak binary lightcurve')
+plt.xlabel('Time [days]')
+plt.ylabel('Magnification')
+#err = mpatches.Patch(label='binaryError', alpha=0.5)
+#plt.legend(handles=[err])
+#lower = BinaryModel.magnification(t[i]) - binaryError / 2
+#upper = BinaryModel.magnification(t[i]) + binaryError / 2
+#plt.fill_between(t[i], lower, upper, alpha = 0.25)
+#plt.axis('square')!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+plt.tight_layout()
+plt.savefig('Plots/confusing-curve.png')
+plt.clf()
+
+g=h
 
 # plot binary
 BinaryModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')

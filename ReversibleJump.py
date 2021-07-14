@@ -35,7 +35,7 @@ plt.rcParams["grid.alpha"] = 0.25
 plt.rc('axes.formatter', useoffset=False)
 
 
-labels = [r'Impact Time [$?$]', r'Minimum Impact Parameter [$?$]', r'Crossing Time [$?$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter [$1$]', r'Einstein Crossing Time [$days$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
 symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 
@@ -67,10 +67,10 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
 epochs = Model.set_times(n_epochs = 50)
-error = Model.magnification(epochs)/25 + 0.3
+error = Model.magnification(epochs)/30 + 0.25
 Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
 
-iterations = 10000
+iterations = 20000
 
 
 
@@ -268,11 +268,14 @@ def ParralelMain(arr):
     print("P(Binary): "+str(np.sum(ms-1)/iterations))
     #print(states)
 
-    return states, adaptive_score
+    return states, adaptive_score, ms, bestt, bests, centers
 
 
 params = [sn, Data, priors, m_pi, iterations]
 
+states, adaptive_score, ms, bestt, bests, centers = ParralelMain(params)
+center_1, center_2 = centers
+'''
 p = 2
 pool = Pool(p)
 
@@ -343,6 +346,15 @@ plt.clf()
 pltf.AdaptiveProgression(adaptive_history, ['Single', 'Binary'], p)
 
 g=g
+'''
+
+
+
+
+
+
+
+
 
 ## OTHER PLOT RESULTS ##
 
@@ -376,7 +388,7 @@ h_states_1=np.array(h_states_1)
 
 
 
-details = False
+details = True
 
 
 states_u = []
@@ -447,4 +459,43 @@ plt.clf()
 
 
 
+plt.grid()
+plt.plot(np.linspace(1, iterations, num=iterations), AC.scalarPolyProjection(states), "-", label="scalar")
+#plt.legend(fontsize=14)
+plt.title('RJMCMC scalar indicator trace')
+plt.xlabel('Iterations')
+plt.ylabel('Scalar Indicator')
+plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+plt.tight_layout()
+plt.savefig('Plots/Temp.png')
+plt.clf()
+
+
+# Plot the comparisons
+N = np.exp(np.linspace(np.log(1000), np.log(iterations), 10)).astype(int)
+
+new = np.zeros(len(N))
+y = np.array(AC.scalarPolyProjection(states))
+for i, n in enumerate(N):
+    new[i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)
+
+#
+plt.loglog(N, new, "o-")#, label=r"$\tau$")
+
+ylim = plt.gca().get_ylim()
+#plt.gca().set_xscale('log')
+#plt.gca().set_yscale('log')
+plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
+
+plt.ylim(ylim)
+#plt.gca().set_yticks([])
+#plt.gca().set_xticks([])
+plt.title('RJMCMC Bias')
+plt.xlabel("number of samples, $N$")
+plt.ylabel(r"$\tau$ estimates")
+#plt.grid()
+plt.legend()
+plt.tight_layout()
+plt.savefig('Plots/AutoCorr.png')
+plt.clf()
 
