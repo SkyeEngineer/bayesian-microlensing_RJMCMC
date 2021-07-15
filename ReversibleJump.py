@@ -66,9 +66,11 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 50)
-error = Model.magnification(epochs)/30 + 0.25
-Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt='flux', chi2_fmt='flux')
+epochs = Model.set_times(n_epochs = 100)
+error = Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
+
+print(Model.magnification(epochs))
 
 iterations = 20000
 
@@ -98,8 +100,8 @@ rho_upi =  f.uniDist(10**-4, 10**-2)
 priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 m_pi = [0.5, 0.5]
 
-
-
+print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
+g=g
 def ParralelMain(arr):
 
     sn, Data, priors, m_pi, iterations = arr

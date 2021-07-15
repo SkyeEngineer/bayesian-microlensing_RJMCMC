@@ -202,7 +202,7 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
     return
 
 
-def PlotLightcurve(m, Theta, label, color, alpha):
+def PlotLightcurve(m, Theta, label, color, alpha, caustics, ts):
 
     if m == 1:
         Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], Theta)))
@@ -212,7 +212,11 @@ def PlotLightcurve(m, Theta, label, color, alpha):
         Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], Theta)))
         Model.set_magnification_methods([0., 'VBBL', 72.])
 
-    Model.plot_magnification(t_range = [0, 72], subtract_2450000 = False, color = color, label = label, alpha = alpha)
+    if caustics:
+        Model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
+        Model.plot_caustics(color = 'purple', s = 2, marker = '.')
+    else:
+        Model.plot_magnification(t_range = ts, subtract_2450000 = False, color = color, label = label, alpha = alpha)
 
     return
 

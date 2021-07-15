@@ -2,6 +2,9 @@
 # Part 4 Project, RJMCMC for Microlensing
 # [Lightcurve plotting]
 
+from os import error
+from numpy.core.defchararray import title
+from numpy.core.fromnumeric import size
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,57 +15,70 @@ import copy
 
 pltf.Style
 
-if True:
+if False:
     plt.grid()
 
     #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
     theta_r = [36, 0.133, 61.5,  0.001, 0.009, 1.10, 180]
 
+    ts = [0, 72]
+
     theta_q = copy.deepcopy(theta_r)
     theta_q[4] = theta_q[4] + 0.001
-    pltf.PlotLightcurve(2, theta_q, r"$\uparrow q$", "orange", 1)
+    pltf.PlotLightcurve(2, theta_q, r"$\uparrow q$", "red", 1, False, ts)
     
     theta_s = copy.deepcopy(theta_r)
     theta_s[5] = theta_s[5] + 0.04
-    pltf.PlotLightcurve(2, theta_s, r"$\uparrow s$", "purple", 1)
+    pltf.PlotLightcurve(2, theta_s, r"$\uparrow s$", "orange", 1, False, ts)
 
     theta_a = copy.deepcopy(theta_r)
     theta_a[6] = theta_a[6] + 120
-    pltf.PlotLightcurve(2, theta_a, r"$\updownarrow \alpha^*$", "cyan", 0.25)
+    #theta_a[6] = theta_a[6] - 60
+    pltf.PlotLightcurve(2, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [32, 72])
 
-    pltf.PlotLightcurve(2, theta_r, "Reference", "grey", 1)
-
-
-    
+    pltf.PlotLightcurve(2, theta_r, "Reference", "black", 1, False, ts)
 
     plt.title('Binary lens parameterisation')
     plt.xlabel('Time [days]')
     plt.ylabel('Magnification')
     plt.legend()
     plt.tight_layout()
+
+    plt.axes([0.125, 0.7, 0.3, 0.2])
+    pltf.PlotLightcurve(2, theta_r, " ", "black", 1, True, [5, 45])
+    pltf.PlotLightcurve(2, theta_a, " ", "blue", 1, True, [20, 60])
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    ax.axes.yaxis.set_visible(False)
+    #plt.legend(title = 'caustic', fontsize = 9)
+
+
+
+
+
     plt.savefig('Plots/BinaryParamCurve.png')
     plt.clf()
 
-if True:
+if False:
     plt.grid()
 
 
     theta_r = [36, 0.133, 61.5]
-
+    ts = [0, 72]
     
     theta_t0 = copy.deepcopy(theta_r)
     theta_t0[0] = theta_t0[0] + 15
-    pltf.PlotLightcurve(1, theta_t0, r"$\uparrow t_0$", "blue", 1)
+    pltf.PlotLightcurve(1, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
     
     theta_u0 = copy.deepcopy(theta_r)
     theta_u0[1] = theta_u0[1] - 0.02
-    pltf.PlotLightcurve(1, theta_u0, r"$\downarrow u_0$", "green", 1)
+    pltf.PlotLightcurve(1, theta_u0, r"$\downarrow u_0$", "orange", 1, False, ts)
 
     theta_tE = copy.deepcopy(theta_r)
     theta_tE[2] = theta_tE[2] + 25
-    pltf.PlotLightcurve(1, theta_tE, r"$\uparrow t_E$", "red", 1)
+    pltf.PlotLightcurve(1, theta_tE, r"$\uparrow t_E$", "red", 1, False, ts)
 
-    pltf.PlotLightcurve(1, theta_r, "Reference", "grey", 1)
+    pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1, False, ts)
 
     plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')
@@ -72,7 +88,7 @@ if True:
     plt.savefig('Plots/SingleParamCurve.png')
     plt.clf()
 
-throw = throw
+
 
 # Get chi2 by creating a new model and fitting to previously generated data
 def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
@@ -92,7 +108,7 @@ SingleModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
 SingleModel.set_magnification_methods([0., 'point_source', 72.])
 
 # initialise
-t = BinaryModel.set_times(n_epochs = 500)
+t = BinaryModel.set_times(n_epochs = 200)
 i = np.where(np.logical_and(0 <= t, t <= 72))
 binaryError = BinaryModel.magnification(t[i])/30 + 0.2
 
@@ -117,7 +133,7 @@ plt.tight_layout()
 plt.savefig('Plots/confusing-curve.png')
 plt.clf()
 
-g=h
+
 
 # plot binary
 BinaryModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
@@ -141,11 +157,16 @@ plt.ylabel('Magnification [?]')
 plt.savefig('Plots/curve-single.png')
 plt.clf()
 
-r=r
 
 ## PLOT POSTERIOR SURFACES ##
+error = BinaryModel.magnification(t[i])/100+0.5/BinaryModel.magnification(t[i])
+Data = mm.MulensData(data_list=[t[i], BinaryModel.magnification(t[i]), error],  phot_fmt = 'flux', chi2_fmt = 'flux')
 
-Data = mm.MulensData(data_list=[t, BinaryModel.magnification(t), BinaryModel.magnification(t)/20 + 0.25], phot_fmt='flux', chi2_fmt='flux')
+Data.plot(show_errorbars=True)
+plt.savefig('temp.png')
+plt.clf()
+
+throw=throw
 
 density = 5
 print(chi2(36, 0.133, 61.5, 0.00096, 0.0039, 1.120, 223.8, Data))
