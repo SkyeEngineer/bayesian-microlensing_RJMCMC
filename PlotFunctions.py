@@ -161,7 +161,7 @@ def AdaptiveProgression(history, labels, p):
 
     return
 
-def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
+def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
 
     if m == 1:
         FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
@@ -191,12 +191,12 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details):
 
     TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
 
-    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'dashed')
+    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'solid')
 
     plt.legend()
     #plt.grid()
     plt.tight_layout()
-    plt.savefig('Plots/' + str(m) + '-Fit.png')
+    plt.savefig('Plots/' + name + '-Fit.png')
     plt.clf()
 
     return
@@ -233,4 +233,6 @@ def Style():
 
     plt.rcParams["grid.linestyle"] = 'dashed' 
     plt.rcParams["grid.alpha"] = 0.25
+
+    plt.rc('axes.formatter', useoffset=False)
     return

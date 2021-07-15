@@ -14,25 +14,23 @@ from scipy.stats import truncnorm, loguniform, uniform
 from matplotlib.collections import LineCollection
 import seaborn as sns
 import pandas as pd
+import interfaceing as interf
 from multiprocessing import Pool
+from scipy.optimize import minimize
 
 
 
+import PlotFunctions as pltf
 
-plt.rcParams["font.family"] = "serif"
-plt.rcParams['font.size'] = 12
+import os
+import os.path
+import shutil
+from pathlib import Path
 
-plt.style.use('seaborn-bright')
 
-plt.rcParams["legend.edgecolor"] = '0'
-plt.rcParams["legend.framealpha"] = 1
-plt.rcParams["legend.title_fontsize"] = 10
-plt.rcParams["legend.fontsize"] = 9
+pltf.Style()
 
-plt.rcParams["grid.linestyle"] = 'dashed' 
-plt.rcParams["grid.alpha"] = 0.25
 
-plt.rc('axes.formatter', useoffset=False)
 
 
 labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter [$1$]', r'Einstein Crossing Time [$days$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
@@ -41,7 +39,7 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 0
+sn = 2
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -66,13 +64,23 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 100)
+#epochs = Model.set_times(n_epochs = 720)
+n_epochs = 72
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+#signal_data = Model.magnification(t)
+#epochs = Model.set_times(n_epochs = 100)
 error = Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
-Data = mm.MulensData(data_list=[epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
+Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
 
-print(Model.magnification(epochs))
+signal_n_epochs = 720
+signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
 
-iterations = 20000
+signal_data = Model.magnification(signal_epochs)
+
+
+#print(Model.magnification(epochs))
+
+iterations = 200
 
 
 
@@ -100,14 +108,32 @@ rho_upi =  f.uniDist(10**-4, 10**-2)
 priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 m_pi = [0.5, 0.5]
 
-print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
-g=g
+#print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
+#g=g
+
+#full_path = os.getcwd()
+#out_path = (str(Path(full_path).parents[0]))
+#with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: binary_posterior = pickle.load(handle)
+
+single_Sposterior = interf.get_posteriors(1)
+binary_Sposterior = interf.get_posteriors(2)
+
+
+
+#u_full = binary_Sposterior.sample((1, ), x = Data.flux)
+#u_full.numpy
+#u = np.float64(u_full[0])[3:]
+#print(u)
+#throw=throw
+
+#arr, l_arr = interf.get_model_ensemble(binary_Sposterior, Data.flux, 1)
+
 def ParralelMain(arr):
 
-    sn, Data, priors, m_pi, iterations = arr
+    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations = arr
 
     # centreing points for inter-model jumps
-    center_1 = np.array([36., 0.133, 61.5])
+    #center_1 = np.array([36., 0.133, 61.5])
     #center_1 = np.array([36., 0.133, 61.5])
 
     center_2s = [
@@ -116,15 +142,30 @@ def ParralelMain(arr):
         [36., 0.133, 61.5, 0.0052, np.log(0.0006), 1.29, 210.9], # weak binary 2
         [36., 0.133, 61.5, 0.0096, np.log(0.00002), 4.25, 223.8], # indistiguishable from single
         ]
-    center_2 = np.array(center_2s[sn])
-    #print(center_2)
-    # print(np.exp(f.logLikelihood(1, Data, center_1)))
-    # print(np.exp(f.logLikelihood(2, Data, center_2)))
-    centers = [center_1, center_2]
+    #center_2 = np.array(center_2s[sn])
+
+    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    #print("\n", center_2, " hi")
+    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+    #print(Data.flux)
+    #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
+
+    fun = lambda x: -np.exp(f.logLikelihood(1, Data, f.scale(x), priors))
+    min_center_1 = minimize(fun, center_1s)
+        print(min_center_2)
+    center_2 = min_center_2.x
+
+    fun = lambda x: -np.exp(f.logLikelihood(2, Data, f.scale(x), priors))
+    min_center_2 = minimize(fun, center_2s)
+    print(min_center_2)
+    center_2 = min_center_2.x
+    
+
 
     # initial covariances (diagonal)
-    covariance_1 = np.multiply(0.01, [0.1, 0.01, 0.1])
-    covariance_2 = np.multiply(0.01, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#0.5
+    cov_scale = 0.00001 #0.01
+    covariance_1 = np.multiply(cov_scale, [0.1, 0.01, 0.1])
+    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#0.5
 
     #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
     #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -134,19 +175,28 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 100#25
-    theta_1i = center_1
-    theta_2i = center_2
+    iters = 25#250
+    theta_1i = center_1s
+    theta_2i = center_2s
     covariance_1p, states_1, means_1, c_1, NULL = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
     covariance_2p, states_2, means_2, c_2, NULL = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
 
     covariance_p = [covariance_1p, covariance_2p]
 
+    #center_1 = states_1[:, -1]
+    #center_2 = states_2[:, 1]
 
+    print(center_1s, center_1)
+    print(center_2s, center_2)
+
+    print("Center 1", center_1, "True Prob", np.exp(f.logLikelihood(1, Data, center_1, priors)))
+    print("Center 2", center_2, "True Prob", np.exp(f.logLikelihood(2, Data, center_2, priors)))
+    centers = [center_1, center_2]
     # loop specific values
 
-    print(states_1[:, -1])
-    theta = states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    #print(states_1[:, -1])
+    theta = center_1#states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    print(theta)
     m = 1
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
     #print(pi)
@@ -163,7 +213,7 @@ def ParralelMain(arr):
     #print(J)
 
     #adaptive params
-    t=[burns+iters,burns+iters]
+    t=[burns+iters, burns+iters]
     I = [np.identity(3), np.identity(7)] 
     s = [2.4**2 / 3, 2.4**2 / 7] # Arbitrary(ish), good value from Haario et al
     eps = 1e-12 # Needs to be smaller than the scale of parameter values
@@ -183,12 +233,16 @@ def ParralelMain(arr):
     adaptive_score = [[], []]
     #inter_props = [0, 0]
 
+    n_samples = 10000
+    samples, log_prob_samples = interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
+    
+
     for i in range(iterations): # loop through RJMCMC steps
         
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
         cf = i/(iterations-1);
-        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        #print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
         #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
@@ -208,7 +262,7 @@ def ParralelMain(arr):
         #    scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
 
         #scale = 1
-        thetaProp, piProp, acc = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, False)
+        thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, False)
         #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         if random.random() <= acc: #*q!!!!!!!!!!!!# metropolis acceptance
             if m == mProp: adaptive_score[mProp - 1].append(1)
@@ -217,7 +271,7 @@ def ParralelMain(arr):
             m = mProp
             score += 1
             pi = piProp
-            if mProp == 2: mem_2 = thetaProp
+            #if mProp == 2: mem_2 = thetaProp
 
             if bests[mProp-1] < np.exp(piProp): 
                 bests[mProp-1] = np.exp(piProp)
@@ -273,10 +327,14 @@ def ParralelMain(arr):
     return states, adaptive_score, ms, bestt, bests, centers
 
 
-params = [sn, Data, priors, m_pi, iterations]
+params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations]
 
 states, adaptive_score, ms, bestt, bests, centers = ParralelMain(params)
 center_1, center_2 = centers
+
+pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenter")
+pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenter")
+
 '''
 p = 2
 pool = Pool(p)

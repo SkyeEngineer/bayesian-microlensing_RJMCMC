@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 
 class ResnetGRU(nn.Module):
-    def __init__(self, depth = 6, nlayer = 2, kernel_size = 5, hidden_conv = 2, max_hidden = 256, input_dim = 22, hidden_dim = 1, layer_dim = 2):
+    def __init__(self, depth = 6, nlayer = 2, kernel_size = 9, hidden_conv = 2, max_hidden = 256, input_dim = 22, hidden_dim = 1, layer_dim = 2):
         super(type(self), self).__init__()
 
         network = list()

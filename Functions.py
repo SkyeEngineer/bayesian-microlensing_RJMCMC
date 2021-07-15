@@ -11,7 +11,7 @@ import numpy as np
 from numpy.core.numeric import Inf
 from scipy.stats import truncnorm, lognorm, norm, loguniform, uniform, multivariate_normal
 import copy
-
+import torch
 
 class uniDist(object):
     '''
@@ -198,10 +198,10 @@ def GaussianProposal(theta, covariance):
     '''
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
-def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delayed):
+def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, delayed):
 
     #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], centers, mem_2, priors, delayed) #states_2)
+    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, delayed) #states_2)
     priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
     piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
 
@@ -215,11 +215,18 @@ def Propose(Data, m, mProp, theta, pi, covariance, centers, mem_2, priors, delay
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
+    if mProp == 2 and m == 1:
+        print("next")
+        print("acc: ", acc)
+        print("piProp: ", np.exp(piProp))
+        print("pi: ", np.exp(pi))
+        print("prior Ratio: ", priorRatio)
+
     
     return thetaProp, piProp, acc
 
 
-def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, delayed):
+def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, delayed):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -245,7 +252,13 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             l = l/2
 
         if mProp == 1:
-            return centers[mProp-1] + l[0:3], 1#q(theta[3:]|theta[0:2])/1
+            #g = binary_Sposterior.log_prob(theta = theta, x = signal_data)
+            draw = random.randint(0, n_samples - 1)
+            g = log_prob_samples[draw]
+            for parameter in range(3): # cycle through each parameter and associated prior
+                g -= (priors[parameter].logPDF(theta[parameter]))
+
+            return centers[mProp-1] + l[0:3], np.exp(g)
         
         if mProp == 2: 
 
@@ -286,17 +299,36 @@ def RJCenteredProposal(m, mProp, theta, covariance, centers, empDist, priors, de
             #print(u)
 
             #auxilliary ish
-            u = empDist[3:]
+            #u = empDist[3:]
 
             #3surrogate draw
             #u = q(u|l + centers[mProp-1][0:3]).rvs
+            #u_full = binary_Sposterior.sample((1, ), x = signal_data, show_progress_bars = False)
+            #u_full.numpy
+            #u = (u_full[0])[3:]
+            draw = random.randint(0, n_samples - 1)
+            u_full = samples[draw]
+            u = u_full[3:]
+            #log_prob_samples
 
+
+
+            #log_prob_ = np.array(posterior.log_prob(theta = samples, x = signal_data))
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
-            thetaProp=np.concatenate(((l + centers[mProp-1][0:3]), u))
+            thetaProp = (np.concatenate(((l + centers[mProp-1][0:3]), u)))
             #thetaProp=GaussianProposal(thetaProp, covariance)
 
-            return thetaProp, 1#1/q(u|l + centers[mProp-1][0:3])
+            #g = binary_Sposterior.log_prob(theta = torch.tensor(thetaProp).float(), x = signal_data)
+            g = log_prob_samples[draw]
+            #for parameter in range(3): # cycle through each parameter and associated prior
+            #    g -= (priors[parameter].logPDF(thetaProp[parameter]))
+
+            print(thetaProp)
+            thetaProp[4] = np.log(thetaProp[4])
+
+
+            return thetaProp, 1/np.exp(g)#1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
@@ -333,6 +365,27 @@ def unscale(m, theta): ############make this into a class
         return thetaT
 
     return 0
+
+def scale(theta): ############make this into a class
+    '''
+    Helper function. Maps the model index to the associated 
+    dimensionality in the context of microlensing.
+    --------------------------------------------
+    if m == 1: return 3
+    elif m == 2: return 7
+    else: return 0 
+    '''
+
+    thetaT=copy.deepcopy(theta)
+
+    if len(theta) == 3:
+        return thetaT
+    
+    if len(theta) == 7:
+        thetaT[4] = np.log(thetaT[4])
+        return thetaT
+
+    return
 
 
 def PriorRatio(m,mProp,theta,thetaProp,priors):
@@ -441,6 +494,7 @@ def logLikelihood(m, Data, theta, priors):
 
     # check if parameter is not in prior bounds, and ensure it is not accepted if so
     for parameter in range(D(m)):
+        #print(priors)
         if not priors[parameter].inBounds(theta[parameter]): return -Inf
 
     if m==1:
@@ -465,6 +519,7 @@ def logLikelihood(m, Data, theta, priors):
             return -Inf
         
         return -Event.get_chi2()/2 # exponentially linearly proportional to likelihood
+
 
 
 

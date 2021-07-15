@@ -32,20 +32,24 @@ import os.path
 import shutil
 from pathlib import Path
 
-sn = 4
+sn = 0
 
 # Synthetic Event Parameters
 theta_Models = [
-    [36, 0.133, 61.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
-    [36, 0.133, 61.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
+    [36, 0.133, 31.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
+    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
     [36, 0.133, 61.5, 0.0056, 0.0007, 1.3, 210.8], # weak binary 2
     [36, 0.133, 61.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
     [36, 0.133, 31.5]  # single
     ]
 theta_Model = np.array(theta_Models[sn])
 
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-Model.set_magnification_methods([0., 'point_source', 72.])
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+Model.set_magnification_methods([0., 'VBBL', 72.])
+
+n_epochs = 720
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+signal_data = Model.magnification(epochs)
 
 #Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
 #Model.set_magnification_methods([0., 'point_source', 72.])
@@ -54,31 +58,46 @@ Model.set_magnification_methods([0., 'point_source', 72.])
 #plt.savefig('temp.jpg')
 #plt.clf()
 
-# Generate "Synthetic" Lightcurve
-epochs = Model.set_times(n_epochs = 720)
-signal_data = Model.magnification(epochs)
-
-pltf.LightcurveFitError(1, [36.5, 0.133, 20], 0, signal_data, Model, Model.set_times(n_epochs = 720), 0, 0)
 
 
+def get_posteriors(m):
 
-g=g
+    full_path = os.getcwd()
+    out_path = (str(Path(full_path).parents[0]))
 
-#cur_path = os.path.dirname(__file__)
-d = os.getcwd()
-print(d)
-full_path = d
-o=(str(Path(full_path).parents[0]))
+    if m == 1:
+        with open(out_path+"/microlensing/output/posterior_noise_single6.pkl", "rb") as handle: posterior = pickle.load(handle)
 
-
-with open(o+"/microlensing/output/posterior_noise_single6.pkl", "rb") as handle:
-        posterior = pickle.load(handle)
-
-x_o = signal_data #x[1, :]
+    if m == 2:
+        with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: posterior = pickle.load(handle)
+    
+    return posterior
 
 
-#print(theta[1, :])
 
-samples = posterior.sample((10000,), x=x_o)
+def get_model_centers(posterior, signal_data):
 
-print(posterior.map(x_o, num_iter = 100, num_init_samples = 100, show_progress_bars = False))
+    #print("\n", posterior)
+    maxp = posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)
+
+    maxp.numpy
+    centers = np.float64(maxp)
+
+    return centers
+
+
+
+def get_model_ensemble(posterior, signal_data, n):
+
+    samples = posterior.sample((n, ), x = signal_data)
+    log_prob_samples = np.array(posterior.log_prob(theta = samples, x = signal_data))
+
+    return samples, log_prob_samples
+
+#arr, l_arr = get_model_ensemble(get_posterior(2, signal_data), signal_data, 1)
+
+
+
+#def library():
+
+#    return
