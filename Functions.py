@@ -126,6 +126,11 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     covs = []
 
     pi = logLikelihood(m, data, unscale(m, theta), priors)
+
+    bests = np.exp(pi)
+    bestt = theta
+
+
     for i in range(1, burns): # warm up walk to establish an empirical covariance
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
@@ -136,6 +141,11 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             theta = proposed
             pi = piProposed
             c[i] = 1
+
+            if bests < np.exp(piProposed): 
+                bests = np.exp(piProposed)
+                bestt = theta
+
 
         else: c[i] = 0
         
@@ -166,6 +176,10 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             pi = piProposed
             c[t]=1
 
+            if bests < np.exp(piProposed): 
+                bests = np.exp(piProposed)
+                bestt = theta
+
         else: c[t]=0
  
         states[:, t] = theta#unscale(m, theta)
@@ -181,7 +195,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     # performance diagnostic
     print(f"Adaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}")
 
-    return covariance, states, means, c, covs
+    return covariance, states, means, c, covs, bests, bestt
 
 
 
@@ -198,10 +212,10 @@ def GaussianProposal(theta, covariance):
     '''
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
-def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, delayed):
+def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, delayed):
 
     #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, delayed) #states_2)
+    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed) #states_2)
     priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
     piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
 
@@ -215,7 +229,7 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    if mProp == 2 and m == 1:
+    if mProp == 2 and m == 1 and False:
         print("next")
         print("acc: ", acc)
         print("piProp: ", np.exp(piProp))
@@ -226,7 +240,7 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     return thetaProp, piProp, acc
 
 
-def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, delayed):
+def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -312,6 +326,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             #log_prob_samples
 
 
+            #u=mem_2[3:]
 
             #log_prob_ = np.array(posterior.log_prob(theta = samples, x = signal_data))
 
@@ -324,11 +339,12 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             #for parameter in range(3): # cycle through each parameter and associated prior
             #    g -= (priors[parameter].logPDF(thetaProp[parameter]))
 
-            print(thetaProp)
-            thetaProp[4] = np.log(thetaProp[4])
+            #print(thetaProp)
+            
+            thetaProp[4] = np.log(thetaProp[4]) # if drawing from surrogate
 
 
-            return thetaProp, 1/np.exp(g)#1/q(u|l + centers[mProp-1][0:3])
+            return thetaProp, 1/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
