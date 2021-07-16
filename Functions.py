@@ -164,7 +164,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
 
         cf = i/(iterations-1);
-        print(f'Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Current Best Likelihood: {bests:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
@@ -229,12 +229,14 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    if mProp == 2 and m == 1 and False:
-        print("next")
-        print("acc: ", acc)
-        print("piProp: ", np.exp(piProp))
-        print("pi: ", np.exp(pi))
-        print("prior Ratio: ", priorRatio)
+    #if mProp == 2 and m == 1 and True:
+        #print("next")
+        #print("acc: ", acc)
+        #print("piProp: ", np.exp(piProp))
+        #print("pi: ", np.exp(pi))
+        #print("prior Ratio: ", priorRatio)
+        #print(unscale(m, theta), unscale(mProp, thetaProp))
+        #print('gratio', gratio)
 
     
     return thetaProp, piProp, acc
@@ -271,8 +273,9 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             g = log_prob_samples[draw]
             for parameter in range(3): # cycle through each parameter and associated prior
                 g -= (priors[parameter].logPDF(theta[parameter]))
+            #print('g ', np.exp(g), g)
 
-            return centers[mProp-1] + l[0:3], np.exp(g)
+            return centers[mProp-1] + l[0:3], 1#np.exp(g)
         
         if mProp == 2: 
 
@@ -336,15 +339,16 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
             #g = binary_Sposterior.log_prob(theta = torch.tensor(thetaProp).float(), x = signal_data)
             g = log_prob_samples[draw]
-            #for parameter in range(3): # cycle through each parameter and associated prior
-            #    g -= (priors[parameter].logPDF(thetaProp[parameter]))
+            #print(1/np.exp(g))
+            for parameter in range(3): # cycle through each parameter and associated prior
+                g -= (priors[parameter].logPDF(thetaProp[parameter]))
 
             #print(thetaProp)
             
             thetaProp[4] = np.log(thetaProp[4]) # if drawing from surrogate
+            #print('g after', 1/np.exp(g))
 
-
-            return thetaProp, 1/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
+            return thetaProp, 1#/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
@@ -377,7 +381,7 @@ def unscale(m, theta): ############make this into a class
         return thetaT
     
     if m == 2:
-        thetaT[4] = np.exp(theta[4])
+        thetaT[4] = np.exp(thetaT[4])
         return thetaT
 
     return 0

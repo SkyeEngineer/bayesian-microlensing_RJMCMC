@@ -39,23 +39,23 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 2
+sn = 4
 
 # Synthetic Event Parameters
 theta_Models = [
     [36, 0.133, 31.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
     [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
-    [36, 0.133, 31.5, 0.0056, 0.0007, 1.3, 210.8], # weak binary 2
+    [36, 0.133, 31.5, 0.0056, 0.0005, 1.3, 210.8], # weak binary 2
     [36, 0.133, 31.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
     [36, 0.133, 31.5]  # single
     ]
 theta_Model = np.array(theta_Models[sn])
 
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-Model.set_magnification_methods([0., 'VBBL', 72.])
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+#Model.set_magnification_methods([0., 'VBBL', 72.])
 
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
-#Model.set_magnification_methods([0., 'point_source', 72.])
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+Model.set_magnification_methods([0., 'point_source', 72.])
 
 #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('temp.jpg')
@@ -65,11 +65,11 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
 #epochs = Model.set_times(n_epochs = 720)
-n_epochs = 720
+n_epochs = 72
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 #signal_data = Model.magnification(t)
 #epochs = Model.set_times(n_epochs = 100)
-error = Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/30 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 signal_n_epochs = 720
@@ -80,7 +80,7 @@ signal_data = Model.magnification(signal_epochs)
 
 #print(Model.magnification(epochs))
 
-iterations = 500
+iterations = 3000
 
 
 
@@ -130,11 +130,11 @@ binary_Sposterior = interf.get_posteriors(2)
 
 def ParralelMain(arr):
 
-    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations = arr
+    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
 
     # centreing points for inter-model jumps
     center_1s = np.array([36., 0.133, 31.5])
-    #center_1 = np.array([36., 0.133, 61.5])
+    center_1 = np.array([36., 0.133, 31.5])
 
     center_2ss = [
         [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
@@ -145,30 +145,37 @@ def ParralelMain(arr):
     #center_2 = np.array(center_2s[sn])
 
     center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    center_2s[4] = np.log(center_2s[4])
+    #center_2s = [3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02]
+
+
+    #center_2s[4] = np.log(center_2s[4])
+    #center_2s = f.scale(center_2s)
 
     #print("\n", center_2, " hi")
     #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
     #print(Data.flux)
     #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
 
-    '''
-    fun = lambda x: -np.exp(f.logLikelihood(1, Data, f.scale(x), priors))
-    min_center_1 = minimize(fun, center_1s, method='CG')
-    print(min_center_1)
-    center_1 = min_center_1.x
+    pltf.LightcurveFitError(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
+    pltf.LightcurveFitError(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
 
-    fun = lambda x: -np.exp(f.logLikelihood(2, Data, f.scale(x), priors))
-    min_center_2 = minimize(fun, center_2s, method='CG')
-    print(min_center_2)
-    center_2 = min_center_2.x
-    '''
+    
+    #fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
+    #min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
+    #print(min_center_1)
+    #center_1 = min_center_1.x
 
-
-
-
+    #fun_2 = lambda x: -f.logLikelihood(2, Data, x, priors)
+    #min_center_2 = minimize(fun_2, center_2s, method='Nelder-Mead')
+    #print(min_center_2)
+    #center_2 = min_center_2.x
 
 
+    #pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenterOpt")
+    #pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenterOpt")
+
+
+    #center_2 = f.scale(center_2)
 
     # initial covariances (diagonal)
     cov_scale = 0.01 #0.01
@@ -185,27 +192,32 @@ def ParralelMain(arr):
     burns = 25
     iters = 500#250
     theta_1i = center_1s
-    theta_2i = center_2s
-    covariance_1p, states_1, means_1, c_1, null, bests, center_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
-    covariance_2p, states_2, means_2, c_2, null, bests, center_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
+    theta_2i = f.scale(center_2s)
+    covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
+    covariance_2p, states_2, means_2, c_2, null, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
 
     covariance_p = [covariance_1p, covariance_2p]
 
-    #center_1 = states_1[:, -1]
-    #center_2 = states_2[:, -1]
+    #center_1 = bestt_1
+    center_2 = bestt_2
     
-    print(center_1s, center_1)
-    print(center_2s, center_2)
+    #print(center_1s, center_1)
+    #print(center_2s, center_2)
 
-    print("Center 1", center_1, "True Prob", np.exp(f.logLikelihood(1, Data, center_1, priors)))
-    print("Center 2", center_2, "True Prob", np.exp(f.logLikelihood(2, Data, center_2, priors)))
+    #print("Center 1", center_1, "True Chi", -(f.logLikelihood(1, Data, center_1, priors)))
+    #print("Center 2", center_2, "True Chi", -(f.logLikelihood(2, Data, f.unscale(2, center_2), priors)))
     centers = [center_1, center_2]
+
+
+    pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
+    pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
+
 
     # loop specific values
 
     #print(states_1[:, -1])
-    theta = center_1#states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
-    print(theta)
+    theta = center_1 #states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    #print(theta)
     m = 1
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
     #print(pi)
@@ -244,7 +256,7 @@ def ParralelMain(arr):
 
     n_samples = 10000
     samples, log_prob_samples = interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
-    
+    samples = (samples - f.unscale(2, center_2))/100 + f.unscale(2, center_2)
 
     for i in range(iterations): # loop through RJMCMC steps
         
@@ -336,13 +348,13 @@ def ParralelMain(arr):
     return states, adaptive_score, ms, bestt, bests, centers
 
 
-params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations]
+params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs]
 
 states, adaptive_score, ms, bestt, bests, centers = ParralelMain(params)
 center_1, center_2 = centers
 
-pltf.LightcurveFitError(2, f.unscale(2, center_2), priors, Data, Model, epochs, error, True, "BinaryCenter")
-pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenter")
+
+
 
 '''
 p = 2
@@ -483,13 +495,13 @@ states_u=np.array(states_u)
 
 
 
-pltf.LightcurveFitError(2, bestt[1], priors, Data, Model, epochs, error, details)
+#pltf.LightcurveFitError(2, bestt[1][:], priors, Data, Model, epochs, error, details, 'BestBinary')
 
-pltf.LightcurveFitError(1, bestt[0], priors, Data, Model, epochs, error, details)
-
-
+#pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
 
 
+
+pltf.PlotWalk(3, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
 pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
@@ -510,6 +522,10 @@ pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbo
 pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 pltf.DistPlot(1, 2, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
+
+pltf.PlotWalk(0, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+
+pltf.PlotWalk(2, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
 pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 

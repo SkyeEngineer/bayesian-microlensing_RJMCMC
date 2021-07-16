@@ -82,6 +82,7 @@ def get_model_centers(posterior, signal_data):
 
     maxp.numpy
     centers = np.float64(maxp)
+    print(centers)
 
     return centers
 
