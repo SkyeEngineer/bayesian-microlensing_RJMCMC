@@ -39,23 +39,23 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 4
+sn = 2
 
 # Synthetic Event Parameters
 theta_Models = [
     [36, 0.133, 31.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
     [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
-    [36, 0.133, 31.5, 0.0056, 0.0005, 1.3, 210.8], # weak binary 2
+    [36, 0.133, 31.5, 0.0056, 0.0007, 1.3, 210.8], # weak binary 2
     [36, 0.133, 31.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
     [36, 0.133, 31.5]  # single
     ]
 theta_Model = np.array(theta_Models[sn])
 
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-#Model.set_magnification_methods([0., 'VBBL', 72.])
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+Model.set_magnification_methods([0., 'VBBL', 72.])
 
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-Model.set_magnification_methods([0., 'point_source', 72.])
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+#Model.set_magnification_methods([0., 'point_source', 72.])
 
 #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('temp.jpg')
@@ -69,7 +69,7 @@ n_epochs = 72
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 #signal_data = Model.magnification(t)
 #epochs = Model.set_times(n_epochs = 100)
-error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/30 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/10 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 signal_n_epochs = 720
@@ -80,21 +80,22 @@ signal_data = Model.magnification(signal_epochs)
 
 #print(Model.magnification(epochs))
 
-iterations = 3000
+iterations = 250
 
 
 
 # priors (Zhang et al)
 s_pi = f.logUniDist(0.2, 5)
 q_pi = f.logUniDist(10e-6, 1)
+#q_pi = f.uniDist(10e-6, 0.1)
 alpha_pi = f.uniDist(0, 360)
 u0_pi = f.uniDist(0, 2)
 t0_pi = f.uniDist(0, 72)
 tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
 rho_pi =  f.logUniDist(10**-4, 10**-2)
-a = 0.1
-#m_pi = [1-a, a]
-#priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
+a = 0.5
+m_pi = [1 - a, a]
+priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
 # uninformative priors
 s_upi = f.uniDist(0.2, 5)
@@ -105,8 +106,8 @@ t0_upi = f.uniDist(0, 72)
 tE_upi = f.uniDist(1, 100)
 rho_upi =  f.uniDist(10**-4, 10**-2)
 
-priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
-m_pi = [0.5, 0.5]
+#priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
+#m_pi = [0.5, 0.5]
 
 #print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
 #g=g
@@ -144,8 +145,8 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    #center_2s = [3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02]
+    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    center_2s = [3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02]
 
 
     #center_2s[4] = np.log(center_2s[4])
@@ -180,7 +181,7 @@ def ParralelMain(arr):
     # initial covariances (diagonal)
     cov_scale = 0.01 #0.01
     covariance_1 = np.multiply(cov_scale, [0.1, 0.01, 0.1])
-    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#0.5
+    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 1])#0.5
 
     #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
     #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -190,7 +191,7 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 500#250
+    iters = 2500 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -216,9 +217,9 @@ def ParralelMain(arr):
     # loop specific values
 
     #print(states_1[:, -1])
-    theta = center_1 #states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    theta = center_2 #states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
     #print(theta)
-    m = 1
+    m = 2
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
     #print(pi)
 
@@ -256,14 +257,14 @@ def ParralelMain(arr):
 
     n_samples = 10000
     samples, log_prob_samples = interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
-    samples = (samples - f.unscale(2, center_2))/100 + f.unscale(2, center_2)
+    samples = (samples - f.unscale(2, center_2))/1 + f.unscale(2, center_2)
 
     for i in range(iterations): # loop through RJMCMC steps
         
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
         cf = i/(iterations-1);
-        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        #print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
         #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
@@ -285,7 +286,7 @@ def ParralelMain(arr):
         #scale = 1
         thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, False)
         #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
-        if random.random() <= acc: #*q!!!!!!!!!!!!# metropolis acceptance
+        if random.random() <= acc * m_pi[mProp - 1] / m_pi[m - 1]: #*q!!!!!!!!!!!!# metropolis acceptance
             if m == mProp: adaptive_score[mProp - 1].append(1)
 
             theta = thetaProp

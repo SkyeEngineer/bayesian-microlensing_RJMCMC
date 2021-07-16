@@ -36,12 +36,12 @@ t0_pi = mc.uniDist(0, 72)
 tE_pi = mc.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
 rho_pi =  mc.logUniDist(10**-4, 10**-2)
 
-distr = s_pi
+distr = tE_pi
 
 y=[]
-x=np.linspace(0.2, 5, 100)
+x=np.linspace(1, 100, 100)
 for i in x:
-    y.append(np.exp(distr.logPDF(i))*1000)
+    y.append(np.exp(distr.logPDF(i)))
 print(distr.dist.cdf(1))
 
 

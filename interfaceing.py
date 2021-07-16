@@ -66,7 +66,7 @@ def get_posteriors(m):
     out_path = (str(Path(full_path).parents[0]))
 
     if m == 1:
-        with open(out_path+"/microlensing/output/posterior_noise_single6.pkl", "rb") as handle: posterior = pickle.load(handle)
+        with open(out_path+"/microlensing/output/single_25K_720.pkl", "rb") as handle: posterior = pickle.load(handle)
 
     if m == 2:
         with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: posterior = pickle.load(handle)

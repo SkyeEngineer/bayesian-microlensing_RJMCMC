@@ -15,7 +15,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 # TESTING
-'''
+
 states = np.zeros((2, 3))
 states[:, 0] = [1, 0.5]
 
@@ -47,7 +47,7 @@ print(covariance, 'final cov')
 print(np.cov(states), 'true cov')
 #print((1/t) * (t*(means[:, t - 1].T).dot(means[:, t - 1]) - (t + 1)*(means[:, t-0].T).dot(means[:, t-0]) + (states[:, t-0].T).dot(states[:, t-0])))
 #print(np.outer(means[:, t-0], means[:, t-0].T))
-'''
+
 
 
 plt.rcParams["font.family"] = "serif"

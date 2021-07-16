@@ -215,7 +215,7 @@ def GaussianProposal(theta, covariance):
 def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, delayed):
 
     #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance[mProp-1], priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed) #states_2)
+    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed) #states_2)
     priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
     piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
 
@@ -229,14 +229,14 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    #if mProp == 2 and m == 1 and True:
-        #print("next")
-        #print("acc: ", acc)
-        #print("piProp: ", np.exp(piProp))
-        #print("pi: ", np.exp(pi))
-        #print("prior Ratio: ", priorRatio)
-        #print(unscale(m, theta), unscale(mProp, thetaProp))
-        #print('gratio', gratio)
+    if mProp == 2 and m == 1 and True:
+        print("next")
+        print("acc: ", acc)
+        print("piProp: ", np.exp(piProp))
+        print("pi: ", np.exp(pi))
+        print("prior Ratio: ", priorRatio)
+        print(unscale(m, theta), unscale(mProp, thetaProp))
+        print('gratio', gratio)
 
     
     return thetaProp, piProp, acc
@@ -258,7 +258,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
     Returns: a new point in the parameter space a jump was proposed too
     '''
     
-    if m == mProp: return GaussianProposal(theta, covariance), 1 # intra-modal move
+    if m == mProp: return GaussianProposal(theta, covariance[mProp - 1]), 1 # intra-modal move
     
     else: # inter-model move
         #l = (theta - centers[m-1]) / centers[m-1] # relative distance from the initial model's centre
@@ -269,13 +269,40 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
         if mProp == 1:
             #g = binary_Sposterior.log_prob(theta = theta, x = signal_data)
-            draw = random.randint(0, n_samples - 1)
-            g = log_prob_samples[draw]
-            for parameter in range(3): # cycle through each parameter and associated prior
-                g -= (priors[parameter].logPDF(theta[parameter]))
+            #draw = random.randint(0, n_samples - 1)
+            #g = log_prob_samples[draw]
+            #for parameter in range(3): # cycle through each parameter and associated prior
+            #    g -= (priors[parameter].logPDF(theta[parameter]))
             #print('g ', np.exp(g), g)
 
-            return centers[mProp-1] + l[0:3], 1#np.exp(g)
+            thetaProp = centers[mProp-1] + l[0:3]
+
+            cov = covariance[m - 1]
+            #c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            #c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
+            #c21 = cov[3:, :3] # Same as above
+            #c22 = cov[3:, 3:] # Covariance matrix of independent variables
+
+            #m1 = #mean[0:2].T # Mu of dependent variables
+            #m2 = theta[3:]#mean[2:4].T # Mu of independent variables
+
+            #conditional_data = theta[3:]#multivariate_normal.rvs(m2, c22)
+            #conditional_mu = m2 #+ c12.dot(np.linalg.inv(c22)).dot((conditional_data - m2).T).T
+            conditional_cov = np.linalg.inv(np.linalg.inv(cov)[:3, :3])
+
+            u = GaussianProposal(np.zeros((3)), conditional_cov)
+
+            thetaProp = thetaProp + u
+
+            print(cov)
+            print(conditional_cov)
+
+            gdn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
+
+            gn = multivariate_normal.pdf(u, np.zeros((3)), covariance[mProp - 1])
+
+
+            return thetaProp, gn/gdn#1#np.exp(g)
         
         if mProp == 2: 
 
@@ -323,32 +350,64 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             #u_full = binary_Sposterior.sample((1, ), x = signal_data, show_progress_bars = False)
             #u_full.numpy
             #u = (u_full[0])[3:]
-            draw = random.randint(0, n_samples - 1)
-            u_full = samples[draw]
-            u = u_full[3:]
+            #draw = random.randint(0, n_samples - 1)
+            #u_full = samples[draw]
+            #u = u_full[3:]
             #log_prob_samples
 
 
-            #u=mem_2[3:]
+            v = mem_2[3:]
 
             #log_prob_ = np.array(posterior.log_prob(theta = samples, x = signal_data))
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
-            thetaProp = (np.concatenate(((l + centers[mProp-1][0:3]), u)))
+            thetaProp = np.concatenate(l + centers[mProp-1][0:3], v)
             #thetaProp=GaussianProposal(thetaProp, covariance)
 
             #g = binary_Sposterior.log_prob(theta = torch.tensor(thetaProp).float(), x = signal_data)
-            g = log_prob_samples[draw]
+            #g = log_prob_samples[draw]
             #print(1/np.exp(g))
-            for parameter in range(3): # cycle through each parameter and associated prior
-                g -= (priors[parameter].logPDF(thetaProp[parameter]))
+            #for parameter in range(3): # cycle through each parameter and associated prior
+            #    g -= (priors[parameter].logPDF(thetaProp[parameter]))
 
             #print(thetaProp)
             
-            thetaProp[4] = np.log(thetaProp[4]) # if drawing from surrogate
+            #thetaProp[4] = np.log(thetaProp[4]) # if drawing from surrogate
             #print('g after', 1/np.exp(g))
 
-            return thetaProp, 1#/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
+            u = GaussianProposal(np.zeros((3)), covariance[m-1])
+            thetaProp[0:3] = thetaProp[0:3] + u
+            gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m-1])
+            #gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m - 1])
+
+            #gn = multivariate_normal.pdf(np.concatenate(u, v), thetaProp, covariance[mProp - 1])
+
+
+
+            cov = covariance[mProp - 1]
+            #c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            #c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
+            #c21 = cov[3:, :3] # Same as above
+            #c22 = cov[3:, 3:] # Covariance matrix of independent variables
+
+            #m1 = #mean[0:2].T # Mu of dependent variables
+            #m2 = theta[3:]#mean[2:4].T # Mu of independent variables
+
+            #conditional_data = theta[3:]#multivariate_normal.rvs(m2, c22)
+            #conditional_mu = m2 #+ c12.dot(np.linalg.inv(c22)).dot((conditional_data - m2).T).T
+            conditional_cov = np.linalg.inv(np.linalg.inv(cov)[:3, :3])
+
+            #u = GaussianProposal(np.zeros((3)), conditional_cov)
+
+            #thetaProp = thetaProp + u
+
+            #gdn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
+
+            gn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
+
+
+
+            return thetaProp, gn/gdn #/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
@@ -408,7 +467,7 @@ def scale(theta): ############make this into a class
     return
 
 
-def PriorRatio(m,mProp,theta,thetaProp,priors):
+def PriorRatio(m, mProp, theta, thetaProp, priors):
     '''
     Calculates the ratio of the product of the priors of the proposed point to the
     initial point, in log units.
@@ -428,12 +487,23 @@ def PriorRatio(m,mProp,theta,thetaProp,priors):
     #thetaTProp = unscale(mProp, thetaProp)
     #print(thetaT, 99)
 
-    for parameter in range(D(mProp)): # cycle through each parameter and associated prior
-        productNumerator += (priors[parameter].logPDF(thetaProp[parameter])) # product using log rules
+    for parameter in range(D(mProp)):
+        if not(parameter == 3 and m != mProp): # cycle through each parameter and associated prior
+            if parameter == 6:
+                productNumerator += np.log(1/(2*3.14))
+            else:
+                productNumerator += (priors[parameter].logPDF(thetaProp[parameter])) # product using log rules
+    
+    if mProp != m:
+        if mProp == 1: productNumerator += priors[4].logPDF(theta[4]) + priors[5].logPDF(theta[5]) + np.log(1/(2*3.14))
+        else: productDenomenator += priors[4].logPDF(theta[4]) + priors[5].logPDF(theta[5]) + np.log(1/(2*3.14))
 
     for parameter in range(D(m)): # cycle through each parameter and associated prior
-        #print(np.exp(priors[parameter].logPDF(theta[parameter])), parameter, m)
-        productDenomenator += (priors[parameter].logPDF(theta[parameter])) # product using log rules
+        if not(parameter == 3 and m != mProp):
+            if parameter == 6:
+                productDenomenator += np.log(1/(2*3.14))
+            else:
+                productDenomenator += (priors[parameter].logPDF(theta[parameter])) # product using log rules
     
     #print(productNumerator, productDenomenator)
     
@@ -521,7 +591,7 @@ def logLikelihood(m, Data, theta, priors):
         try: # for when moves are out of bounds of model valididty
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
             Model.set_magnification_methods([0., 'point_source', 72.])
-            Event = mm.Event(datasets=Data, model=Model)
+            Event = mm.Event(datasets = Data, model = Model)
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf
@@ -533,7 +603,7 @@ def logLikelihood(m, Data, theta, priors):
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
             Model.set_magnification_methods([0., 'VBBL', 72.]) #?
-            Event = mm.Event(datasets=Data, model=Model)
+            Event = mm.Event(datasets = Data, model = Model)
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf
