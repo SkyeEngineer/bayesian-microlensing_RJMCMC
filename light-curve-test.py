@@ -114,6 +114,37 @@ binaryError = BinaryModel.magnification(t[i])/30 + 0.2
 
 
 
+## NOISE
+
+true_data = BinaryModel.magnification(t[i])
+
+    # Noise is due to poisson process
+    # These values are calculated from comparing the zero-point magnitude (1 count/sec)
+    # to the magnitude range (20-25) and the exposure time, then calculating the SNR ratio, 
+    # which is the sqrt(count)
+
+signal_to_noise_baseline = np.random.uniform(23.0, 230.0)
+
+noise = np.random.normal(0.0, true_data / signal_to_noise_baseline, len(t[i])) 
+
+model_data = true_data + noise
+
+plt.plot(t[i], model_data)
+#plt.title('Weak binary lightcurve')
+plt.xlabel('Time [days]')
+plt.ylabel('Magnification')
+#err = mpatches.Patch(label='binaryError', alpha=0.5)
+#plt.legend(handles=[err])
+#lower = BinaryModel.magnification(t[i]) - binaryError / 2
+#upper = BinaryModel.magnification(t[i]) + binaryError / 2
+#plt.fill_between(t[i], lower, upper, alpha = 0.25)
+#plt.axis('square')!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+plt.tight_layout()
+plt.savefig('Plots/Temp.png')
+plt.clf()
+
+
+
 ## PLOT LIGHTCURVES ##
 
 

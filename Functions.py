@@ -244,13 +244,14 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    if mProp != m and False:
+    if mProp != m and True:
         print("next")
         print("acc: ", acc)
         print("piProp: ", np.exp(piProp))
         print("pi: ", np.exp(pi))
+        print("pi ratio: ", np.exp(piProp-pi))
         print("prior Ratio: ", priorRatio)
-        print(unscale(m, theta), unscale(mProp, thetaProp))
+        #print(unscale(m, theta), unscale(mProp, thetaProp))
         print('gratio', gratio)
 
     
@@ -312,19 +313,38 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
 
 
-        ####   gdn = multivariate_normal.pdf(u, np.zeros((3)), c11)#conditional_cov)
+            gdn = multivariate_normal.logpdf(u, np.zeros((3)), conditional_cov)
 
-            #for parameter in range(3): # cycle through each parameter and associated prior
-            #   gdn -= (priors[parameter].logPDF(theta[parameter]))
 
-        ####    gn = multivariate_normal.pdf(-u, np.zeros((3)), covariance[mProp - 1])
 
-            #print('gn/gdn', gn, gdn)
+            gn = multivariate_normal.logpdf(-u, np.zeros((3)), covariance[mProp - 1])
+
+            print(np.exp(gn))
+
+            for parameter in range(3): # cycle through each parameter and associated prior 
+                gdn += (priors[parameter].logPDF(theta[parameter]))
+
+
+
+            #for parameter in range(3, 7): # cycle through each parameter and associated prior
+            #    if parameter == 6:
+            #        gn += np.log(1/(2*3.14))
+            #    elif parameter == 3: 
+            #        pass
+            #    else: 
+            #        #print('pdf', np.exp(priors[parameter].logPDF(theta[parameter])))
+            #        gn += (priors[parameter].logPDF(theta[parameter]))
+                
+                #print(np.exp(gn))
+            gn += priors[4].logPDF(np.exp(theta[4])) + priors[5].logPDF(theta[5]) + np.log(1/(2*3.14))
+            
+
+            #print('gn/gdn', np.exp(gn), np.exp(gdn), np.exp(gn)/np.exp(gdn))
             #print('\n', thetaProp, u)
             #print('\n', covariance[mProp - 1])
             #print('\n', conditional_cov)
 
-            return thetaProp, 1#gn/gdn#1#np.exp(g)
+            return thetaProp, 1#,np.exp(gn-gdn)#1#np.exp(g)
         
         if mProp == 2: 
 

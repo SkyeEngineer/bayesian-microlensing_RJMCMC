@@ -69,7 +69,7 @@ n_epochs = 72
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 #signal_data = Model.magnification(t)
 #epochs = Model.set_times(n_epochs = 100)
-error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/100 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 signal_n_epochs = 720
@@ -80,14 +80,14 @@ signal_data = Model.magnification(signal_epochs)
 
 #print(Model.magnification(epochs))
 
-iterations = 10000
+iterations = 500
 
 
 
 # priors (Zhang et al)
 s_pi = f.logUniDist(0.2, 5)
-q_pi = f.logUniDist(10e-6, 1)
-#q_pi = f.uniDist(10e-6, 0.1)
+#q_pi = f.logUniDist(10e-6, 1)
+q_pi = f.uniDist(10e-6, 0.1)
 alpha_pi = f.uniDist(0, 360)
 u0_pi = f.uniDist(0, 2)
 t0_pi = f.uniDist(0, 72)
@@ -191,7 +191,7 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 750 #250
+    iters = 250 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -269,7 +269,7 @@ def ParralelMain(arr):
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
         cf = i/(iterations-1);
-        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        #print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
         #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
@@ -515,14 +515,14 @@ states_u=np.array(states_u)
 #pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
 
 letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
-
-for i in range(7):
-    
-    pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
-    pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
-    
-    for j in range(i+1, 7):
-        pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+if False:
+    for i in range(7):
+        
+        pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+        pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+        
+        for j in range(i+1, 7):
+            pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
 
 
 
@@ -545,29 +545,19 @@ for i in range(7):
 #pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
 
-sampled_curves = random.sample(range(0, np.size(states_2, 0)), 50)#int(0.1*np.size(states_2, 0)))
-for i in sampled_curves:
-    pltf.PlotLightcurve(2, f.unscale(2, states_2[i, :]), 'Samples', 'red', 0.1, False, [0,72])
-pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
-#plt.legend()
-plt.tight_layout()
-plt.title('Joint Dist Samples | m = 2')
-plt.xlabel('time [days]')
-plt.ylabel('Magnification')
-plt.savefig('Plots/RJMCMC-Samples.png')
-plt.clf()
-
-
-
-## SINGLE MODEL ##
-
-for i in range(3):
     
-    pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, False)
-    pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, False)
 
-    for j in range(i+1, 3):
-        pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, False)
+
+
+    ## SINGLE MODEL ##
+
+    for i in range(3):
+        
+        pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, False)
+        pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, False)
+
+        for j in range(i+1, 3):
+            pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, False)
 
 #pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 #pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
@@ -579,6 +569,20 @@ for i in range(3):
 #pltf.PlotWalk(2, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
 #pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+
+
+
+sampled_curves = random.sample(range(0, np.size(states_2, 0)), 50)#int(0.1*np.size(states_2, 0)))
+for i in sampled_curves:
+    pltf.PlotLightcurve(2, f.unscale(2, states_2[i, :]), 'Samples', 'red', 0.1, False, [0,72])
+pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
+#plt.legend()
+plt.tight_layout()
+plt.title('Joint Dist Samples | m = 2')
+plt.xlabel('time [days]')
+plt.ylabel('Magnification')
+plt.savefig('Plots/RJMCMC-Samples.png')
+plt.clf()
 
 
 
