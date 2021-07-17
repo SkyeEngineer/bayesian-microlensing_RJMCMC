@@ -25,8 +25,7 @@ plt.rcParams["grid.alpha"] = 0.25
 plt.rc('axes.formatter', useoffset=False)
 
 
-def PlotWalk(xi, yi, states, center, true, labels, symbols, details):
-    #Make sure to unscale centers
+def PlotWalk(xi, yi, states, labels, symbols, letters, model, center, true):
 
     markerSize = 75
     plt.grid()
@@ -37,10 +36,13 @@ def PlotWalk(xi, yi, states, center, true, labels, symbols, details):
     cbar.ax.yaxis.set_label_position('right')
     plt.xlabel(labels[xi])
     plt.ylabel(labels[yi])
-    plt.title('RJMCMC walk projected\n onto binary ('+symbols[xi]+', '+symbols[yi]+') space')
+    plt.title('RJMCMC walk projected\n onto '+model+' ('+symbols[xi]+', '+symbols[yi]+') space')
     
-    if details == True:
-        #plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
+    if isinstance(center, np.ndarray):
+        plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
+        plt.legend()
+
+    if isinstance(true, np.ndarray):
         plt.scatter(true[xi], true[yi], marker = '*', label = 'True', s = markerSize, c = 'black', alpha = 1) # r'$\circledast$'
         plt.legend()
     
@@ -48,7 +50,7 @@ def PlotWalk(xi, yi, states, center, true, labels, symbols, details):
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
     plt.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
     plt.tight_layout()
-    plt.savefig('Plots/RJ-binary?-('+symbols[xi]+', '+symbols[yi]+')-Walk.png')
+    plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Walk.png')
     plt.clf()
     
     return
@@ -84,25 +86,31 @@ def PPlotWalk(xs, ys, **kwargs):
 
 
 
-def TracePlot(yi, states, jumpStates, jump_i, center, true, labels, symbols, details):
+def TracePlot(yi, states, jumpStates, jump_i, labels, symbols, letters, model, center, true):
     #Make sure to unscale centers
 
     plt.grid()
     plt.plot(np.linspace(1, len(states), len(states)), states[:, yi], linewidth = 0.5)
     plt.xlabel('Binary Steps')
     plt.ylabel(labels[yi])
-    plt.title('RJMCMC Binary model'+symbols[yi]+'Trace')
+    plt.title('RJMCMC '+model+' model'+symbols[yi]+'Trace')
 
-    if details == True:
+    if isinstance(jumpStates, np.ndarray):
         plt.scatter(jump_i, jumpStates[:, yi], alpha = 0.25, marker = "*", label = 'Jump')
+        plt.legend()
+
+    if isinstance(true, np.ndarray):
         plt.axhline(true[yi], label = 'True', color = 'red')
-        #plt.axhline(center[yi], label = 'Centre', color = 'black')
+        plt.legend()
+
+    if isinstance(center, np.ndarray):
+        plt.axhline(center[yi], label = 'Centre', color = 'black')
         plt.legend()
 
 
-    #plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+    plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
     plt.tight_layout()
-    plt.savefig('Plots/RJ-Binary-' + symbols[yi] + '-Trace.png')
+    plt.savefig('Plots/Trace/RJ-'+model+letters[yi]+'-Trace.png')
     plt.clf()
 
     return
@@ -110,25 +118,28 @@ def TracePlot(yi, states, jumpStates, jump_i, center, true, labels, symbols, det
 
 
 
-def DistPlot(m, xi, states, center, true, labels, symbols, details):
+def DistPlot(xi, states, labels, symbols, letters, model, center, true):
     # Make sure to unscale centers
 
     plt.grid()
     plt.hist(states[:, xi], bins = 25, density = True)
     plt.xlabel(labels[xi])
     plt.ylabel('Probability Density')
-    plt.title('RJMCMC binary model ' + symbols[xi] + ' distribution')
+    plt.title('RJMCMC '+model+' model ' + symbols[xi] + ' distribution')
 
-    if details == True:
+    if isinstance(true, np.ndarray):
         plt.axvline(true[xi], label = 'True', color = 'red')
-        #plt.axvline(center[xi], label = 'Centre', color = 'black')
+        plt.legend()
+
+    if isinstance(center, np.ndarray):
+        plt.axvline(center[xi], label = 'Centre', color = 'black')
         plt.legend()
 
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
     plt.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
 
     plt.tight_layout()
-    plt.savefig('Plots/RJ-Binary-' + symbols[xi] + '-dist')
+    plt.savefig('Plots/Dist/RJ-'+model+letters[xi]+'-Dist.png')
     plt.clf()
 
     return

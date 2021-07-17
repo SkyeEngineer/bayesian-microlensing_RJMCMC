@@ -116,6 +116,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     eps = 1e-12 # Needs to be smaller than the scale of parameter values
 
     c = np.zeros((iterations + burns))
+    c[0] = 1
 
     states = np.zeros((d, iterations + burns))
     states[:, 0] = theta
@@ -156,7 +157,12 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
     # initiliase empirical covaraince
     covariance = s*np.cov(states[:, 0:burns]) + s*eps*I
     
+    #print(states[:, 0:burns])
+    #print(means[:, 0:burns])
+    #throw=throw
     covs.append(covariance)
+
+    #print('Empirical: ', check_symmetric(covariance, tol=1e-8), '\n', covariance)
 
     t = burns # global index
 
@@ -186,18 +192,27 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         means[:, t] = (means[:, t-1]*t + theta)/(t + 1) # recursive mean (offsets indices starting at zero by one)
         
         # update step (recursive covariance)
-        covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t])) #+ eps*I
+        #covariance = s*np.cov(states[:, 0:t+1]) + s*eps*I
+        #covariance = (t - 1)/t * covariance + s/t * (t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
+        
+        covariance = (t - 1)/t * covariance + s/(t + 1) * np.outer(states[:, t]-means[:, t - 1], states[:, t]-means[:, t - 1]) + s*eps*I/t#(t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
         covs.append(covariance)
 
+        if not check_symmetric(covariance, tol=1e-8):
+            print('non symm cov')
+        #print('My Formula: ', check_symmetric(covariance, tol=1e-8),  '\n', covariance)
 
         t += 1
 
     # performance diagnostic
     print(f"Adaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}")
 
+    #throw = throw
+
     return covariance, states, means, c, covs, bests, bestt
 
-
+def check_symmetric(a, tol=1e-16):
+    return np.all(np.abs(a-a.T) < tol)
 
 def GaussianProposal(theta, covariance):
     '''
@@ -212,10 +227,10 @@ def GaussianProposal(theta, covariance):
     '''
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
-def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, delayed):
+def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, stored_mean, delayed):
 
     #mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed) #states_2)
+    thetaProp, gratio = RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, stored_mean, delayed) #states_2)
     priorRatio = np.exp(PriorRatio(m, mProp, unscale(m, theta), unscale(mProp, thetaProp), priors))
     piProp = (logLikelihood(mProp, Data, unscale(mProp, thetaProp), priors))
 
@@ -229,7 +244,7 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    if mProp == 2 and m == 1 and True:
+    if mProp != m and False:
         print("next")
         print("acc: ", acc)
         print("piProp: ", np.exp(piProp))
@@ -242,7 +257,7 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     return thetaProp, piProp, acc
 
 
-def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, delayed):
+def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Sposterior, samples, log_prob_samples, n_samples, signal_data, mem_2, stored_mean, delayed):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -278,31 +293,38 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             thetaProp = centers[mProp-1] + l[0:3]
 
             cov = covariance[m - 1]
-            #c11 = cov[:3, :3] # Covariance matrix of the dependent variables
-            #c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
-            #c21 = cov[3:, :3] # Same as above
-            #c22 = cov[3:, 3:] # Covariance matrix of independent variables
+            c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
+            c21 = cov[3:, :3] # Same as above
+            c22 = cov[3:, 3:] # Covariance matrix of independent variables
+            c22inv = np.linalg.inv(c22)
 
-            #m1 = #mean[0:2].T # Mu of dependent variables
-            #m2 = theta[3:]#mean[2:4].T # Mu of independent variables
+            m1 = theta[:3]#stored_mean[1][:3].T#mean[0:2].T # Mu of dependent variables
+            m2 = theta[3:]#stored_mean[1][3:].T#theta[3:].T#mean[2:4].T # Mu of independent variables
 
             #conditional_data = theta[3:]#multivariate_normal.rvs(m2, c22)
-            #conditional_mu = m2 #+ c12.dot(np.linalg.inv(c22)).dot((conditional_data - m2).T).T
-            conditional_cov = np.linalg.inv(np.linalg.inv(cov)[:3, :3])
+            #conditional_mu = m1 + c12.dot(c22inv).dot((conditional_data - m2).T).T
+            conditional_cov = c11 - c12.dot(c22inv).dot(c21)#np.linalg.inv(np.linalg.inv(cov)[:3, :3])
 
             u = GaussianProposal(np.zeros((3)), conditional_cov)
 
             thetaProp = thetaProp + u
 
-            print(cov)
-            print(conditional_cov)
-
-            gdn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
-
-            gn = multivariate_normal.pdf(u, np.zeros((3)), covariance[mProp - 1])
 
 
-            return thetaProp, gn/gdn#1#np.exp(g)
+        ####   gdn = multivariate_normal.pdf(u, np.zeros((3)), c11)#conditional_cov)
+
+            #for parameter in range(3): # cycle through each parameter and associated prior
+            #   gdn -= (priors[parameter].logPDF(theta[parameter]))
+
+        ####    gn = multivariate_normal.pdf(-u, np.zeros((3)), covariance[mProp - 1])
+
+            #print('gn/gdn', gn, gdn)
+            #print('\n', thetaProp, u)
+            #print('\n', covariance[mProp - 1])
+            #print('\n', conditional_cov)
+
+            return thetaProp, 1#gn/gdn#1#np.exp(g)
         
         if mProp == 2: 
 
@@ -361,7 +383,8 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             #log_prob_ = np.array(posterior.log_prob(theta = samples, x = signal_data))
 
             #thetaProp=np.concatenate(((l * centers[mProp-1][0:3]+centers[mProp-1][0:3]), u))
-            thetaProp = np.concatenate(l + centers[mProp-1][0:3], v)
+            h = l + centers[mProp-1][0:3]
+            thetaProp = np.concatenate((h, v))
             #thetaProp=GaussianProposal(thetaProp, covariance)
 
             #g = binary_Sposterior.log_prob(theta = torch.tensor(thetaProp).float(), x = signal_data)
@@ -377,7 +400,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
             u = GaussianProposal(np.zeros((3)), covariance[m-1])
             thetaProp[0:3] = thetaProp[0:3] + u
-            gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m-1])
+        ####    gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m-1])
             #gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m - 1])
 
             #gn = multivariate_normal.pdf(np.concatenate(u, v), thetaProp, covariance[mProp - 1])
@@ -385,7 +408,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
 
             cov = covariance[mProp - 1]
-            #c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            c11 = cov[:3, :3] # Covariance matrix of the dependent variables
             #c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
             #c21 = cov[3:, :3] # Same as above
             #c22 = cov[3:, 3:] # Covariance matrix of independent variables
@@ -395,7 +418,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
             #conditional_data = theta[3:]#multivariate_normal.rvs(m2, c22)
             #conditional_mu = m2 #+ c12.dot(np.linalg.inv(c22)).dot((conditional_data - m2).T).T
-            conditional_cov = np.linalg.inv(np.linalg.inv(cov)[:3, :3])
+            #conditional_cov = np.linalg.inv(np.linalg.inv(cov)[:3, :3])
 
             #u = GaussianProposal(np.zeros((3)), conditional_cov)
 
@@ -403,11 +426,11 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
             #gdn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
 
-            gn = multivariate_normal.pdf(u, np.zeros((3)), conditional_cov)
+        ####    gn = multivariate_normal.pdf(u, np.zeros((3)), c11)
 
 
 
-            return thetaProp, gn/gdn #/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
+            return thetaProp, 1#gn/gdn #/np.exp(g) #1/q(u|l + centers[mProp-1][0:3])
 
 def D(m):
     '''
@@ -496,7 +519,7 @@ def PriorRatio(m, mProp, theta, thetaProp, priors):
     
     if mProp != m:
         if mProp == 1: productNumerator += priors[4].logPDF(theta[4]) + priors[5].logPDF(theta[5]) + np.log(1/(2*3.14))
-        else: productDenomenator += priors[4].logPDF(theta[4]) + priors[5].logPDF(theta[5]) + np.log(1/(2*3.14))
+        else: productDenomenator += priors[4].logPDF(thetaProp[4]) + priors[5].logPDF(thetaProp[5]) + np.log(1/(2*3.14))
 
     for parameter in range(D(m)): # cycle through each parameter and associated prior
         if not(parameter == 3 and m != mProp):

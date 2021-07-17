@@ -15,7 +15,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 # TESTING
-
+'''
 states = np.zeros((2, 3))
 states[:, 0] = [1, 0.5]
 
@@ -47,7 +47,7 @@ print(covariance, 'final cov')
 print(np.cov(states), 'true cov')
 #print((1/t) * (t*(means[:, t - 1].T).dot(means[:, t - 1]) - (t + 1)*(means[:, t-0].T).dot(means[:, t-0]) + (states[:, t-0].T).dot(states[:, t-0])))
 #print(np.outer(means[:, t-0], means[:, t-0].T))
-
+'''
 
 
 plt.rcParams["font.family"] = "serif"
@@ -75,8 +75,8 @@ Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 72)
-error = Model.magnification(t)/50 + 0.1
+t = Model.set_times(n_epochs = 720)
+error = Model.magnification(t) * 0 + np.max(Model.magnification(t))/10
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
 # priors (Zhang et al)
@@ -98,21 +98,21 @@ theta_2i = np.array([35, 0.125, 61.1, 0.00988, np.log(0.000305), 1.258, 222.8]) 
 # print(np.exp(f.logLikelihood(2, Data, theta_2i)))
 
 # initial covariances (diagonal)
-covariance_1i=np.multiply(1, [0.01, 0.01, 0.1]) #0.0001
-covariance_2id=np.multiply(0.01, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 0.1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
+covariance_1i=np.multiply(0.1, [0.1, 0.01, 0.1]) #0.0001
+covariance_2id=np.multiply(0.1, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
 covariance_2i = np.zeros((7, 7))
 np.fill_diagonal(covariance_2i, covariance_2id)
 #should be small to get a quick taste of size (too small makes growth to normal size to slow)
 
-burns = 25 #should be small to not bias later
-iters = 25000
+burns = 5 #should be small to not bias later
+iters = 1500
 
-#covariance_1p, states_1, c_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, 200, 200)
-covariance_2p, states_2, means_2, c_2, covs = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
+#covariance_1p, states_1, c_1, covs, bests, bestt = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, burns, iters)
+covariance_2p, states_2, means_2, c_2, covs, bests, bestt = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
 
 # Create and plot the accepatnce ratio over time
 acc = []
-size = 50#50
+size = 500#50
 bins = int((burns + iters) / size)
 
 for bin in range(bins): # record the ratio of acceptance for each bin
@@ -201,7 +201,7 @@ for i in range(7):
     pltf.TracePlot(i, np.transpose(states_2), 1, 1, 1, 1, labels, symbols, details)
 
 
-plt.scatter(states_2[5,:], np.exp(states_2[4,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
+plt.scatter(states_2[5,:], (states_2[4,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
 cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
 #cbar.set_label('Time', rotation = 90, fontsize=10)
 ax=plt.gca()
@@ -215,10 +215,25 @@ plt.legend()
 plt.grid()
 plt.gca().ticklabel_format(useOffset=False)
 plt.tight_layout()
-plt.savefig('Plots/Adaptive-Covariance-Sampleing-Walk.png')
+plt.savefig('Plots/Adaptive-Covariance-Sampleing-qs-Walk.png')
 plt.clf()
 
-
+plt.scatter(states_2[1,:], (states_2[6,:]), c=np.linspace(0.0, 1.0, iters+burns), cmap='spring', alpha=0.25, marker="o")
+cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks=[0, 1]) # empirical nice auto sizing
+#cbar.set_label('Time', rotation = 90, fontsize=10)
+ax=plt.gca()
+cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+cbar.ax.yaxis.set_label_position('right')
+plt.xlabel(r'Alp')
+plt.ylabel('U')
+plt.title('Adaptive MCMC walk\nprojected onto Binary (s, q) space')
+#plt.scatter(1.1, 0.02, marker='*', label='True', s=75, c='black', alpha=1)#r'$\circledast$'
+plt.legend()
+plt.grid()
+plt.gca().ticklabel_format(useOffset=False)
+plt.tight_layout()
+plt.savefig('Plots/Adaptive-Covariance-Sampleing-ua-Walk.png')
+plt.clf()
 
 
 #https://scipython.com/blog/visualizing-the-bivariate-gaussian-distribution/

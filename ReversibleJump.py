@@ -33,7 +33,7 @@ pltf.Style()
 
 
 
-labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter [$1$]', r'Einstein Crossing Time [$days$]', r'Rho [$?$]', r'Mass Ratio', r'Separation [$E_r$]', r'Alpha [$Degrees$]', ]
+labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'ln(Mass Ratio)', r'Separation', r'Alpha']
 symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 
@@ -69,7 +69,7 @@ n_epochs = 72
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 #signal_data = Model.magnification(t)
 #epochs = Model.set_times(n_epochs = 100)
-error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/10 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/100 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 signal_n_epochs = 720
@@ -80,7 +80,7 @@ signal_data = Model.magnification(signal_epochs)
 
 #print(Model.magnification(epochs))
 
-iterations = 250
+iterations = 10000
 
 
 
@@ -146,7 +146,7 @@ def ParralelMain(arr):
     #center_2 = np.array(center_2s[sn])
 
     #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    center_2s = [3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02]
+    center_2s = np.array([3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02])
 
 
     #center_2s[4] = np.log(center_2s[4])
@@ -191,13 +191,16 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 2500 #250
+    iters = 750 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
     covariance_2p, states_2, means_2, c_2, null, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
 
     covariance_p = [covariance_1p, covariance_2p]
+    #print(covariance_1p)
+    #print(covariance_2p)
+    #throw=throw
 
     #center_1 = bestt_1
     center_2 = bestt_2
@@ -239,11 +242,13 @@ def ParralelMain(arr):
     I = [np.identity(3), np.identity(7)] 
     s = [2.4**2 / 3, 2.4**2 / 7] # Arbitrary(ish), good value from Haario et al
     eps = 1e-12 # Needs to be smaller than the scale of parameter values
-    means = [np.zeros((3, iters+burns+iterations)), np.zeros((7, iters+burns+iterations))]
+    #means = [np.zeros((3, iters+burns+iterations)), np.zeros((7, iters+burns+iterations))]
     #print(means[0][:,0:2])
     #print(means_1)
-    means[0][:, 0:burns+iters] = means_1
-    means[1][:, 0:burns+iters] = means_2
+    #means[0][:, 0:burns+iters] = means_1
+    #means[1][:, 0:burns+iters] = means_2
+    stored_mean = [means_1[:, -1], means_2[:, -1]]
+
 
     bests = [0, 0]
     bestt = [[], []]
@@ -264,7 +269,7 @@ def ParralelMain(arr):
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
         cf = i/(iterations-1);
-        #print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
         #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
@@ -284,7 +289,7 @@ def ParralelMain(arr):
         #    scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
 
         #scale = 1
-        thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, False)
+        thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, stored_mean, False)
         #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         if random.random() <= acc * m_pi[mProp - 1] / m_pi[m - 1]: #*q!!!!!!!!!!!!# metropolis acceptance
             if m == mProp: adaptive_score[mProp - 1].append(1)
@@ -329,12 +334,17 @@ def ParralelMain(arr):
 
 
         tr = t[m-1]
-        means[m-1][:, tr] = (means[m-1][:, tr-1]*tr + theta)/(tr + 1) # recursive mean (offsets indices starting at zero by one)    
+        
+        #means[m-1][:, tr] = (means[m-1][:, tr-1]*tr + theta)/(tr + 1) # recursive mean (offsets indices starting at zero by one)    
         # update step (recursive covariance)
 
-        covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) #+ eps*I[m-1]
-
-
+        #covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) #+ eps*I[m-1]
+        covariance_p[m-1] = (tr - 1)/tr * covariance_p[m - 1] + s[m-1]/(tr + 1) * np.outer(theta - stored_mean[m-1], theta - stored_mean[m-1]) + s[m-1]*eps*I[m-1]/tr
+        #(t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
+        
+        #print('My Formula: ', f.check_symmetric(covariance_p[m-1], tol=1e-8))
+        
+        stored_mean[m-1] = (stored_mean[m-1]*tr + theta)/(tr + 1)
 
         t[m-1] += 1
 
@@ -448,9 +458,9 @@ h_ind = []
 h=0
 for i in range(iterations): # record all binary model states in the chain
     if ms[i] == 2: 
-        states_2.append(f.unscale(2, states[i]))
+        states_2.append((states[i]))
         if ms[i-1] == 1: 
-            jumpStates_2.append(f.unscale(2, states[i]))
+            jumpStates_2.append((states[i]))
             h_ind.append(len(states_2))
 
 
@@ -461,12 +471,16 @@ jumpStates_2 = np.array(jumpStates_2)
 
 states_1 = []
 h_states_1 = []
+h_ind1=[]
 for i in range(iterations): # record all single model states in the chain
     if ms[i] == 1: 
-        states_1.append(f.unscale(1, states[i]))
-        if ms[i-1] == 2: h_states_1.append(f.unscale(1, states[i]))
-states_1=np.array(states_1)
-h_states_1=np.array(h_states_1)
+        states_1.append((states[i]))
+        if ms[i-1] == 2: 
+            h_states_1.append((states[i]))
+            h_ind1.append(len(states_1))
+
+states_1 = np.array(states_1)
+h_states_1 = np.array(h_states_1)
 
 
 
@@ -500,35 +514,71 @@ states_u=np.array(states_u)
 
 #pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
 
+letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
+
+for i in range(7):
+    
+    pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+    pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+    
+    for j in range(i+1, 7):
+        pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
 
 
-pltf.PlotWalk(3, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+#pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.PlotWalk(5, 6, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+#pltf.PlotWalk(5, 6, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.TracePlot(5, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+#for i in range(7):
+    
+
+#for i in range(3):
+    
+
+#pltf.TracePlot(5, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
 
 
-pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+#pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
 
-pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+#pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
+
+
+sampled_curves = random.sample(range(0, np.size(states_2, 0)), 50)#int(0.1*np.size(states_2, 0)))
+for i in sampled_curves:
+    pltf.PlotLightcurve(2, f.unscale(2, states_2[i, :]), 'Samples', 'red', 0.1, False, [0,72])
+pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
+#plt.legend()
+plt.tight_layout()
+plt.title('Joint Dist Samples | m = 2')
+plt.xlabel('time [days]')
+plt.ylabel('Magnification')
+plt.savefig('Plots/RJMCMC-Samples.png')
+plt.clf()
+
 
 
 ## SINGLE MODEL ##
 
-pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-pltf.DistPlot(1, 2, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+for i in range(3):
+    
+    pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, False)
+    pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, False)
+
+    for j in range(i+1, 3):
+        pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, False)
+
+#pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+#pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+#pltf.DistPlot(1, 2, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
 
-pltf.PlotWalk(0, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+#pltf.PlotWalk(0, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
-pltf.PlotWalk(2, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+#pltf.PlotWalk(2, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
-pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
+#pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
 
 
 
