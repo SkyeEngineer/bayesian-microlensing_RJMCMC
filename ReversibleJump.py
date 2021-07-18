@@ -45,23 +45,23 @@ sn = 2
 theta_Models = [
     [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
     [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
-    [36, 0.833, 21.5, 0.0056, 0.003, 1.3, 210.8], # 2 weak binary 2
+    [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
     [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
     [36, 0.633, 31.5]  # 4 single
     ]
 theta_Model = np.array(theta_Models[sn])
 # 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-#Model.set_magnification_methods([0., 'VBBL', 72.])
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+Model.set_magnification_methods([0., 'VBBL', 72.])
 
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-Model.set_magnification_methods([0., 'point_source', 72.])
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+#Model.set_magnification_methods([0., 'point_source', 72.])
 
 Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 plt.savefig('temp.jpg')
 plt.clf()
 
-#throw=throw
+
 
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
@@ -73,7 +73,7 @@ true_data = Model.magnification(epochs)
 #error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 random.seed(a = 99, version = 2)
 
-signal_to_noise_baseline = np.random.uniform(23.0, 230.0)
+signal_to_noise_baseline = 40#np.random.uniform(23.0, 230.0)
 noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
 noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
 error = noise_sd
@@ -86,7 +86,26 @@ signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
 true_signal_data = Model.magnification(signal_epochs)
 signal_data = model_data
 
+plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
+plt.ylabel('Magnification')
+plt.xlabel('Time [days]')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('ObsTru.png')
+plt.clf()
 
+plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
+plt.plot(epochs, true_data, color = 'red', label='true')
+plt.ylabel('Magnification')
+plt.xlabel('Time [days]')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('Tru.png')
+plt.clf()
+
+throw=throw
 #print(Model.magnification(epochs))
 
 iterations = 500
@@ -155,8 +174,8 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    center_2s = np.array([3.57005081e+01, 8.38877439e-01, 2.13460770e+01, 1.12689748e-04, 9.46085248e-03, 1.04576159e+00, 3.01164032e+02])
+    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    #center_2s = np.array([3.57005081e+01, 8.38877439e-01, 2.13460770e+01, 1.12689748e-04, 9.46085248e-03, 1.04576159e+00, 3.01164032e+02])
 
 
     #throw=throw
@@ -165,13 +184,13 @@ def ParralelMain(arr):
     #center_2s = f.scale(center_2s)
 
     #print("\n", center_2, " hi")
-    #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
     #print(Data.flux)
     #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
 
     pltf.LightcurveFitError(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
     pltf.LightcurveFitError(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
-
+    throw=throw
     
     #fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
     #min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
