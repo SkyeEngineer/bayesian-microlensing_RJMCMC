@@ -39,7 +39,7 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 2
+sn = 4
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -51,8 +51,8 @@ theta_Models = [
     ]
 theta_Model = np.array(theta_Models[sn])
 # 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-Model.set_magnification_methods([0., 'VBBL', 72.])
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+#Model.set_magnification_methods([0., 'VBBL', 72.])
 
 Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
 Model.set_magnification_methods([0., 'point_source', 72.])
@@ -88,7 +88,7 @@ signal_data = model_data
 
 #print(Model.magnification(epochs))
 
-iterations = 2500
+iterations = 10000
 
 
 
@@ -102,20 +102,20 @@ t0_pi = f.uniDist(0, 72)
 tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
 rho_pi =  f.logUniDist(10**-4, 10**-2)
 a = 0.5
-m_pi = [1 - a, a]
-priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
+#m_pi = [1 - a, a]
+#priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
 # uninformative priors
 s_upi = f.uniDist(0.2, 5)
-q_upi = f.uniDist(10e-6, 1)
+q_upi = f.uniDist(10e-6, 0.1)
 alpha_upi = f.uniDist(0, 360)
 u0_upi = f.uniDist(0, 2)
 t0_upi = f.uniDist(0, 72)
 tE_upi = f.uniDist(1, 100)
 rho_upi =  f.uniDist(10**-4, 10**-2)
 
-#priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
-#m_pi = [0.5, 0.5]
+priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
+m_pi = [0.5, 0.5]
 
 #print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
 #g=g
@@ -202,7 +202,7 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 250 #250
+    iters = 2500 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
