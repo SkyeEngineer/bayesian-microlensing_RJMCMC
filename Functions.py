@@ -244,7 +244,7 @@ def Propose(Data, signal_data, m, mProp, theta, pi, covariance, centers, binary_
     #    gratio = 1
 
     acc = np.exp(piProp-pi) * priorRatio * gratio# * J
-    if mProp != m and True:
+    if mProp != m and False:
         print("next")
         print("acc: ", acc)
         print("piProp: ", np.exp(piProp))
@@ -319,7 +319,7 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
             gn = multivariate_normal.logpdf(-u, np.zeros((3)), covariance[mProp - 1])
 
-            print(np.exp(gn))
+            #print(np.exp(gn))
 
             for parameter in range(3): # cycle through each parameter and associated prior 
                 gdn += (priors[parameter].logPDF(theta[parameter]))

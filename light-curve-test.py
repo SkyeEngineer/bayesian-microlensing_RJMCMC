@@ -100,15 +100,15 @@ def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
 
 
 # Synthetic Events
-BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.001, 'q': 0.00005, 's': 1.12, 'alpha': 200.8})
-#BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0056, 'q': 0.0009, 's': 1.3, 'alpha': 210.8})
+#BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.001, 'q': 0.00005, 's': 1.12, 'alpha': 200.8})
+BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8})
 BinaryModel.set_magnification_methods([0., 'VBBL', 72.])
 
 SingleModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
 SingleModel.set_magnification_methods([0., 'point_source', 72.])
 
 # initialise
-t = BinaryModel.set_times(n_epochs = 200)
+t = BinaryModel.set_times(n_epochs = 720)
 i = np.where(np.logical_and(0 <= t, t <= 72))
 binaryError = BinaryModel.magnification(t[i])/30 + 0.2
 
@@ -125,7 +125,7 @@ true_data = BinaryModel.magnification(t[i])
 
 signal_to_noise_baseline = np.random.uniform(23.0, 230.0)
 
-noise = np.random.normal(0.0, true_data / signal_to_noise_baseline, len(t[i])) 
+noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, len(t[i])) 
 
 model_data = true_data + noise
 

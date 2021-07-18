@@ -45,17 +45,17 @@ sn = 2
 theta_Models = [
     [36, 0.133, 31.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
     [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
-    [36, 0.133, 31.5, 0.0056, 0.0007, 1.3, 210.8], # weak binary 2
+    [36, 0.833, 21.5, 0.0056, 0.025, 1.3, 210.8], # weak binary 2
     [36, 0.133, 31.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
-    [36, 0.133, 31.5]  # single
+    [36, 0.533, 21.5]  # single
     ]
 theta_Model = np.array(theta_Models[sn])
-
+# 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
 Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-#Model.set_magnification_methods([0., 'point_source', 72.])
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+Model.set_magnification_methods([0., 'point_source', 72.])
 
 #Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 #plt.savefig('temp.jpg')
@@ -65,29 +65,37 @@ Model.set_magnification_methods([0., 'VBBL', 72.])
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
 #epochs = Model.set_times(n_epochs = 720)
-n_epochs = 72
+n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-#signal_data = Model.magnification(t)
+true_data = Model.magnification(epochs)
 #epochs = Model.set_times(n_epochs = 100)
-error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
-Data = mm.MulensData(data_list = [epochs, Model.magnification(epochs), error], phot_fmt = 'flux', chi2_fmt = 'flux')
+#error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+random.seed(a = 99, version = 2)
+
+signal_to_noise_baseline = np.random.uniform(23.0, 230.0)
+noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
+noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
+error = noise_sd
+model_data = true_data + noise
+Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 signal_n_epochs = 720
 signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
 
-signal_data = Model.magnification(signal_epochs)
+true_signal_data = Model.magnification(signal_epochs)
+signal_data = model_data
 
 
 #print(Model.magnification(epochs))
 
-iterations = 500
+iterations = 2500
 
 
 
 # priors (Zhang et al)
 s_pi = f.logUniDist(0.2, 5)
-#q_pi = f.logUniDist(10e-6, 1)
-q_pi = f.uniDist(10e-6, 0.1)
+q_pi = f.logUniDist(10e-6, 1)
+#q_pi = f.uniDist(10e-6, 0.1)
 alpha_pi = f.uniDist(0, 360)
 u0_pi = f.uniDist(0, 2)
 t0_pi = f.uniDist(0, 72)
@@ -134,8 +142,8 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
 
     # centreing points for inter-model jumps
-    center_1s = np.array([36., 0.133, 31.5])
-    center_1 = np.array([36., 0.133, 31.5])
+    #center_1s = np.array([36., 0.133, 31.5])
+    #center_1 = np.array([36., 0.133, 31.5])
 
     center_2ss = [
         [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
@@ -145,15 +153,15 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    center_2s = np.array([3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02])
+    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    #center_2s = np.array([3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02])
 
 
     #center_2s[4] = np.log(center_2s[4])
     #center_2s = f.scale(center_2s)
 
     #print("\n", center_2, " hi")
-    #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
     #print(Data.flux)
     #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
 
@@ -166,13 +174,16 @@ def ParralelMain(arr):
     #print(min_center_1)
     #center_1 = min_center_1.x
 
-    #fun_2 = lambda x: -f.logLikelihood(2, Data, x, priors)
-    #min_center_2 = minimize(fun_2, center_2s, method='Nelder-Mead')
+    #fun_2 = lambda x: -2*f.logLikelihood(2, Data, x, priors)
+    #min_center_2 = minimize(fun_2, center_2s, method = 'Nelder-Mead', options={'maxfev': 1000})
     #print(min_center_2)
     #center_2 = min_center_2.x
 
-
     #pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenterOpt")
+
+    #throw=throw
+
+ 
     #pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenterOpt")
 
 
@@ -181,7 +192,7 @@ def ParralelMain(arr):
     # initial covariances (diagonal)
     cov_scale = 0.01 #0.01
     covariance_1 = np.multiply(cov_scale, [0.1, 0.01, 0.1])
-    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 1])#0.5
+    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])#0.5
 
     #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
     #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -202,7 +213,7 @@ def ParralelMain(arr):
     #print(covariance_2p)
     #throw=throw
 
-    #center_1 = bestt_1
+    center_1 = bestt_1
     center_2 = bestt_2
     
     #print(center_1s, center_1)
@@ -220,7 +231,7 @@ def ParralelMain(arr):
     # loop specific values
 
     #print(states_1[:, -1])
-    theta = center_2 #states_1[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    theta = states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
     #print(theta)
     m = 2
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
@@ -269,7 +280,7 @@ def ParralelMain(arr):
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
         cf = i/(iterations-1);
-        #print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
         #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
@@ -515,61 +526,31 @@ states_u=np.array(states_u)
 #pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
 
 letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
-if False:
+if True:
+
+    binary_true = f.scale(theta_Model)
+
     for i in range(7):
+
+
         
-        pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
-        pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
+        pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, binary_true)
+        pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, binary_true)
         
         for j in range(i+1, 7):
-            pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, f.scale(theta_Model))
-
-
-
-#pltf.PlotWalk(4, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-#pltf.PlotWalk(5, 6, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-#for i in range(7):
-    
-
-#for i in range(3):
-    
-
-#pltf.TracePlot(5, states_2, jumpStates_2, h_ind, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-
-
-#pltf.DistPlot(2, 4, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-#pltf.DistPlot(2, 5, states_2, f.unscale(2, center_2), theta_Model, labels, symbols, details)
-
-
-    
-
-
+            pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, binary_true)
 
     ## SINGLE MODEL ##
 
+    single_true = False#f.scale(theta_Model)
+
     for i in range(3):
-        
-        pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, False)
-        pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, False)
+
+        pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, single_true)
+        pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, single_true)
 
         for j in range(i+1, 3):
-            pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, False)
-
-#pltf.DistPlot(1, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-#pltf.DistPlot(1, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-#pltf.DistPlot(1, 2, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-
-
-#pltf.PlotWalk(0, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-
-#pltf.PlotWalk(2, 0, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-
-#pltf.PlotWalk(2, 1, states_1, f.unscale(1, center_1), theta_Model, labels, symbols, details)
-
+            pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, single_true)
 
 
 sampled_curves = random.sample(range(0, np.size(states_2, 0)), 50)#int(0.1*np.size(states_2, 0)))

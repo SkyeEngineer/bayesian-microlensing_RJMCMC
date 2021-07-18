@@ -127,6 +127,13 @@ def DistPlot(xi, states, labels, symbols, letters, model, center, true):
     plt.ylabel('Probability Density')
     plt.title('RJMCMC '+model+' model ' + symbols[xi] + ' distribution')
 
+
+
+    mu = np.average(states[xi])
+    sd = np.std(states[xi])
+    plt.axvline(mu, label = r'$\mu$', color = 'cyan')
+    plt.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
+
     if isinstance(true, np.ndarray):
         plt.axvline(true[xi], label = 'True', color = 'red')
         plt.legend()
@@ -187,10 +194,11 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, 
     if details == True:
         t_inb = np.where(np.logical_and(0 <= t, t <= 72))
         error_inb = error[t_inb]
-        plt.title('Best model '+str(m)+' fit: '+str(np.exp(f.logLikelihood(m, Data, FitTheta, priors))))
-        lower = TrueModel.magnification(t[t_inb]) - error_inb / 2
-        upper = TrueModel.magnification(t[t_inb]) + error_inb / 2
-        plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = 'Error')
+        plt.title('Best model ' + str(m) + r'$\chi^2$: ' + str(-2*(f.logLikelihood(m, Data, FitTheta, priors))))
+        lower = TrueModel.magnification(t[t_inb]) - error_inb
+        upper = TrueModel.magnification(t[t_inb]) + error_inb
+        plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = r'error $\sigma$')
+        plt.scatter(t[t_inb], Data.flux, label = 'signal', color = 'grey', s=1)
 
 
     plt.xlabel('Time [days]')
@@ -200,9 +208,9 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, 
     #plt.legend(handles=[err])
 
 
-    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True')
+    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True', alpha = 1)
 
-    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'solid')
+    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'dashed', alpha=0.75)
 
     plt.legend()
     #plt.grid()
