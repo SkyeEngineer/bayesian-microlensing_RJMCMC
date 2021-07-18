@@ -128,7 +128,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
     pi = logLikelihood(m, data, unscale(m, theta), priors)
 
-    bests = np.exp(pi)
+    bests = -2*pi
     bestt = theta
 
 
@@ -143,8 +143,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             pi = piProposed
             c[i] = 1
 
-            if bests < np.exp(piProposed): 
-                bests = np.exp(piProposed)
+            if bests > -2*piProposed: 
+                bests = -2*piProposed
                 bestt = theta
 
 
@@ -170,7 +170,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
 
         cf = i/(iterations-1);
-        print(f'Current Best Likelihood: {bests:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Current Best Chi2: {bests:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = GaussianProposal(theta, covariance)
@@ -182,8 +182,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             pi = piProposed
             c[t]=1
 
-            if bests < np.exp(piProposed): 
-                bests = np.exp(piProposed)
+            if bests > -2*piProposed: 
+                bests = -2*piProposed
                 bestt = theta
 
         else: c[t]=0
@@ -205,7 +205,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
         t += 1
 
     # performance diagnostic
-    print(f"Adaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}")
+    print(f"\nAdaptive Acc: {(np.sum(c) / (iterations + burns)):.4f}, Model: {m}, Current Best Chi2: {bests:.4f}")
 
     #throw = throw
 

@@ -129,8 +129,8 @@ def DistPlot(xi, states, labels, symbols, letters, model, center, true):
 
 
 
-    mu = np.average(states[xi])
-    sd = np.std(states[xi])
+    mu = np.average(states[:, xi])
+    sd = np.std(states[:, xi])
     plt.axvline(mu, label = r'$\mu$', color = 'cyan')
     plt.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
 

@@ -39,15 +39,15 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 4
+sn = 2
 
 # Synthetic Event Parameters
 theta_Models = [
-    [36, 0.133, 31.5, 0.0096, 0.002, 1.27, 210.8], # strong binary
-    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # weak binary 1
-    [36, 0.833, 21.5, 0.0056, 0.025, 1.3, 210.8], # weak binary 2
-    [36, 0.133, 31.5, 0.0096, 0.0002, 4.9, 223.8], # indistiguishable from single
-    [36, 0.533, 21.5]  # single
+    [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
+    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
+    [36, 0.833, 21.5, 0.0056, 0.003, 1.3, 210.8], # 2 weak binary 2
+    [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
+    [36, 0.633, 31.5]  # 4 single
     ]
 theta_Model = np.array(theta_Models[sn])
 # 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
@@ -57,10 +57,11 @@ theta_Model = np.array(theta_Models[sn])
 Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
 Model.set_magnification_methods([0., 'point_source', 72.])
 
-#Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-#plt.savefig('temp.jpg')
-#plt.clf()
+Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
+plt.savefig('temp.jpg')
+plt.clf()
 
+#throw=throw
 
 #0, 50, 25, 0.3
 # Generate "Synthetic" Lightcurve
@@ -88,14 +89,14 @@ signal_data = model_data
 
 #print(Model.magnification(epochs))
 
-iterations = 10000
+iterations = 500
 
 
 
 # priors (Zhang et al)
 s_pi = f.logUniDist(0.2, 5)
-q_pi = f.logUniDist(10e-6, 1)
-#q_pi = f.uniDist(10e-6, 0.1)
+#q_pi = f.logUniDist(10e-6, 1)
+q_pi = f.uniDist(10e-6, 0.1)
 alpha_pi = f.uniDist(0, 360)
 u0_pi = f.uniDist(0, 2)
 t0_pi = f.uniDist(0, 72)
@@ -103,10 +104,10 @@ tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
 rho_pi =  f.logUniDist(10**-4, 10**-2)
 a = 0.5
 #m_pi = [1 - a, a]
-#priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
+priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 
 # uninformative priors
-s_upi = f.uniDist(0.2, 5)
+s_upi = f.uniDist(0.2, 3)
 q_upi = f.uniDist(10e-6, 0.1)
 alpha_upi = f.uniDist(0, 360)
 u0_upi = f.uniDist(0, 2)
@@ -114,7 +115,7 @@ t0_upi = f.uniDist(0, 72)
 tE_upi = f.uniDist(1, 100)
 rho_upi =  f.uniDist(10**-4, 10**-2)
 
-priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
+#priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 m_pi = [0.5, 0.5]
 
 #print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
@@ -142,8 +143,9 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
 
     # centreing points for inter-model jumps
+    center_1s = np.array([35.61889648,  0.85575759, 20.28980637])
+    
     #center_1s = np.array([36., 0.133, 31.5])
-    #center_1 = np.array([36., 0.133, 31.5])
 
     center_2ss = [
         [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
@@ -153,15 +155,17 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    #center_2s = np.array([3.60166321e+01, 1.33796528e-01, 3.12476940e+01, 1.09757202e-04, 9.51249094e-04, 1.06277907e+00, 2.07451248e+02])
+    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    center_2s = np.array([3.57005081e+01, 8.38877439e-01, 2.13460770e+01, 1.12689748e-04, 9.46085248e-03, 1.04576159e+00, 3.01164032e+02])
 
+
+    #throw=throw
 
     #center_2s[4] = np.log(center_2s[4])
     #center_2s = f.scale(center_2s)
 
     #print("\n", center_2, " hi")
-    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+    #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
     #print(Data.flux)
     #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
 
@@ -190,7 +194,7 @@ def ParralelMain(arr):
     #center_2 = f.scale(center_2)
 
     # initial covariances (diagonal)
-    cov_scale = 0.01 #0.01
+    cov_scale = 0.001 #0.01
     covariance_1 = np.multiply(cov_scale, [0.1, 0.01, 0.1])
     covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])#0.5
 
@@ -202,7 +206,7 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 2500 #250
+    iters = 250 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -529,6 +533,7 @@ letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 if True:
 
     binary_true = f.scale(theta_Model)
+    single_true = False#f.scale(theta_Model)
 
     for i in range(7):
 
@@ -542,7 +547,7 @@ if True:
 
     ## SINGLE MODEL ##
 
-    single_true = False#f.scale(theta_Model)
+
 
     for i in range(3):
 
