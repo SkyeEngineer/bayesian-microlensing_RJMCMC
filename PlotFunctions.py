@@ -1,3 +1,7 @@
+from math import pi
+from numpy.core.defchararray import array
+from numpy.core.fromnumeric import mean
+from numpy.core.function_base import linspace
 import MulensModel as mm
 import Functions as f
 import Autocorrelation as AC
@@ -6,6 +10,9 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from scipy.stats import chi2
+import scipy
+import copy
 
 
 plt.rcParams["font.family"] = "serif"
@@ -116,13 +123,114 @@ def TracePlot(yi, states, jumpStates, jump_i, labels, symbols, letters, model, c
     return
 
 
+def contourPlot(xi, yi, states, labels, symbols, letters, model, base, true, m, priors, Data, n_points):
+
+    
+
+    # extents
+    
+    yLower = np.min([np.min(states[:, yi]), base[yi]])
+    yUpper = np.max([np.max(states[:, yi]), base[yi]])
+    xLower = np.min([np.min(states[:, xi]), base[xi]])
+    xUpper = np.max([np.max(states[:, xi]), base[xi]])
+
+    yaxis = np.linspace(yLower, yUpper, n_points)
+    xaxis = np.linspace(xLower, xUpper, n_points)
+    density = np.zeros((n_points, n_points))
+    x = -1
+    y = -1
+
+    for i in yaxis:
+        x += 1
+        y = -1
+        for j in xaxis:
+            y += 1
+            theta = copy.deepcopy(base)
+
+            theta[xi] = j
+            theta[yi] = i
+
+            theta = f.unscale(m, theta)
+            #print(theta[4], xaxis, yaxis)
+            density[x][y] = np.exp(f.logLikelihood(m, Data, theta, priors))
+
+    density = np.sqrt(np.flip(density, 0)) # So lower bounds meet
+    #density = np.flip(density, 1) # So lower bounds meet
+    plt.imshow(density, interpolation='none', extent=[xLower, xUpper, yLower, yUpper,], aspect=(xUpper-xLower) / (yUpper-yLower))#, cmap = plt.cm.BuPu_r) #
+    cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks = [0, 1]) # empirical nice auto sizing
+    ax = plt.gca()
+    cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+    cbar.ax.yaxis.set_label_position('right')
 
 
-def DistPlot(xi, states, labels, symbols, letters, model, center, true):
+    #https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
+
+    mu = [np.mean(states[:, xi]), np.mean(states[:, yi])]
+    K = np.cov([states[:, xi], states[:, yi]])
+    angles = np.linspace(0, 2*np.pi, 360)
+    R = [np.cos(angles), np.sin(angles)]
+    R = np.transpose(np.array(R))
+
+    for levels in [0.6, 0.9, 0.975]:
+
+        rad = np.sqrt(chi2.isf(levels, 2))
+        level_curve = rad*R.dot(scipy.linalg.sqrtm(K))
+        plt.plot(level_curve[:, 0]+mu[0], level_curve[:, 1]+mu[1], color = 'White')
+
+
+    markerSize = 75
+    #plt.grid()
+    #plt.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.25, marker = "o")
+    #cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks = [0, 1]) # empirical nice auto sizing
+    #ax = plt.gca()
+    #cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+    #cbar.ax.yaxis.set_label_position('right')
+    plt.xlabel(labels[xi])
+    plt.ylabel(labels[yi])
+    plt.title('RJMCMC walk projected\n onto '+model+' ('+symbols[xi]+', '+symbols[yi]+') space')
+    
+    #if isinstance(center, np.ndarray):
+    #    plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
+    #    plt.legend()
+
+    if isinstance(true, np.ndarray):
+        #print(true)
+        plt.scatter(true[xi], true[yi], marker = '*', s = markerSize, c = 'red', alpha = 1) # r'$\circledast$'
+        plt.legend()
+    
+
+    plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+    plt.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
+    plt.tight_layout()
+    plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Density.png')
+    plt.clf()
+
+    return
+
+
+def DistPlot(xi, states, labels, symbols, letters, m, model, center, true, priors, Data):
     # Make sure to unscale centers
 
     plt.grid()
-    plt.hist(states[:, xi], bins = 25, density = True)
+
+    '''
+    n_points = 100
+    density = np.zeros((n_points, 1))
+    points = np.linspace(np.min([np.min(states[:, xi]), true[xi]]), np.max([np.max(states[:, xi]), true[xi]]), n_points)#np.linspace(priors[xi].lb, priors[xi].rb, n_points)#
+    theta = copy.deepcopy(true)
+    for i in range(n_points):
+
+        theta[xi] = points[i]
+        #if xi == 4:
+        #    theta[xi] = np.exp(theta[xi])
+        theta = f.unscale(m, theta)
+        #density[i] = np.exp(f.PriorRatio(0, 2, theta, theta, priors))*np.exp(f.logLikelihood(m, Data, theta, priors))
+
+    #density = (density - np.min(density))/(np.max(density)-np.min(density))
+
+    #plt.plot(points, density, label="True Density", color="Purple")
+    '''
+    plt.hist(states[:, xi], bins = 50, density = True)
     plt.xlabel(labels[xi])
     plt.ylabel('Probability Density')
     plt.title('RJMCMC '+model+' model ' + symbols[xi] + ' distribution')
@@ -139,7 +247,7 @@ def DistPlot(xi, states, labels, symbols, letters, model, center, true):
         plt.legend()
 
     if isinstance(center, np.ndarray):
-        plt.axvline(center[xi], label = 'Centre', color = 'black')
+        #plt.axvline(center[xi], label = 'Centre', color = 'black')
         plt.legend()
 
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
@@ -152,20 +260,34 @@ def DistPlot(xi, states, labels, symbols, letters, model, center, true):
     return
 
 
-def AdaptiveProgression(history, labels, p):
+def AdaptiveProgression(history, covs, name):
 
-    size = 50#50
+    size = 100#50
     
+    if len(history) <= size:
+        plt.scatter(0, 0)
+        plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
+        plt.clf()
+        return
+
     
-    for l in range(2):
-        for chain in range(p):
-            acc = []
-            bins = int(np.ceil(len(history[chain][l]) / size))
-            for bin in range(bins - 1): # record the ratio of acceptance for each bin
-                acc.append(np.sum(history[chain][l][size*bin:size*(bin+1)]) / size)
+    #for l in range(2):
+        #for chain in range(p):
+    acc = []
+    trace = []
+    bins = int(np.ceil(len(history) / size))
+    for bin in range(bins - 1): # record the ratio of acceptance for each bin
+        acc.append(np.sum(history[size*bin:size*(bin+1)]) / size)
             #print(chain, l, history[chain][l])
+        #print(covs[:][:][size*bin:size*(bin+1)])
+        #print('999999')
+        trace.append(np.sum(np.trace(covs[:][:][size*bin:size*(bin+1)])) / size)
 
-            plt.plot((np.linspace(1, bins - 1, num = bins - 1)), acc, label = labels[l] + str(chain), alpha = 0.5)
+    normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
+
+    plt.plot((np.linspace(1, bins - 1, num = bins - 1)), normed_trace, label = 'trace', alpha = 0.5)
+
+    plt.plot((np.linspace(1, bins - 1, num = bins - 1)), acc, label = 'prog', alpha = 0.5)
 
     plt.ylim((0.0, 1.0))
     plt.xlabel(f'Binned Iterations Over Time [Bins, n={size}]')
@@ -174,7 +296,7 @@ def AdaptiveProgression(history, labels, p):
     plt.legend()
     plt.grid()
     plt.tight_layout()
-    plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression.png')
+    plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
     plt.clf()
 
     return

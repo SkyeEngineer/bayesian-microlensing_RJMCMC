@@ -39,7 +39,7 @@ symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 
 ## INITIALISATION ##
 
-sn = 2
+sn = 4
 
 # Synthetic Event Parameters
 theta_Models = [
@@ -47,15 +47,19 @@ theta_Models = [
     [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
     [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
     [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
-    [36, 0.633, 31.5]  # 4 single
+    [36, 1.633, 31.5]  # 4 single
     ]
 theta_Model = np.array(theta_Models[sn])
-# 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-Model.set_magnification_methods([0., 'VBBL', 72.])
+binary_true = False#f.scale(theta_Model)
+single_true = f.scale(theta_Model)
 
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-#Model.set_magnification_methods([0., 'point_source', 72.])
+
+# 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
+#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+#Model.set_magnification_methods([0., 'VBBL', 72.])
+
+Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+Model.set_magnification_methods([0., 'point_source', 72.])
 
 Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
 plt.savefig('temp.jpg')
@@ -73,7 +77,7 @@ true_data = Model.magnification(epochs)
 #error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
 random.seed(a = 99, version = 2)
 
-signal_to_noise_baseline = 40#np.random.uniform(23.0, 230.0)
+signal_to_noise_baseline = 123.0#np.random.uniform(23.0, 230.0)
 noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
 noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
 error = noise_sd
@@ -86,13 +90,14 @@ signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
 true_signal_data = Model.magnification(signal_epochs)
 signal_data = model_data
 
+'''
 plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
 plt.ylabel('Magnification')
 plt.xlabel('Time [days]')
 plt.legend()
 plt.grid()
 plt.tight_layout()
-plt.savefig('ObsTru.png')
+plt.savefig('ObsTru.png', transparent=True)
 plt.clf()
 
 plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
@@ -102,13 +107,14 @@ plt.xlabel('Time [days]')
 plt.legend()
 plt.grid()
 plt.tight_layout()
-plt.savefig('Tru.png')
+plt.savefig('Tru.png', transparent=True)
 plt.clf()
+'''
 
-throw=throw
+#throw=throw
 #print(Model.magnification(epochs))
 
-iterations = 500
+iterations = 25000
 
 
 
@@ -162,7 +168,8 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
 
     # centreing points for inter-model jumps
-    center_1s = np.array([35.61889648,  0.85575759, 20.28980637])
+    center_1s = np.array([35.79495621,  1.68219709, 29.1547718])
+    #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
     
     #center_1s = np.array([36., 0.133, 31.5])
 
@@ -174,8 +181,8 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    #center_2s = np.array([3.57005081e+01, 8.38877439e-01, 2.13460770e+01, 1.12689748e-04, 9.46085248e-03, 1.04576159e+00, 3.01164032e+02])
+    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    center_2s = np.array([4.10143738e+01, 1.60156536e+00, 3.29194832e+01, 2.28330988e-04, 4.77072410e-02, 2.91089296e+00, 3.01133227e+00])
 
 
     #throw=throw
@@ -184,13 +191,13 @@ def ParralelMain(arr):
     #center_2s = f.scale(center_2s)
 
     #print("\n", center_2, " hi")
-    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+
     #print(Data.flux)
     #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
 
     pltf.LightcurveFitError(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
     pltf.LightcurveFitError(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
-    throw=throw
+    #throw=throw
     
     #fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
     #min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
@@ -225,7 +232,7 @@ def ParralelMain(arr):
 
     # Use adaptiveMCMC to calculate initial covariances
     burns = 25
-    iters = 250 #250
+    iters = 500 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -295,8 +302,10 @@ def ParralelMain(arr):
     #inter_props = [0, 0]
 
     n_samples = 10000
-    samples, log_prob_samples = interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
-    samples = (samples - f.unscale(2, center_2))/1 + f.unscale(2, center_2)
+    samples, log_prob_samples = True, True#interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
+    samples = True#(samples - f.unscale(2, center_2))/1 + f.unscale(2, center_2)
+
+    covs = [[],[]]
 
     for i in range(iterations): # loop through RJMCMC steps
         
@@ -373,6 +382,7 @@ def ParralelMain(arr):
         # update step (recursive covariance)
 
         #covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) #+ eps*I[m-1]
+        covs[m-1].append(covariance_p[m-1])
         covariance_p[m-1] = (tr - 1)/tr * covariance_p[m - 1] + s[m-1]/(tr + 1) * np.outer(theta - stored_mean[m-1], theta - stored_mean[m-1]) + s[m-1]*eps*I[m-1]/tr
         #(t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
         
@@ -390,12 +400,12 @@ def ParralelMain(arr):
     print("P(Binary): "+str(np.sum(ms-1)/iterations))
     #print(states)
 
-    return states, adaptive_score, ms, bestt, bests, centers
+    return states, adaptive_score, ms, bestt, bests, centers, covs
 
 
 params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs]
 
-states, adaptive_score, ms, bestt, bests, centers = ParralelMain(params)
+states, adaptive_score, ms, bestt, bests, centers, covs = ParralelMain(params)
 center_1, center_2 = centers
 
 
@@ -551,41 +561,55 @@ states_u=np.array(states_u)
 letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 if True:
 
-    binary_true = f.scale(theta_Model)
-    single_true = False#f.scale(theta_Model)
+
+
+    n_density = 10
+
+    pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
 
     for i in range(7):
 
 
         
-        pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, binary_true)
-        pltf.DistPlot(i, states_2, labels, symbols, letters, 'binary', center_2, binary_true)
+        #pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, binary_true)
+        pltf.DistPlot(i, states_2, labels, symbols, letters, 2, 'binary', center_2, binary_true, priors, Data)
         
         for j in range(i+1, 7):
             pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, binary_true)
 
+            pltf.contourPlot(i, j, states_2, labels, symbols, letters, 'binary', center_2, binary_true, 2, priors, Data, n_density)
+
     ## SINGLE MODEL ##
 
-
+    pltf.AdaptiveProgression(adaptive_score[0], covs[0][:], 'single')
 
     for i in range(3):
 
-        pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, single_true)
-        pltf.DistPlot(i, states_1, labels, symbols, letters, 'single', center_1, single_true)
+        #pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, single_true)
+        pltf.DistPlot(i, states_1, labels, symbols, letters, 1, 'single', center_1, single_true, priors, Data)
 
         for j in range(i+1, 3):
             pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, single_true)
 
+            pltf.contourPlot(i, j, states_1, labels, symbols, letters, 'single', center_1, single_true, 1, priors, Data, n_density)
 
-sampled_curves = random.sample(range(0, np.size(states_2, 0)), 50)#int(0.1*np.size(states_2, 0)))
+
+sampled_curves = random.sample(range(0, np.size(ms, 0)), 100)#int(0.1*np.size(states_2, 0)))
 for i in sampled_curves:
-    pltf.PlotLightcurve(2, f.unscale(2, states_2[i, :]), 'Samples', 'red', 0.1, False, [0,72])
-pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
+    #print(states[i])
+    #print(states[i, :])
+    pltf.PlotLightcurve(ms[i], f.unscale(ms[i], np.array(states[i])), 'Samples', 'red', 0.1, False, [0,72])
+
+if len(theta_Model)>5:
+    pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
+else:
+    pltf.PlotLightcurve(1, theta_Model, 'True', 'black', 1, False, [0, 72])
 #plt.legend()
-plt.tight_layout()
-plt.title('Joint Dist Samples | m = 2')
+plt.scatter(epochs, Data.flux, label = 'signal', color = 'grey', s=1)
+plt.title('Joint Dist Samples')
 plt.xlabel('time [days]')
 plt.ylabel('Magnification')
+plt.tight_layout()
 plt.savefig('Plots/RJMCMC-Samples.png')
 plt.clf()
 

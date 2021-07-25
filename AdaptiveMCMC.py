@@ -75,7 +75,7 @@ Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.00
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 720)
+t = Model.set_times(n_epochs = 72)
 error = Model.magnification(t) * 0 + np.max(Model.magnification(t))/10
 Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
 
@@ -99,16 +99,20 @@ theta_2i = np.array([35, 0.125, 61.1, 0.00988, np.log(0.000305), 1.258, 222.8]) 
 
 # initial covariances (diagonal)
 covariance_1i=np.multiply(0.1, [0.1, 0.01, 0.1]) #0.0001
-covariance_2id=np.multiply(0.1, [0.1, 0.01, 0.1, 0.0001, 0.01, 0.01, 1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
+covariance_2id=np.multiply(0.001, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])#[0.1, 0.01, 0.1, 0.0001, 0.01, 0.1, 1])#[0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001]
 covariance_2i = np.zeros((7, 7))
 np.fill_diagonal(covariance_2i, covariance_2id)
 #should be small to get a quick taste of size (too small makes growth to normal size to slow)
 
-burns = 5 #should be small to not bias later
-iters = 1500
+burns = 25 #should be small to not bias later
+iters = 5075
 
 #covariance_1p, states_1, c_1, covs, bests, bestt = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, burns, iters)
 covariance_2p, states_2, means_2, c_2, covs, bests, bestt = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
+
+pltf.AdaptiveProgression(c_2, covs)
+
+throw=throw
 
 # Create and plot the accepatnce ratio over time
 acc = []
