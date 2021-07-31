@@ -1,0 +1,18 @@
+Inputs:
+Parameters: [3.600e+01 9.330e-01 2.150e+01 5.600e-03 6.500e-02 1.100e+00 2.108e+02]
+Number of observations: 720, Signal to noise baseline: 230.0
+Priors: Uninformative
+
+Run information:
+RJMCMC iterations: 500, RJMCMC burn in: 0 
+Accepted move fraction; Total0.014, Intra-model: -99, Inter-model: -99 
+
+Results:
+Classifications; P(Singular): 0.0, P(Binary): 1.0 
+t0: mean: 35.818205873469516, sd: 0.018194248252989886 
+u0: mean: 1.010870669681878, sd: 0.004849081911338891 
+tE: mean: 20.981503488010908, sd: 0.03544093987902947 
+p: mean: 0.00026275117444796365, sd: 7.739525900956518e-05 
+q: mean: -3.2494322316737385, sd: 0.03063427280266148 
+s: mean: 0.35820435625554264, sd: 0.0027624049207066997 
+a: mean: 75.95181551822036, sd: 0.04253313787957046 

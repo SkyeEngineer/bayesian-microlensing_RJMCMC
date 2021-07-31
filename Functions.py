@@ -418,8 +418,26 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             #thetaProp[4] = np.log(thetaProp[4]) # if drawing from surrogate
             #print('g after', 1/np.exp(g))
 
-            u = GaussianProposal(np.zeros((3)), covariance[m-1])
-            thetaProp[0:3] = thetaProp[0:3] + u
+            cov = covariance[-1]
+            c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
+            c21 = cov[3:, :3] # Same as above
+            c22 = cov[3:, 3:] # Covariance matrix of independent variables
+            c22inv = np.linalg.inv(c22)
+
+            #m1 = theta[:3]#stored_mean[1][:3].T#mean[0:2].T # Mu of dependent variables
+            #m2 = theta[3:]#stored_mean[1][3:].T#theta[3:].T#mean[2:4].T # Mu of independent variables
+
+            #conditional_data = theta[3:]#multivariate_normal.rvs(m2, c22)
+            #conditional_mu = m1 + c12.dot(c22inv).dot((conditional_data - m2).T).T
+            conditional_cov = c11 - c12.dot(c22inv).dot(c21)#np.linalg.inv(np.linalg.inv(cov)[:3, :3])
+
+            u = GaussianProposal(np.zeros((3)), conditional_cov)
+
+            thetaProp[:3] = thetaProp[:3] + u
+
+            #u = GaussianProposal(np.zeros((3)), covariance[m-1])
+            #thetaProp[0:3] = thetaProp[0:3] + u
         ####    gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m-1])
             #gdn = multivariate_normal.pdf(u, np.zeros((3)), covariance[m - 1])
 
@@ -427,8 +445,8 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
 
 
 
-            cov = covariance[mProp - 1]
-            c11 = cov[:3, :3] # Covariance matrix of the dependent variables
+            #cov = covariance[mProp - 1]
+            #c11 = cov[:3, :3] # Covariance matrix of the dependent variables
             #c12 = cov[:3, 3:] # Custom array only containing covariances, not variances
             #c21 = cov[3:, :3] # Same as above
             #c22 = cov[3:, 3:] # Covariance matrix of independent variables

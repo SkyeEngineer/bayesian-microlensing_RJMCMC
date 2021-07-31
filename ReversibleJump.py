@@ -17,7 +17,7 @@ import pandas as pd
 import interfaceing as interf
 from multiprocessing import Pool
 from scipy.optimize import minimize
-
+from copy import deepcopy
 
 
 import PlotFunctions as pltf
@@ -30,146 +30,26 @@ from pathlib import Path
 
 pltf.Style()
 
-
-
-
-labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'ln(Mass Ratio)', r'Separation', r'Alpha']
-symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
-
-
-## INITIALISATION ##
-
-sn = 4
-
-# Synthetic Event Parameters
-theta_Models = [
-    [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
-    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
-    [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
-    [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
-    [36, 1.633, 31.5]  # 4 single
-    ]
-theta_Model = np.array(theta_Models[sn])
-binary_true = False#f.scale(theta_Model)
-single_true = f.scale(theta_Model)
-
-
-# 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8
-#Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-#Model.set_magnification_methods([0., 'VBBL', 72.])
-
-Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-Model.set_magnification_methods([0., 'point_source', 72.])
-
-Model.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black')
-plt.savefig('temp.jpg')
-plt.clf()
-
-
-
-#0, 50, 25, 0.3
-# Generate "Synthetic" Lightcurve
-#epochs = Model.set_times(n_epochs = 720)
-n_epochs = 720
-epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-true_data = Model.magnification(epochs)
-#epochs = Model.set_times(n_epochs = 100)
-#error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
-random.seed(a = 99, version = 2)
-
-signal_to_noise_baseline = 123.0#np.random.uniform(23.0, 230.0)
-noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
-noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
-error = noise_sd
-model_data = true_data + noise
-Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
-
-signal_n_epochs = 720
-signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
-
-true_signal_data = Model.magnification(signal_epochs)
-signal_data = model_data
-
-'''
-plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
-plt.ylabel('Magnification')
-plt.xlabel('Time [days]')
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.savefig('ObsTru.png', transparent=True)
-plt.clf()
-
-plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
-plt.plot(epochs, true_data, color = 'red', label='true')
-plt.ylabel('Magnification')
-plt.xlabel('Time [days]')
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.savefig('Tru.png', transparent=True)
-plt.clf()
-'''
-
-#throw=throw
-#print(Model.magnification(epochs))
-
-iterations = 25000
-
-
-
-# priors (Zhang et al)
-s_pi = f.logUniDist(0.2, 5)
-#q_pi = f.logUniDist(10e-6, 1)
-q_pi = f.uniDist(10e-6, 0.1)
-alpha_pi = f.uniDist(0, 360)
-u0_pi = f.uniDist(0, 2)
-t0_pi = f.uniDist(0, 72)
-tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
-rho_pi =  f.logUniDist(10**-4, 10**-2)
-a = 0.5
-#m_pi = [1 - a, a]
-priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
-
-# uninformative priors
-s_upi = f.uniDist(0.2, 3)
-q_upi = f.uniDist(10e-6, 0.1)
-alpha_upi = f.uniDist(0, 360)
-u0_upi = f.uniDist(0, 2)
-t0_upi = f.uniDist(0, 72)
-tE_upi = f.uniDist(1, 100)
-rho_upi =  f.uniDist(10**-4, 10**-2)
-
-#priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
-m_pi = [0.5, 0.5]
-
-#print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
-#g=g
-
-#full_path = os.getcwd()
-#out_path = (str(Path(full_path).parents[0]))
-#with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: binary_posterior = pickle.load(handle)
-
-single_Sposterior = interf.get_posteriors(1)
-binary_Sposterior = interf.get_posteriors(2)
-
-
-
-#u_full = binary_Sposterior.sample((1, ), x = Data.flux)
-#u_full.numpy
-#u = np.float64(u_full[0])[3:]
-#print(u)
-#throw=throw
-
-#arr, l_arr = interf.get_model_ensemble(binary_Sposterior, Data.flux, 1)
-
 def ParralelMain(arr):
 
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
 
-    # centreing points for inter-model jumps
-    center_1s = np.array([35.79495621,  1.68219709, 29.1547718])
-    #center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+
+    sbi = True
+    if sbi == True:
+
+        single_Sposterior = interf.get_posteriors(1)
+        binary_Sposterior = interf.get_posteriors(2)
+
+        # centreing points for inter-model jumps
+        center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+        center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    
+    else:
+
+        center_1s = np.array([35.79495621,  1.68219709, 29.1547718])
+        center_2s = np.array([4.10143738e+01, 1.60156536e+00, 3.29194832e+01, 2.28330988e-04, 4.77072410e-02, 2.91089296e+00, 3.01133227e+00])
+
     
     #center_1s = np.array([36., 0.133, 31.5])
 
@@ -181,8 +61,6 @@ def ParralelMain(arr):
         ]
     #center_2 = np.array(center_2s[sn])
 
-    #center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    center_2s = np.array([4.10143738e+01, 1.60156536e+00, 3.29194832e+01, 2.28330988e-04, 4.77072410e-02, 2.91089296e+00, 3.01133227e+00])
 
 
     #throw=throw
@@ -221,8 +99,12 @@ def ParralelMain(arr):
 
     # initial covariances (diagonal)
     cov_scale = 0.001 #0.01
-    covariance_1 = np.multiply(cov_scale, [0.1, 0.01, 0.1])
-    covariance_2 = np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])#0.5
+
+    covariance_1 = np.zeros((3, 3))
+    np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
+
+    covariance_2 = np.zeros((7, 7))
+    np.fill_diagonal(covariance_2, np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])) #0.5
 
     #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
     #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
@@ -235,8 +117,8 @@ def ParralelMain(arr):
     iters = 500 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
-    covariance_1p, states_1, means_1, c_1, null, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
-    covariance_2p, states_2, means_2, c_2, null, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
+    covariance_1p, states_1, means_1, c_1, covs_1, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
+    covariance_2p, states_2, means_2, c_2, covs_2, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
 
     covariance_p = [covariance_1p, covariance_2p]
     #print(covariance_1p)
@@ -246,8 +128,8 @@ def ParralelMain(arr):
     center_1 = bestt_1
     center_2 = bestt_2
     
-    #print(center_1s, center_1)
-    #print(center_2s, center_2)
+    print(center_1)
+    print(center_2)
 
     #print("Center 1", center_1, "True Chi", -(f.logLikelihood(1, Data, center_1, priors)))
     #print("Center 2", center_2, "True Chi", -(f.logLikelihood(2, Data, f.unscale(2, center_2), priors)))
@@ -298,14 +180,14 @@ def ParralelMain(arr):
 
                 
     mem_2 = center_2#states_2[:, -1]
-    adaptive_score = [[], []]
+    adaptive_score = [c_1.tolist(), c_2.tolist()]
     #inter_props = [0, 0]
 
     n_samples = 10000
     samples, log_prob_samples = True, True#interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
     samples = True#(samples - f.unscale(2, center_2))/1 + f.unscale(2, center_2)
 
-    covs = [[],[]]
+    covs = [covs_1, covs_2]
 
     for i in range(iterations): # loop through RJMCMC steps
         
@@ -400,12 +282,164 @@ def ParralelMain(arr):
     print("P(Binary): "+str(np.sum(ms-1)/iterations))
     #print(states)
 
-    return states, adaptive_score, ms, bestt, bests, centers, covs
+    return states, adaptive_score, ms, bestt, bests, centers, covs, score
+
+
+labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'ln(Mass Ratio)', r'Separation', r'Alpha']
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
+letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
+
+## INITIALISATION ##
+
+
+
+# Synthetic Event Parameters
+theta_Models = [
+    [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
+    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
+    [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
+    [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
+    [36, 1.633, 31.5]  # 4 single
+    ]
+
+sn = 2
+theta_Model = np.array(theta_Models[sn])
+
+single_true = False#f.scale(theta_Model)
+binary_true = f.scale(theta_Model)
+
+iterations = 500
+truncation_iterations = 0
+
+n_epochs = 720
+
+signal_to_noise_baseline = 230.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+
+uniform_priors = True
+informative_priors = False
+
+
+if isinstance(single_true, np.ndarray):
+
+    Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
+    Model.set_magnification_methods([0., 'point_source', 72.])
+
+elif isinstance(binary_true, np.ndarray):
+
+    Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
+    Model.set_magnification_methods([0., 'VBBL', 72.])
+
+
+Model.plot_magnification(t_range = [0, 72], subtract_2450000 = False, color = 'black')
+plt.savefig('temp.jpg')
+plt.clf()
+
+
+
+#0, 50, 25, 0.3
+# Generate "Synthetic" Lightcurve
+#epochs = Model.set_times(n_epochs = 720)
+
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+true_data = Model.magnification(epochs)
+#epochs = Model.set_times(n_epochs = 100)
+#error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+random.seed(a = 99, version = 2)
+
+
+noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
+noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
+error = deepcopy(noise_sd)
+model_data = true_data + noise
+Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
+
+signal_n_epochs = 720
+signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
+
+true_signal_data = Model.magnification(signal_epochs)
+signal_data = model_data
+
+
+plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
+plt.ylabel('Magnification')
+plt.xlabel('Time [days]')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('ObsTru.png', transparent=True)
+plt.clf()
+
+'''
+plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
+plt.plot(epochs, true_data, color = 'red', label='true')
+plt.ylabel('Magnification')
+plt.xlabel('Time [days]')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.savefig('Tru.png', transparent=True)
+plt.clf()
+'''
+
+#throw=throw
+#print(Model.magnification(epochs))
+
+
+
+
+if informative_priors == True:
+    # informative priors (Zhang et al)
+    s_pi = f.logUniDist(0.2, 5)
+    q_pi = f.logUniDist(10e-6, 1)
+    #q_pi = f.uniDist(10e-6, 0.1)
+    alpha_pi = f.uniDist(0, 360)
+    u0_pi = f.uniDist(0, 2)
+    t0_pi = f.uniDist(0, 72)
+    tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
+    rho_pi =  f.logUniDist(10**-4, 10**-2)
+    a = 0.5
+    m_pi = [1 - a, a]
+    priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
+
+elif uniform_priors == True:
+    # uninformative priors
+    s_upi = f.uniDist(0.2, 3)
+    q_upi = f.uniDist(10e-6, 0.1)
+    alpha_upi = f.uniDist(0, 360)
+    u0_upi = f.uniDist(0, 2)
+    t0_upi = f.uniDist(0, 72)
+    tE_upi = f.uniDist(1, 100)
+    rho_upi =  f.uniDist(10**-4, 10**-2)
+
+    priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
+    m_pi = [0.5, 0.5]
+
+#print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
+#g=g
+
+#full_path = os.getcwd()
+#out_path = (str(Path(full_path).parents[0]))
+#with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: binary_posterior = pickle.load(handle)
+
+single_Sposterior = True#interf.get_posteriors(1)
+binary_Sposterior = True#interf.get_posteriors(2)
+
+
+
+#u_full = binary_Sposterior.sample((1, ), x = Data.flux)
+#u_full.numpy
+#u = np.float64(u_full[0])[3:]
+#print(u)
+#throw=throw
+
+#arr, l_arr = interf.get_model_ensemble(binary_Sposterior, Data.flux, 1)
+
+
 
 
 params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs]
 
-states, adaptive_score, ms, bestt, bests, centers, covs = ParralelMain(params)
+states, adaptive_score, ms, bestt, bests, centers, covs, score = ParralelMain(params)
 center_1, center_2 = centers
 
 
@@ -558,12 +592,58 @@ states_u=np.array(states_u)
 
 #pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
 
-letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
+
+# Output File:
+
+with open('run.txt', 'w') as file:
+    # Inputs
+    file.write('Inputs:\n')
+    file.write('Parameters: '+str(theta_Model)+'\n')
+    file.write('Number of observations: '+str(n_epochs)+', Signal to noise baseline: '+str(signal_to_noise_baseline)+'\n')
+    
+    if informative_priors == True:
+        type_priors = 'Informative'
+    elif uniform_priors == True:
+        type_priors = 'Uninformative'
+    file.write('Priors: '+type_priors+'\n')
+
+    # Run info
+    file.write('\n')
+    file.write('Run information:\n')
+    file.write('RJMCMC iterations: '+str(iterations-truncation_iterations)+', RJMCMC burn in: '+str(truncation_iterations)+' \n')
+    file.write('Accepted move fraction; Total'+str(score/iterations)+', Intra-model: '+str(-99)+', Inter-model: '+str(-99)+' \n')
+
+    # Results
+    P_S = 1-np.sum(ms-1)/(iterations-truncation_iterations)
+    P_B = np.sum(ms-1)/(iterations-truncation_iterations)
+    file.write('\n')
+    file.write('Results:\n')
+    file.write('Classifications; P(Singular): '+str(P_S)+', P(Binary): '+str(P_B)+' \n')
+    
+    if P_S >= P_B:
+        states_p = states_1
+        m_p = 1
+    elif P_S < P_B:
+        states_p = states_2
+        m_p = 2
+
+    for i in range(f.D(m_p)):
+        #no truncations yet!!!!!!!!!
+        mu = np.average(states_p[:, i])
+        sd = np.std(states_p[:, i])
+
+        file.write(letters[i]+': mean: '+str(mu)+', sd: '+str(sd)+' \n')
+
+
+
+
+
+
 if True:
 
 
 
-    n_density = 10
+    n_density = 5
 
     pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
 

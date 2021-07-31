@@ -101,7 +101,8 @@ def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):
 
 # Synthetic Events
 #BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.001, 'q': 0.00005, 's': 1.12, 'alpha': 200.8})
-BinaryModel = mm.Model({'t_0': 36, 'u_0': 0.833, 't_E': 21.5, 'rho': 0.0056, 'q': 0.025, 's': 1.3, 'alpha': 210.8})
+theta = [3.18833580e+01, 1.66042352e+00, 3.27115555e+01, 1.82540098e-04, 4.06976402e-01, 2.52227157e-01, 4.10363998e+01]
+BinaryModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
 BinaryModel.set_magnification_methods([0., 'VBBL', 72.])
 
 SingleModel = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5})
@@ -127,7 +128,7 @@ signal_to_noise_baseline = np.random.uniform(23.0, 230.0)
 
 noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, len(t[i])) 
 
-model_data = true_data + noise
+model_data = true_data + 0#noise
 
 plt.plot(t[i], model_data)
 #plt.title('Weak binary lightcurve')
@@ -143,7 +144,7 @@ plt.tight_layout()
 plt.savefig('Plots/Temp.png')
 plt.clf()
 
-
+throw=throw
 
 ## PLOT LIGHTCURVES ##
 
