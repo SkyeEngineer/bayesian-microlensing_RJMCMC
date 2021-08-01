@@ -122,6 +122,8 @@ def TracePlot(yi, states, jumpStates, jump_i, labels, symbols, letters, model, c
 
     return
 
+#def contour():
+
 
 def contourPlot(xi, yi, states, labels, symbols, letters, model, base, true, m, priors, Data, n_points):
 
@@ -202,8 +204,8 @@ def contourPlot(xi, yi, states, labels, symbols, letters, model, base, true, m, 
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
     plt.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
     plt.tight_layout()
-    plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Density.png')
-    plt.clf()
+    #plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Density.png')
+    #plt.clf()
 
     return
 

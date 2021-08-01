@@ -18,7 +18,9 @@ import interfaceing as interf
 from multiprocessing import Pool
 from scipy.optimize import minimize
 from copy import deepcopy
-
+import corner
+from scipy.stats import chi2
+import scipy
 
 import PlotFunctions as pltf
 
@@ -30,9 +32,10 @@ from pathlib import Path
 
 pltf.Style()
 
+
 def ParralelMain(arr):
 
-    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs = arr
+    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs, burns, iters = arr
 
 
     sbi = True
@@ -46,9 +49,13 @@ def ParralelMain(arr):
         center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
     
     else:
+        
 
-        center_1s = np.array([35.79495621,  1.68219709, 29.1547718])
-        center_2s = np.array([4.10143738e+01, 1.60156536e+00, 3.29194832e+01, 2.28330988e-04, 4.77072410e-02, 2.91089296e+00, 3.01133227e+00])
+        center_1s = np.array([36.033741,    0.63821322, 31.23103714])
+        center_1s = np.array([35.78922653,  1.00184894, 22.22606468])
+
+        center_2s = np.array([3.59581604e+01, 6.31634116e-01, 3.14561119e+01, 3.45668610e-04, 6.80176832e-04, 1.17015195e+00, 2.48709702e+02])
+        center_2s = np.array([3.59908028e+01, 9.72112119e-01, 2.15796261e+01, 1.31548397e-04, 2.26674099e-02, 4.15445983e-01, 7.73482437e+01])
 
     
     #center_1s = np.array([36., 0.133, 31.5])
@@ -98,7 +105,7 @@ def ParralelMain(arr):
     #center_2 = f.scale(center_2)
 
     # initial covariances (diagonal)
-    cov_scale = 0.001 #0.01
+    cov_scale = 0.0001 #0.01
 
     covariance_1 = np.zeros((3, 3))
     np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
@@ -113,8 +120,8 @@ def ParralelMain(arr):
     #covariance_p = [covariance_1, covariance_2]
 
     # Use adaptiveMCMC to calculate initial covariances
-    burns = 25
-    iters = 500 #250
+    #burns = 50 #25
+    #iters = 50 #250
     theta_1i = center_1s
     theta_2i = f.scale(center_2s)
     covariance_1p, states_1, means_1, c_1, covs_1, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
@@ -296,27 +303,31 @@ letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 # Synthetic Event Parameters
 theta_Models = [
     [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
-    [36, 0.133, 31.5, 0.0096, 0.00091, 1.3, 210.8], # 1 weak binary 1
+    [36, 0.933, 31.5, 0.0096, 0.0091, 1.3, 210.8], # 1 weak binary 1
     [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
     [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
-    [36, 1.633, 31.5]  # 4 single
+    [36, 0.633, 31.5]  # 4 single
     ]
 
-sn = 2
+sn = 4
 theta_Model = np.array(theta_Models[sn])
 
-single_true = False#f.scale(theta_Model)
-binary_true = f.scale(theta_Model)
+single_true = f.scale(theta_Model)
+binary_true = False#f.scale(theta_Model)
 
+burns = 250
+iters = 750
 iterations = 500
 truncation_iterations = 0
 
 n_epochs = 720
 
-signal_to_noise_baseline = 230.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+n_points = 5
 
-uniform_priors = True
-informative_priors = False
+signal_to_noise_baseline = 23.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+
+uniform_priors = False
+informative_priors = True
 
 
 if isinstance(single_true, np.ndarray):
@@ -437,7 +448,7 @@ binary_Sposterior = True#interf.get_posteriors(2)
 
 
 
-params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs]
+params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
 
 states, adaptive_score, ms, bestt, bests, centers, covs, score = ParralelMain(params)
 center_1, center_2 = centers
@@ -571,12 +582,18 @@ for i in range(iterations): # record all single model states in the chain
 states_u=np.array(states_u)
 
 
+#keep = deepcopy(plt.rcParams)
 
 
 
+#plt.rcParams.update(plt.rcParamsDefault)
+#plt.rcdefaults()
+#plt.style.use('default')
+#plt.rc_file_defaults()
+##plt.rcParams=keep
 
-
-
+#pltf.Style()
+#throw=throw
 
 #states_2df = pd.DataFrame(data = states_2, columns = labels)
 #print(states_2df)
@@ -595,7 +612,7 @@ states_u=np.array(states_u)
 
 # Output File:
 
-with open('run.txt', 'w') as file:
+with open('results/run.txt', 'w') as file:
     # Inputs
     file.write('Inputs:\n')
     file.write('Parameters: '+str(theta_Model)+'\n')
@@ -637,15 +654,17 @@ with open('run.txt', 'w') as file:
 
 
 
+n_density = 5
+
+pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
+pltf.AdaptiveProgression(adaptive_score[0], covs[0][:], 'single')
 
 
-if True:
+if False:
 
 
 
-    n_density = 5
 
-    pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
 
     for i in range(7):
 
@@ -661,7 +680,7 @@ if True:
 
     ## SINGLE MODEL ##
 
-    pltf.AdaptiveProgression(adaptive_score[0], covs[0][:], 'single')
+
 
     for i in range(3):
 
@@ -678,19 +697,19 @@ sampled_curves = random.sample(range(0, np.size(ms, 0)), 100)#int(0.1*np.size(st
 for i in sampled_curves:
     #print(states[i])
     #print(states[i, :])
-    pltf.PlotLightcurve(ms[i], f.unscale(ms[i], np.array(states[i])), 'Samples', 'red', 0.1, False, [0,72])
+    pltf.PlotLightcurve(ms[i], f.unscale(ms[i], np.array(states[i])), 'Samples', 'red', 0.05, False, [0,72])
 
-if len(theta_Model)>5:
-    pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
-else:
-    pltf.PlotLightcurve(1, theta_Model, 'True', 'black', 1, False, [0, 72])
+#if len(theta_Model)>5:
+#    pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
+#else:
+#    pltf.PlotLightcurve(1, theta_Model, 'True', 'black', 1, False, [0, 72])
 #plt.legend()
 plt.scatter(epochs, Data.flux, label = 'signal', color = 'grey', s=1)
 plt.title('Joint Dist Samples')
 plt.xlabel('time [days]')
 plt.ylabel('Magnification')
 plt.tight_layout()
-plt.savefig('Plots/RJMCMC-Samples.png')
+plt.savefig('results/RJMCMC-Samples.png')
 plt.clf()
 
 
@@ -747,4 +766,197 @@ plt.legend()
 plt.tight_layout()
 plt.savefig('Plots/AutoCorr.png')
 plt.clf()
+
+
+
+
+
+figure = corner.corner(states_2)
+
+ndim = 7
+# Extract the axes
+plt.rcParams['font.size'] = 9
+axes = np.array(figure.axes).reshape((ndim, ndim))
+#figure.clf()
+#plt.rcParams['font.size'] = 9
+# Loop over the diagonal
+
+for i in range(ndim):
+    ax = axes[i, i]
+
+    ax.cla()
+    ax.grid()
+    ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
+
+    ax.axes.get_xaxis().set_ticklabels([])
+    ax.axes.get_yaxis().set_ticklabels([])
+    
+# Loop over the histograms
+for yi in range(ndim):
+    for xi in range(yi):
+        ax = axes[yi, xi]
+        ax.cla()
+        ax.grid()
+        ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)#, markeredgewidth=0.0)
+        
+            
+        if yi == ndim - 1:
+            ax.set_xlabel(symbols[xi])
+            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='x', labelrotation = 45)
+
+        else:    
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        if xi == 0:
+            ax.set_ylabel(symbols[yi])
+            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='y', labelrotation = 45)
+
+        else:    
+            ax.axes.get_yaxis().set_ticklabels([])
+
+
+
+
+figure.savefig('results/corner.png', dpi=500)
+figure.clf()
+
+
+
+
+figure = corner.corner(states_2)
+
+ndim = 7
+# Extract the axes
+plt.rcParams['font.size'] = 9
+axes = np.array(figure.axes).reshape((ndim, ndim))
+#figure.clf()
+#plt.rcParams['font.size'] = 9
+# Loop over the diagonal
+
+if binary_true != False:
+    base = f.scale(theta_Model)
+else:
+    base = center_2
+
+states = states_2
+m = 2
+
+for i in range(ndim):
+    ax = axes[i, i]
+
+    ax.cla()
+    ax.grid()
+    #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
+
+    ax.hist(states[:, i], bins = 50, density = True)
+
+
+
+    mu = np.average(states[:, i])
+    sd = np.std(states[:, i])
+    ax.axvline(mu, label = r'$\mu$', color = 'cyan')
+    ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
+
+    if isinstance(binary_true, np.ndarray):
+        ax.axvline(base[xi], label = 'True', color = 'red')
+
+    ax.xaxis.tick_top()
+    #ax.axes.get_xaxis().set_ticklabels([])
+    ax.axes.get_yaxis().set_ticklabels([])
+    
+# Loop over the histograms
+for yi in range(ndim):
+    for xi in range(yi):
+        ax = axes[yi, xi]
+        ax.cla()
+        #ax.grid()
+        #ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 10)#, markeredgewidth=0.0)
+            
+            
+        yLower = np.min([np.min(states[:, yi]), base[yi]])
+        yUpper = np.max([np.max(states[:, yi]), base[yi]])
+        xLower = np.min([np.min(states[:, xi]), base[xi]])
+        xUpper = np.max([np.max(states[:, xi]), base[xi]])
+
+        yaxis = np.linspace(yLower, yUpper, n_points)
+        xaxis = np.linspace(xLower, xUpper, n_points)
+        density = np.zeros((n_points, n_points))
+        x = -1
+        y = -1
+
+        for i in yaxis:
+            x += 1
+            y = -1
+            for j in xaxis:
+                y += 1
+                theta = deepcopy(base)
+
+                theta[xi] = j
+                theta[yi] = i
+
+                theta = f.unscale(m, theta)
+                #print(theta[4], xaxis, yaxis)
+                density[x][y] = np.exp(f.logLikelihood(m, Data, theta, priors)+f.priorProduct(m, Data, theta, priors))
+
+        density = np.sqrt(np.flip(density, 0)) # So lower bounds meet
+        #density = np.flip(density, 1) # So lower bounds meet
+        ax.imshow(density, interpolation='none', extent=[xLower, xUpper, yLower, yUpper,], aspect=(xUpper-xLower) / (yUpper-yLower))#, cmap = plt.cm.BuPu_r) #
+        #cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks = [0, 1]) # empirical nice auto sizing
+        #ax = plt.gca()
+        #cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
+        #cbar.ax.yaxis.set_label_position('right')
+
+
+        #https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
+
+        mu = [np.mean(states[:, xi]), np.mean(states[:, yi])]
+        K = np.cov([states[:, xi], states[:, yi]])
+        angles = np.linspace(0, 2*np.pi, 360)
+        R = [np.cos(angles), np.sin(angles)]
+        R = np.transpose(np.array(R))
+
+        for levels in [0.38, 0.69, 0.92]:
+
+            rad = np.sqrt(chi2.isf(levels, 2))
+            level_curve = rad*R.dot(scipy.linalg.sqrtm(K))
+            ax.plot(level_curve[:, 0]+mu[0], level_curve[:, 1]+mu[1], color = 'White')
+            
+
+        if isinstance(binary_true, np.ndarray):
+            ax.scatter(base[xi], base[yi], marker = '*', s = markerSize, c = 'red', alpha = 1)
+
+
+
+        if yi == ndim - 1:
+            ax.set_xlabel(symbols[xi])
+            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='x', labelrotation = 45)
+
+        else:    
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        if xi == 0:
+            ax.set_ylabel(symbols[yi])
+            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='y', labelrotation = 45)
+
+        else:    
+            ax.axes.get_yaxis().set_ticklabels([])
+
+
+
+
+figure.savefig('results/density_corner.png', dpi=500)
+figure.clf()
+
+
+
+
+
+
+
+
+
 

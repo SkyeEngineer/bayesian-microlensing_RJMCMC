@@ -128,7 +128,7 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
 
     pi = logLikelihood(m, data, unscale(m, theta), priors)
 
-    bests = -2*pi
+    bests = np.exp(pi)*priorProduct(m, data, unscale(m, theta), priors)
     bestt = theta
 
 
@@ -143,8 +143,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             pi = piProposed
             c[i] = 1
 
-            if bests > -2*piProposed: 
-                bests = -2*piProposed
+            if bests < np.exp(piProposed)*priorProduct(m, data, unscale(m, theta), priors): 
+                bests = np.exp(piProposed)*priorProduct(m, data, unscale(m, theta), priors)
                 bestt = theta
 
 
@@ -182,8 +182,8 @@ def AdaptiveMCMC(m, data, theta, priors, covariance, burns, iterations):
             pi = piProposed
             c[t]=1
 
-            if bests > -2*piProposed: 
-                bests = -2*piProposed
+            if bests < np.exp(piProposed)*priorProduct(m, data, unscale(m, theta), priors): 
+                bests = np.exp(piProposed)*priorProduct(m, data, unscale(m, theta), priors)
                 bestt = theta
 
         else: c[t]=0
@@ -628,6 +628,20 @@ def PriorBounds(m, theta, priors):
     return 1
 '''
 
+def priorProduct(m, Data, theta, priors):
+    #likelihood = np.exp(logLikelihood(m, Data, theta, priors))
+
+    priorProduct = 0.
+
+    for parameter in range(D(m)):
+        #if not(parameter == 3 and m != mProp): # cycle through each parameter and associated prior
+        #    if parameter == 6:
+        #        priorProduct += np.log(1/(2*3.14))
+        #    else:
+        priorProduct += (priors[parameter].logPDF(theta[parameter])) # product using log rules
+
+    return np.exp(priorProduct)
+
 
 def logLikelihood(m, Data, theta, priors):
     '''
@@ -654,24 +668,35 @@ def logLikelihood(m, Data, theta, priors):
         try: # for when moves are out of bounds of model valididty
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
             Model.set_magnification_methods([0., 'point_source', 72.])
-            Event = mm.Event(datasets = Data, model = Model)
+            #Event = mm.Event(datasets = Data, model = Model)
+
+            A = Model.magnification(Data.time)
+            y = Data.flux
+            sd = Data.err_flux
+            Chi2 = np.sum((y - A)**2/sd**2)
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf
 
-        return -Event.get_chi2()/2 # exponentially linearly proportional to likelihood
+        return -Chi2/2 #-Event.get_chi2()/2 # exponentially linearly proportional to likelihood
 
 
     if m==2:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
             Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
             Model.set_magnification_methods([0., 'VBBL', 72.]) #?
-            Event = mm.Event(datasets = Data, model = Model)
+            #Event = mm.Event(datasets = Data, model = Model)
+
+            A = Model.magnification(Data.time)
+            y = Data.flux
+            sd = Data.err_flux
+            Chi2 = np.sum((y - A)**2/sd**2)
+
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf
         
-        return -Event.get_chi2()/2 # exponentially linearly proportional to likelihood
+        return -Chi2/2 #-Event.get_chi2()/2 # exponentially linearly proportional to likelihood
 
 
 

@@ -78,7 +78,7 @@ def get_posteriors(m):
 def get_model_centers(posterior, signal_data):
 
     #print("\n", posterior)
-    maxp = posterior.map(signal_data, num_iter = 50, num_init_samples = 50, show_progress_bars = False)
+    maxp = posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)
 
     maxp.numpy
     centers = np.float64(maxp)
