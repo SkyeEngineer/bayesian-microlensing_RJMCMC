@@ -433,8 +433,9 @@ def RJCenteredProposal(m, mProp, theta, covariance, priors, centers, binary_Spos
             conditional_cov = c11 - c12.dot(c22inv).dot(c21)#np.linalg.inv(np.linalg.inv(cov)[:3, :3])
 
             u = GaussianProposal(np.zeros((3)), conditional_cov)
-
             thetaProp[:3] = thetaProp[:3] + u
+            #u = GaussianProposal(np.zeros((7)), cov)
+            #thetaProp = thetaProp + u
 
             #u = GaussianProposal(np.zeros((3)), covariance[m-1])
             #thetaProp[0:3] = thetaProp[0:3] + u

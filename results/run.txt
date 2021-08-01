@@ -1,18 +1,18 @@
 Inputs:
-Parameters: [36.     0.633 31.5  ]
-Number of observations: 720, Signal to noise baseline: 23.0
+Parameters: [3.60e+01 8.33e-01 3.15e+01 1.00e-03 1.00e-02 1.10e+00 1.80e+02]
+Number of observations: 720, Signal to noise baseline: 123.0
 Priors: Informative
 
 Run information:
-RJMCMC iterations: 500, RJMCMC burn in: 0 
-Accepted move fraction; Total0.262, Intra-model: -99, Inter-model: -99 
+RJMCMC iterations: 1000, RJMCMC burn in: 0 
+Accepted move fraction; Total0.269, Intra-model: -99, Inter-model: -99 
 
 Results:
-Classifications; P(Singular): 0.37, P(Binary): 0.63 
-t0: mean: 35.89757976732519, sd: 0.10515577336213376 
-u0: mean: 0.6318776157915592, sd: 0.001701271871152529 
-tE: mean: 31.34266180802568, sd: 0.22225361514150752 
-p: mean: 0.00042122754514527146, sd: 0.000247643703336261 
-q: mean: -7.600951132181008, sd: 0.2768043768822689 
-s: mean: 0.5567377344981211, sd: 0.05583452903962154 
-a: mean: 85.81901086644574, sd: 2.297577824376581 
+Classifications; P(Singular): 0.19999999999999996, P(Binary): 0.8 
+t0: mean: 36.21002291280021, sd: 0.027693100409280632 
+u0: mean: 0.8340420644590643, sd: 0.000535289305629313 
+tE: mean: 31.42772566463042, sd: 0.05943139925485904 
+p: mean: 0.00043912356482872907, sd: 0.00023162707969380495 
+q: mean: -5.367600148057144, sd: 0.05689707987994368 
+s: mean: 1.1496379213512764, sd: 0.01992092240560487 
+a: mean: 179.76277396352387, sd: 0.09776025002049218 

@@ -38,7 +38,7 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs, burns, iters = arr
 
 
-    sbi = True
+    sbi = False
     if sbi == True:
 
         single_Sposterior = interf.get_posteriors(1)
@@ -51,11 +51,18 @@ def ParralelMain(arr):
     else:
         
 
-        center_1s = np.array([36.033741,    0.63821322, 31.23103714])
-        center_1s = np.array([35.78922653,  1.00184894, 22.22606468])
+        center_1s = np.array([36.37017441,  0.83766584, 31.54711723]) #1
+        #center_1s = np.array([35.93706894,  0.83814418, 30.89567947])#3
+        #center_1s = np.array([35.98891449,  0.83486302, 30.986166])#4
 
-        center_2s = np.array([3.59581604e+01, 6.31634116e-01, 3.14561119e+01, 3.45668610e-04, 6.80176832e-04, 1.17015195e+00, 2.48709702e+02])
-        center_2s = np.array([3.59908028e+01, 9.72112119e-01, 2.15796261e+01, 1.31548397e-04, 2.26674099e-02, 4.15445983e-01, 7.73482437e+01])
+        
+
+
+
+
+        center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175]) #1
+        #center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01, 1.09751643e-04, 8.47467631e-02, 2.32403427e-01, 1.16953224e+02]) #3, #4
+        #center_2s = np.array([3.57069664e+01, 8.28740132e-01, 3.13619919e+01, 1.06470281e-04, 2.02446827e-03, 1.91855073e+00, 2.07568512e+02]) #4
 
     
     #center_1s = np.array([36., 0.133, 31.5])
@@ -105,7 +112,7 @@ def ParralelMain(arr):
     #center_2 = f.scale(center_2)
 
     # initial covariances (diagonal)
-    cov_scale = 0.0001 #0.01
+    cov_scale = 0.000001 #0.01
 
     covariance_1 = np.zeros((3, 3))
     np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
@@ -150,7 +157,7 @@ def ParralelMain(arr):
     # loop specific values
 
     #print(states_1[:, -1])
-    theta = states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    theta = center_2#states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
     #print(theta)
     m = 2
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
@@ -302,29 +309,29 @@ letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 
 # Synthetic Event Parameters
 theta_Models = [
-    [36, 0.633, 31.5, 0.0096, 0.025, 1.27, 210.8], # 0 strong binary
-    [36, 0.933, 31.5, 0.0096, 0.0091, 1.3, 210.8], # 1 weak binary 1
+    [36, 0.633, 31.5, 0.0096, 0.01, 1.27, 210.8], # 0 strong binary
+    [36, 0.833, 31.5,  0.001, 0.01, 1.10, 180], # 1 weak binary 1
     [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
     [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
-    [36, 0.633, 31.5]  # 4 single
+    [36, 0.833, 31.5]  # 4 single
     ]
 
-sn = 4
+sn = 1
 theta_Model = np.array(theta_Models[sn])
 
-single_true = f.scale(theta_Model)
-binary_true = False#f.scale(theta_Model)
+single_true = False#f.scale(theta_Model)
+binary_true = f.scale(theta_Model)
 
-burns = 250
-iters = 750
-iterations = 500
+burns = 25
+iters = 475
+iterations = 1000
 truncation_iterations = 0
 
 n_epochs = 720
 
 n_points = 5
 
-signal_to_noise_baseline = 23.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+signal_to_noise_baseline = 123.0#np.random.uniform(23.0, 230.0) # Lower means noisier
 
 uniform_priors = False
 informative_priors = True
@@ -344,7 +351,7 @@ elif isinstance(binary_true, np.ndarray):
 Model.plot_magnification(t_range = [0, 72], subtract_2450000 = False, color = 'black')
 plt.savefig('temp.jpg')
 plt.clf()
-
+#throw=throw
 
 
 #0, 50, 25, 0.3
@@ -835,7 +842,7 @@ axes = np.array(figure.axes).reshape((ndim, ndim))
 #plt.rcParams['font.size'] = 9
 # Loop over the diagonal
 
-if binary_true != False:
+if isinstance(binary_true, np.ndarray):
     base = f.scale(theta_Model)
 else:
     base = center_2
