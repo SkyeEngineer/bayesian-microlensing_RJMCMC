@@ -38,7 +38,7 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs, burns, iters = arr
 
 
-    sbi = False
+    sbi = True
     if sbi == True:
 
         single_Sposterior = interf.get_posteriors(1)
@@ -112,7 +112,7 @@ def ParralelMain(arr):
     #center_2 = f.scale(center_2)
 
     # initial covariances (diagonal)
-    cov_scale = 0.000001 #0.01
+    cov_scale = 0.001 #0.01
 
     covariance_1 = np.zeros((3, 3))
     np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
@@ -310,7 +310,7 @@ letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 # Synthetic Event Parameters
 theta_Models = [
     [36, 0.633, 31.5, 0.0096, 0.01, 1.27, 210.8], # 0 strong binary
-    [36, 0.833, 31.5,  0.001, 0.01, 1.10, 180], # 1 weak binary 1
+    [36, 0.833, 31.5,  0.001, 0.03, 1.10, 180], # 1 weak binary 1
     [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
     [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
     [36, 0.833, 31.5]  # 4 single
@@ -329,7 +329,7 @@ truncation_iterations = 0
 
 n_epochs = 720
 
-n_points = 5
+n_points = 2
 
 signal_to_noise_baseline = 123.0#np.random.uniform(23.0, 230.0) # Lower means noisier
 
@@ -369,13 +369,27 @@ noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_e
 noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
 error = deepcopy(noise_sd)
 model_data = true_data + noise
-Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
 
+with open("OB110251.csv") as file:
+    array = np.loadtxt(file, delimiter=",")
+
+array = array[1008:3168][:]
+array = array[::3][:]
+array[:, 0] = array[:, 0] - array[0][0]
+print(array)
+
+
+Data = mm.MulensData(data_list = [array[:, 0], array[:, 1], array[:, 2]], phot_fmt = 'flux', chi2_fmt = 'flux')
 signal_n_epochs = 720
 signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
+true_signal_data = array[:, 1]
+signal_data = array[:, 1]
 
-true_signal_data = Model.magnification(signal_epochs)
-signal_data = model_data
+#Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
+#signal_n_epochs = 720
+#signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
+#true_signal_data = Model.magnification(signal_epochs)
+#signal_data = model_data
 
 
 plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
@@ -386,7 +400,7 @@ plt.grid()
 plt.tight_layout()
 plt.savefig('ObsTru.png', transparent=True)
 plt.clf()
-
+#throw=throw
 '''
 plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
 plt.plot(epochs, true_data, color = 'red', label='true')
@@ -805,7 +819,7 @@ for yi in range(ndim):
         ax.cla()
         ax.grid()
         ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)#, markeredgewidth=0.0)
-        
+        #ax.set_title(str(yi)+str(xi))
             
         if yi == ndim - 1:
             ax.set_xlabel(symbols[xi])
@@ -924,7 +938,7 @@ for yi in range(ndim):
         R = [np.cos(angles), np.sin(angles)]
         R = np.transpose(np.array(R))
 
-        for levels in [0.38, 0.69, 0.92]:
+        for levels in [0.38, 0.86, 0.98]:
 
             rad = np.sqrt(chi2.isf(levels, 2))
             level_curve = rad*R.dot(scipy.linalg.sqrtm(K))
@@ -933,6 +947,8 @@ for yi in range(ndim):
 
         if isinstance(binary_true, np.ndarray):
             ax.scatter(base[xi], base[yi], marker = '*', s = markerSize, c = 'red', alpha = 1)
+            ax.axvline(base[xi], color = 'red')
+            ax.axhline(base[yi], color = 'red')
 
 
 

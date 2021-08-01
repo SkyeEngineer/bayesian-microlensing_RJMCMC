@@ -46,11 +46,11 @@ def PlotWalk(xi, yi, states, labels, symbols, letters, model, center, true):
     plt.title('RJMCMC walk projected\n onto '+model+' ('+symbols[xi]+', '+symbols[yi]+') space')
     
     if isinstance(center, np.ndarray):
-        plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
+        #plt.scatter(center[xi], center[yi], marker = r'$\odot$', label = 'Centre', s = markerSize, c = 'black', alpha = 1)
         plt.legend()
 
     if isinstance(true, np.ndarray):
-        plt.scatter(true[xi], true[yi], marker = '*', label = 'True', s = markerSize, c = 'black', alpha = 1) # r'$\circledast$'
+        #plt.scatter(true[xi], true[yi], marker = '*', label = 'True', s = markerSize, c = 'black', alpha = 1) # r'$\circledast$'
         plt.legend()
     
 
@@ -204,8 +204,8 @@ def contourPlot(xi, yi, states, labels, symbols, letters, model, base, true, m, 
     plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
     plt.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
     plt.tight_layout()
-    #plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Density.png')
-    #plt.clf()
+    plt.savefig('Plots/Walks/RJ-'+model+letters[xi]+letters[yi]+'-Density.png')
+    plt.clf()
 
     return
 
