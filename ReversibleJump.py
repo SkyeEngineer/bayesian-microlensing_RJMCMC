@@ -323,15 +323,15 @@ single_true = False#f.scale(theta_Model)
 binary_true = f.scale(theta_Model)
 
 burns = 25
-iters = 825
-iterations = 6000
+iters = 475
+iterations = 10000
 truncation_iterations = 0
 
 n_epochs = 720
 
 n_points = 2
 
-signal_to_noise_baseline = 63.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+signal_to_noise_baseline = 23.0#np.random.uniform(23.0, 230.0) # Lower means noisier
 
 uniform_priors = False
 informative_priors = True
@@ -682,6 +682,7 @@ n_density = 5
 pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
 pltf.AdaptiveProgression(adaptive_score[0], covs[0][:], 'single')
 
+throw=throw
 
 if False:
 

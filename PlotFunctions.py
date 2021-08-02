@@ -264,7 +264,7 @@ def DistPlot(xi, states, labels, symbols, letters, m, model, center, true, prior
 
 def AdaptiveProgression(history, covs, name):
 
-    size = 100#50
+    size = int(len(history)/25)#100#50
     
     if len(history) <= size:
         plt.scatter(0, 0)
@@ -287,16 +287,48 @@ def AdaptiveProgression(history, covs, name):
 
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
 
-    plt.plot((np.linspace(1, bins - 1, num = bins - 1)), normed_trace, label = 'trace', alpha = 0.5)
 
-    plt.plot((np.linspace(1, bins - 1, num = bins - 1)), acc, label = 'prog', alpha = 0.5)
+    rate_colour = 'purple'
+    trace_colour = 'blue'
 
-    plt.ylim((0.0, 1.0))
-    plt.xlabel(f'Binned Iterations Over Time [Bins, n={size}]')
-    plt.ylabel('Fraction of Accepted\nProposals '+r'[$Bins^{-1}$]')
-    plt.title('Adaptive RJMCMC acceptance timeline')
-    plt.legend()
+    a1 = plt.axes()
+    a1.plot((np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
+    
+
+    a1.set_ylabel('Rate of accepted proposals')
+    a1.set_ylim((0.0, 1.0))
+
+
     plt.grid()
+    a1.set_xlabel(f'Binned iterations over time [{size} samples]')
+    a2 = a1.twinx()
+
+    a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
+    a2.set_ylabel(r'Average $\sum$ Tr$(K_{xx}$)')
+    
+    a2.set_ylim((0.0, 1.0))
+    a2.set_yticks([0.0, 1.0])
+    a2.set_yticklabels(['min', 'max'])
+
+    
+
+
+    a1.spines['left'].set_color(rate_colour)
+    a2.spines['left'].set_color(rate_colour)
+
+    a1.yaxis.label.set_color(rate_colour)
+    a1.tick_params(axis = 'y', colors = rate_colour)
+
+    a2.spines['right'].set_color(trace_colour)
+    a1.spines['right'].set_color(trace_colour)
+
+    a2.yaxis.label.set_color(trace_colour)
+    a2.tick_params(axis = 'y', colors = trace_colour)
+
+
+    plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
+    #plt.legend()
+
     plt.tight_layout()
     plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
     plt.clf()
