@@ -38,7 +38,7 @@ def ParralelMain(arr):
     sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs, burns, iters = arr
 
 
-    sbi = True
+    sbi = False
     if sbi == True:
 
         single_Sposterior = interf.get_posteriors(1)
@@ -323,15 +323,15 @@ single_true = False#f.scale(theta_Model)
 binary_true = f.scale(theta_Model)
 
 burns = 25
-iters = 475
-iterations = 1000
+iters = 825
+iterations = 6000
 truncation_iterations = 0
 
 n_epochs = 720
 
 n_points = 2
 
-signal_to_noise_baseline = 123.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+signal_to_noise_baseline = 63.0#np.random.uniform(23.0, 230.0) # Lower means noisier
 
 uniform_priors = False
 informative_priors = True
@@ -370,6 +370,7 @@ noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
 error = deepcopy(noise_sd)
 model_data = true_data + noise
 
+'''
 with open("OB110251.csv") as file:
     array = np.loadtxt(file, delimiter=",")
 
@@ -384,12 +385,13 @@ signal_n_epochs = 720
 signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
 true_signal_data = array[:, 1]
 signal_data = array[:, 1]
+'''
 
-#Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
-#signal_n_epochs = 720
-#signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
-#true_signal_data = Model.magnification(signal_epochs)
-#signal_data = model_data
+Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
+signal_n_epochs = 720
+signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
+true_signal_data = Model.magnification(signal_epochs)
+signal_data = model_data
 
 
 plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
@@ -837,9 +839,6 @@ for yi in range(ndim):
         else:    
             ax.axes.get_yaxis().set_ticklabels([])
 
-
-
-
 figure.savefig('results/corner.png', dpi=500)
 figure.clf()
 
@@ -861,7 +860,7 @@ if isinstance(binary_true, np.ndarray):
 else:
     base = center_2
 
-states = states_2
+#states = states_2
 m = 2
 
 for i in range(ndim):
@@ -871,12 +870,12 @@ for i in range(ndim):
     ax.grid()
     #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
 
-    ax.hist(states[:, i], bins = 50, density = True)
+    ax.hist(states_2[:, i], bins = 50, density = True)
 
 
 
-    mu = np.average(states[:, i])
-    sd = np.std(states[:, i])
+    mu = np.average(states_2[:, i])
+    sd = np.std(states_2[:, i])
     ax.axvline(mu, label = r'$\mu$', color = 'cyan')
     ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
 
@@ -896,10 +895,10 @@ for yi in range(ndim):
         #ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 10)#, markeredgewidth=0.0)
             
             
-        yLower = np.min([np.min(states[:, yi]), base[yi]])
-        yUpper = np.max([np.max(states[:, yi]), base[yi]])
-        xLower = np.min([np.min(states[:, xi]), base[xi]])
-        xUpper = np.max([np.max(states[:, xi]), base[xi]])
+        yLower = np.min([np.min(states_2[:, yi]), base[yi]])
+        yUpper = np.max([np.max(states_2[:, yi]), base[yi]])
+        xLower = np.min([np.min(states_2[:, xi]), base[xi]])
+        xUpper = np.max([np.max(states_2[:, xi]), base[xi]])
 
         yaxis = np.linspace(yLower, yUpper, n_points)
         xaxis = np.linspace(xLower, xUpper, n_points)
@@ -932,8 +931,8 @@ for yi in range(ndim):
 
         #https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
 
-        mu = [np.mean(states[:, xi]), np.mean(states[:, yi])]
-        K = np.cov([states[:, xi], states[:, yi]])
+        mu = [np.mean(states_2[:, xi]), np.mean(states_2[:, yi])]
+        K = np.cov([states_2[:, xi], states_2[:, yi]])
         angles = np.linspace(0, 2*np.pi, 360)
         R = [np.cos(angles), np.sin(angles)]
         R = np.transpose(np.array(R))
@@ -968,13 +967,64 @@ for yi in range(ndim):
         else:    
             ax.axes.get_yaxis().set_ticklabels([])
 
-
-
-
 figure.savefig('results/density_corner.png', dpi=500)
 figure.clf()
 
 
+
+
+
+figure = corner.corner(states_1)
+
+ndim = 3
+# Extract the axes
+plt.rcParams['font.size'] = 9
+axes = np.array(figure.axes).reshape((ndim, ndim))
+#figure.clf()
+#plt.rcParams['font.size'] = 9
+# Loop over the diagonal
+
+for i in range(ndim):
+    ax = axes[i, i]
+
+    ax.cla()
+    #ax.grid()
+    #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
+
+    ax.patch.set_alpha(0.0)
+    ax.axis('off')
+    ax.axes.get_xaxis().set_ticklabels([])
+    ax.axes.get_yaxis().set_ticklabels([])
+    
+# Loop over the histograms
+for yi in range(ndim):
+    for xi in range(yi):
+        ax = axes[yi, xi]
+        ax.cla()
+        ax.grid()
+        ax.scatter(states_2[:, xi]-center_2[xi], states_2[:, yi]-center_2[yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.25, marker = ".", s = 20)#, markeredgewidth=0.0)
+        ax.scatter(states_1[:, xi]-center_1[xi], states_1[:, yi]-center_1[yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+
+        #ax.set_title(str(yi)+str(xi))
+            
+        if yi == ndim - 1:
+            ax.set_xlabel(symbols[xi])
+            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='x', labelrotation = 45)
+
+        #else:    
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        if xi == 0:
+            ax.set_ylabel(symbols[yi])
+            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
+            ax.tick_params(axis='y', labelrotation = 45)
+
+        #else:    
+            ax.axes.get_yaxis().set_ticklabels([])
+
+figure.savefig('Plots/overlayed_corner.png', dpi=500)
+figure.clf()
 
 
 
