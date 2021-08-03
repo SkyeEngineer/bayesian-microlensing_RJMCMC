@@ -262,7 +262,7 @@ def DistPlot(xi, states, labels, symbols, letters, m, model, center, true, prior
     return
 
 
-def AdaptiveProgression(history, covs, name):
+def AdaptiveProgression(history, inters, covs, name):
 
     size = int(len(history)/25)#100#50
     
@@ -276,14 +276,18 @@ def AdaptiveProgression(history, covs, name):
     #for l in range(2):
         #for chain in range(p):
     acc = []
+    inter_acc = []
     trace = []
     bins = int(np.ceil(len(history) / size))
     for bin in range(bins - 1): # record the ratio of acceptance for each bin
         acc.append(np.sum(history[size*bin:size*(bin+1)]) / size)
+        inter_acc.append(np.sum(inters[size*bin:size*(bin+1)]) / size)
             #print(chain, l, history[chain][l])
         #print(covs[:][:][size*bin:size*(bin+1)])
         #print('999999')
         trace.append(np.sum(np.trace(covs[:][:][size*bin:size*(bin+1)])) / size)
+
+
 
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
 
@@ -293,6 +297,8 @@ def AdaptiveProgression(history, covs, name):
 
     a1 = plt.axes()
     a1.plot((np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
+
+    a1.plot((np.linspace(0, len(inter_acc), num = len(inter_acc))), inter_acc, c = rate_colour, linestyle = 'dashed')
     
 
     a1.set_ylabel('Rate of accepted proposals')

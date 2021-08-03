@@ -195,7 +195,7 @@ def ParralelMain(arr):
                 
     mem_2 = center_2#states_2[:, -1]
     adaptive_score = [c_1.tolist(), c_2.tolist()]
-    #inter_props = [0, 0]
+    inter_props = [[], []]
 
     n_samples = 10000
     samples, log_prob_samples = True, True#interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
@@ -231,7 +231,10 @@ def ParralelMain(arr):
         thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, stored_mean, False)
         #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         if random.random() <= acc * m_pi[mProp - 1] / m_pi[m - 1]: #*q!!!!!!!!!!!!# metropolis acceptance
-            if m == mProp: adaptive_score[mProp - 1].append(1)
+            if m == mProp: 
+                adaptive_score[mProp - 1].append(1)
+            else:
+                inter_props[mProp - 1].append(1)
 
             theta = thetaProp
             m = mProp
@@ -243,9 +246,12 @@ def ParralelMain(arr):
                 bests[mProp-1] = np.exp(piProp)
                 bestt[mProp-1] = f.unscale(mProp, thetaProp)
 
-        elif m == mProp: adaptive_score[mProp - 1].append(0)
+        elif m == mProp: 
+            adaptive_score[mProp - 1].append(0)
+        else:
+            inter_props[mProp - 1].append(0)
 
-
+        '''
         elif m != mProp and random.random() <= 0.5 and False: #Delayed rejection for Jump False: #
             Dtotal += 1
 
@@ -266,6 +272,7 @@ def ParralelMain(arr):
             if bests[mProp-1] < np.exp(piProp_2): 
                 bests[mProp-1] = np.exp(piProp_2)
                 bestt[mProp-1] = f.unscale(mProp, thetaProp_2)
+        '''
 
         #scale = 1
         states.append(theta)
@@ -296,7 +303,7 @@ def ParralelMain(arr):
     print("P(Binary): "+str(np.sum(ms-1)/iterations))
     #print(states)
 
-    return states, adaptive_score, ms, bestt, bests, centers, covs, score
+    return states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score
 
 
 labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'ln(Mass Ratio)', r'Separation', r'Alpha']
@@ -323,15 +330,15 @@ single_true = False#f.scale(theta_Model)
 binary_true = f.scale(theta_Model)
 
 burns = 25
-iters = 475
-iterations = 10000
+iters = 975
+iterations = 5000
 truncation_iterations = 0
 
 n_epochs = 720
 
 n_points = 2
 
-signal_to_noise_baseline = 23.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+signal_to_noise_baseline = 60.0#np.random.uniform(23.0, 230.0) # Lower means noisier
 
 uniform_priors = False
 informative_priors = True
@@ -473,7 +480,7 @@ binary_Sposterior = True#interf.get_posteriors(2)
 
 params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
 
-states, adaptive_score, ms, bestt, bests, centers, covs, score = ParralelMain(params)
+states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score = ParralelMain(params)
 center_1, center_2 = centers
 
 
@@ -679,10 +686,10 @@ with open('results/run.txt', 'w') as file:
 
 n_density = 5
 
-pltf.AdaptiveProgression(adaptive_score[1], covs[1][:], 'binary')
-pltf.AdaptiveProgression(adaptive_score[0], covs[0][:], 'single')
+pltf.AdaptiveProgression(adaptive_score[1], inter_props[1], covs[1][:], 'binary')
+pltf.AdaptiveProgression(adaptive_score[0], inter_props[0], covs[0][:], 'single')
 
-throw=throw
+#throw=throw
 
 if False:
 
@@ -764,27 +771,37 @@ plt.clf()
 
 
 # Plot the comparisons
-N = np.exp(np.linspace(np.log(1000), np.log(iterations), 10)).astype(int)
+n_ac = 10
+N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
 
-new = np.zeros(len(N))
-y = np.array(AC.scalarPolyProjection(states))
+new_v = np.zeros(len(N))
+yv = np.array(AC.scalarPolyProjection(states))
+
+new_m = np.zeros(len(N))
+ym = np.array(ms)
+
 for i, n in enumerate(N):
-    new[i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)
+    new_v[i] = MC.autocorr.integrated_time(yv[:n], c=5, tol=50, quiet=True)
+
+    new_m[i] = MC.autocorr.integrated_time(ym[:n], c=5, tol=50, quiet=True)
+
+
 
 #
-plt.loglog(N, new, "o-")#, label=r"$\tau$")
+plt.loglog(N, new_v, "o-g", label=r"$\tau (V)$")
+plt.loglog(N, new_m, "o-m", label=r"$\tau (M)$")
 
 ylim = plt.gca().get_ylim()
 #plt.gca().set_xscale('log')
 #plt.gca().set_yscale('log')
-plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
+plt.plot(N, N / 50.0, "--k", label = r"$\tau = N/50$")
 
 plt.ylim(ylim)
 #plt.gca().set_yticks([])
 #plt.gca().set_xticks([])
-plt.title('RJMCMC Bias')
-plt.xlabel("number of samples, $N$")
-plt.ylabel(r"$\tau$ estimates")
+plt.title('Adpt-RJMCMC convergence assessment')
+plt.xlabel("Samples, N")
+plt.ylabel(r"Autocorrelation time, $\tau$")
 #plt.grid()
 plt.legend()
 plt.tight_layout()

@@ -6,7 +6,7 @@ def scalarPolyProjection(RJchain):
     scalar = []
     for i in range(len(RJchain)):
         #scalar.append(1+np.sum(np.multiply(RJchain[i], [4**p for p in range(7, 7-len(RJchain[i]), -1)]))) #3
-        scalar.append(np.sum(([RJchain[i]**p for p in range(7, 7-len(RJchain[i]), -1)]))) #3
+        scalar.append(np.sum(([RJchain[i][7-p]**p for p in range(7, 7-len(RJchain[i]), -1)]))) #3
     return scalar
 
 #print(scalarPolyProjection([[3, 1, 2], [1]]))
