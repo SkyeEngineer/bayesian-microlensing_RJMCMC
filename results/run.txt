@@ -4,15 +4,11 @@ Number of observations: 720, Signal to noise baseline: 60.0
 Priors: Informative
 
 Run information:
-RJMCMC iterations: 5000, RJMCMC burn in: 0 
-Accepted move fraction; Total0.1842, Intra-model: -99, Inter-model: -99 
+RJMCMC iterations: 100, RJMCMC burn in: 0 
+Accepted move fraction; Total0.14, Intra-model: -99, Inter-model: -99 
 
 Results:
-Classifications; P(Singular): 0.43079999999999996, P(Binary): 0.5692 
-t0: mean: 36.88170950293407, sd: 0.18520254344199125 
-u0: mean: 0.8363509518993905, sd: 0.0014218596381639118 
-tE: mean: 31.151661422773582, sd: 0.16582143198505261 
-p: mean: 0.0012322082085533062, sd: 0.0016454484539910733 
-q: mean: -6.557802744728715, sd: 1.490021304592144 
-s: mean: 0.7507229809970406, sd: 0.4924986307506593 
-a: mean: 183.29593411340832, sd: 6.894594950469976 
+Classifications; P(Singular): 0.96, P(Binary): 0.04 
+t0: mean: 37.044032636170925, sd: 0.09370478355487914 
+u0: mean: 0.8395623932530932, sd: 0.0015281980569024345 
+tE: mean: 31.307764405826358, sd: 0.12075269945923331 

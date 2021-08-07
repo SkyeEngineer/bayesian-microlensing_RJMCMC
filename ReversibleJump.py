@@ -330,8 +330,8 @@ single_true = False#f.scale(theta_Model)
 binary_true = f.scale(theta_Model)
 
 burns = 25
-iters = 975
-iterations = 5000
+iters = 75
+iterations = 100
 truncation_iterations = 0
 
 n_epochs = 720
@@ -770,26 +770,53 @@ plt.savefig('Plots/Temp.png')
 plt.clf()
 
 
+
+states_auxilliary = []
+#jumpStates_2 = []
+#h_ind = []
+#h=0
+states_auxilliary.append(states[0])
+#states_auxilliary.append(states[1])
+for i in range(1, iterations): # record all binary model states in the chain
+    if ms[i] == 1:
+        print(states_auxilliary[i - 1][3:])
+        states_auxilliary.append(np.concatenate((states[i], states_auxilliary[i - 1][3:])))
+        #if ms[i-1] == 1: 
+        #    jumpStates_2.append((states[i]))
+        #    h_ind.append(len(states_2))
+    if ms[i] == 2:
+        states_auxilliary.append(states[i])
+
+
+states_auxilliary = np.array(states_auxilliary)
+#jumpStates_2 = np.array(jumpStates_2)
+
+
+
 # Plot the comparisons
 n_ac = 10
 N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
 
-new_v = np.zeros(len(N))
-yv = np.array(AC.scalarPolyProjection(states))
+for p in range(7):
+    new_v = np.zeros(len(N))
+    yv = np.array(states_auxilliary[:, p])#np.array(AC.scalarPolyProjection(states))
+
+    for i, n in enumerate(N):
+        new_v[i] = MC.autocorr.integrated_time(yv[:n], c=5, tol=50, quiet=True)
+
+    plt.loglog(N, new_v, "o-", label=r"$\tau$("+symbols[p]+")", color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
+
 
 new_m = np.zeros(len(N))
 ym = np.array(ms)
 
 for i, n in enumerate(N):
-    new_v[i] = MC.autocorr.integrated_time(yv[:n], c=5, tol=50, quiet=True)
 
     new_m[i] = MC.autocorr.integrated_time(ym[:n], c=5, tol=50, quiet=True)
 
+plt.loglog(N, new_m, "o-b", label=r"$\tau (M)$",  linewidth = 2, markersize = 5)
 
 
-#
-plt.loglog(N, new_v, "o-g", label=r"$\tau (V)$")
-plt.loglog(N, new_m, "o-m", label=r"$\tau (M)$")
 
 ylim = plt.gca().get_ylim()
 #plt.gca().set_xscale('log')
