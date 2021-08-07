@@ -157,8 +157,8 @@ def ParralelMain(arr):
     # loop specific values
 
     #print(states_1[:, -1])
-    theta = center_2#states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
-    #print(theta)
+    theta = np.array(center_2)#states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
+    print(type(theta))
     m = 2
     pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
     #print(pi)
@@ -166,6 +166,8 @@ def ParralelMain(arr):
     ms = np.zeros(iterations, dtype=int)
     ms[0] = m
     states = []
+    states.append(theta)
+
     score = 0
     Dscore = 0
     Dtotal = 1
@@ -203,7 +205,7 @@ def ParralelMain(arr):
 
     covs = [covs_1, covs_2]
 
-    for i in range(iterations): # loop through RJMCMC steps
+    for i in range(1, iterations): # loop through RJMCMC steps
         
         #diagnostics
         #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
@@ -228,6 +230,9 @@ def ParralelMain(arr):
         #    scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
 
         #scale = 1
+
+        
+
         thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, stored_mean, False)
         #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
         if random.random() <= acc * m_pi[mProp - 1] / m_pi[m - 1]: #*q!!!!!!!!!!!!# metropolis acceptance
@@ -276,6 +281,7 @@ def ParralelMain(arr):
 
         #scale = 1
         states.append(theta)
+        #print(type(theta))
         ms[i] = m
 
 
@@ -676,6 +682,7 @@ with open('results/run.txt', 'w') as file:
 
     for i in range(f.D(m_p)):
         #no truncations yet!!!!!!!!!
+#        print(states_p)
         mu = np.average(states_p[:, i])
         sd = np.std(states_p[:, i])
 
@@ -757,7 +764,7 @@ plt.clf()
 
 
 
-
+'''
 plt.grid()
 plt.plot(np.linspace(1, iterations, num=iterations), AC.scalarPolyProjection(states), "-", label="scalar")
 #plt.legend(fontsize=14)
@@ -768,7 +775,7 @@ plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
 plt.tight_layout()
 plt.savefig('Plots/Temp.png')
 plt.clf()
-
+'''
 
 
 states_auxilliary = []
@@ -779,7 +786,7 @@ states_auxilliary.append(states[0])
 #states_auxilliary.append(states[1])
 for i in range(1, iterations): # record all binary model states in the chain
     if ms[i] == 1:
-        print(states_auxilliary[i - 1][3:])
+        #print(states_auxilliary[i - 1][3:])
         states_auxilliary.append(np.concatenate((states[i], states_auxilliary[i - 1][3:])))
         #if ms[i-1] == 1: 
         #    jumpStates_2.append((states[i]))
@@ -925,7 +932,7 @@ for i in range(ndim):
     ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
 
     if isinstance(binary_true, np.ndarray):
-        ax.axvline(base[xi], label = 'True', color = 'red')
+        ax.axvline(base[i], label = 'True', color = 'red')
 
     ax.xaxis.tick_top()
     #ax.axes.get_xaxis().set_ticklabels([])

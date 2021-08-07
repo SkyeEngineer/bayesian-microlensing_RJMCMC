@@ -5,10 +5,10 @@ Priors: Informative
 
 Run information:
 RJMCMC iterations: 100, RJMCMC burn in: 0 
-Accepted move fraction; Total0.14, Intra-model: -99, Inter-model: -99 
+Accepted move fraction; Total0.11, Intra-model: -99, Inter-model: -99 
 
 Results:
-Classifications; P(Singular): 0.96, P(Binary): 0.04 
-t0: mean: 37.044032636170925, sd: 0.09370478355487914 
-u0: mean: 0.8395623932530932, sd: 0.0015281980569024345 
-tE: mean: 31.307764405826358, sd: 0.12075269945923331 
+Classifications; P(Singular): 0.81, P(Binary): 0.19 
+t0: mean: 37.09296643150798, sd: 0.05852670549999755 
+u0: mean: 0.8431078244321215, sd: 0.0006186956730509862 
+tE: mean: 31.75422930921418, sd: 0.010780625141200656 
