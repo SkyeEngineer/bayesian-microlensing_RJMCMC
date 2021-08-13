@@ -2,42 +2,18 @@
 # Part 4 Project, RJMCMC for Microlensing
 # [functions]
 
+
+
+
 import MulensModel as mm 
 import math
 import random
-import matplotlib.pyplot as plt
+import numpy as np
 from numpy.lib.function_base import append, cov
-import numpy as np
 from numpy.core.numeric import Inf
-from scipy.stats import truncnorm, lognorm, norm, loguniform, uniform, multivariate_normal
-import copy
-import torch
-import MulensModel as mm
-import Functions as f
-import Autocorrelation as AC
-import PlotFunctions as pltf
-import emcee as MC
-import random
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import truncnorm, loguniform, uniform
-from matplotlib.collections import LineCollection
-import seaborn as sns
-import pandas as pd
-import interfaceing as interf
-from multiprocessing import Pool
-from scipy.optimize import minimize
+from scipy.stats import lognorm, loguniform, uniform, multivariate_normal
 from copy import deepcopy
-import corner
-from scipy.stats import chi2
-import scipy
 
-import PlotFunctions as pltf
-
-import os
-import os.path
-import shutil
-from pathlib import Path
 
 
 
@@ -172,7 +148,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
     for i in range(1, burns): # warm up walk to establish an empirical covariance
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = Gaussian_Proposal(theta, covariance)
-        log_likelihood_proposed = Log_Likelihood(m, proposed, priors)
+        log_likelihood_proposed = Log_Likelihood(m, proposed, priors, data)
         log_prior_ratio = Log_Prior_Ratio(m, m, theta, proposed, priors)
 
         if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
@@ -503,7 +479,7 @@ def Log_Likelihood(m, theta, priors, data):
 
 
 
-def Start_Adaptive_RJ_Metropolis_Hastings\
+def Run_Adaptive_RJ_Metropolis_Hastings\
 (initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations,  data):
     '''
     Performs Adaptive RJMCMC as described in thesis, in the context of microlensing events.
@@ -617,7 +593,7 @@ def Start_Adaptive_RJ_Metropolis_Hastings\
         covariances_history[m].append(covariances[m])
         covariances[m] = (t-1)/t*covariances[m] + s[m]/(t+1) * np.outer(theta-chain_model_means[m], theta-chain_model_means[m]) + s[m]*eps*I[m]/t
 
-        print('Is Symmetric?', f.check_symmetric(covariances[m], tol=1e-8))
+        print('Is Symmetric?', check_symmetric(covariances[m], tol=1e-8))
         
         chain_model_means[m] = (chain_model_means[m]*t + theta) / (t+1)
 
@@ -626,7 +602,78 @@ def Start_Adaptive_RJ_Metropolis_Hastings\
     # performance:
     print("\nIterations: "+str(iterations))
     print("Accepted Move Fraction: " + str(np.sum(acceptance_history) / iterations))
-    print("P(Singular|y): " + str(1-np.sum(chain_ms-1) / iterations))
-    print("P(Binary|y): " + str(np.sum(chain_ms-1) / iterations))
+    print("P(Singular|y): " + str(1-np.sum(chain_ms) / iterations))
+    print("P(Binary|y): " + str(np.sum(chain_ms) / iterations))
 
-    return chain_states, chain_ms, best_thetas, best_posteriors, covariances_history, acceptance_history
+    return chain_states, chain_ms, best_thetas, best_posteriors, covariances_history, acceptance_history, inter_jump_acceptance_histories, intra_jump_acceptance_histories
+
+
+
+def Read_Light_Curve(file_name):
+    '''
+    Read in an existing lightcurve. Must be between 0 and 72 days, with 720 observations
+    --------------------------------------------
+    file_name [string]: csv file in three columns in same directory for light curve
+
+    Returns:
+    data [muLens data]: data for true light curve
+    '''
+
+    with open(file_name) as file:
+        array = np.loadtxt(file, delimiter = ",")
+
+    data = mm.MulensData(data_list = [array[:, 0], array[:, 1], array[:, 2]], phot_fmt = 'flux', chi2_fmt = 'flux')
+
+    return data
+
+
+
+def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_noise_baseline):
+    '''
+    Generate a synthetic lightcurve for some parameters and signal to noise ratio
+    --------------------------------------------
+    true_theta [array like]: parameters to generate curve from in unscaled space
+    light_curve_type [int]: 0 (single) 1 (binary)
+    n_epochs [int]: number of data points in curve
+    signal_to_noise_baseline [scalar]: 
+
+    Returns:
+    data [muLens data]: data for synthetic light curve
+    '''
+
+    if light_curve_type == 0:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], true_theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
+
+    elif light_curve_type == 1:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], true_theta)))
+        model.set_magnification_methods([0., 'VBBL', 72.])
+
+    # exact signal
+    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+    true_signal = model.magnification(epochs)
+
+    # simulate noise in gaussian errored flux space
+    noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 
+    noise_sd = np.sqrt(true_signal) / signal_to_noise_baseline
+    
+    signal = true_signal + noise
+
+    data = mm.MulensData(data_list = [epochs, signal, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
+
+    return data
+
+
+
+def Loop_Adaptive_Warmup(n, type, data, center, priors, covariance, adaptive_warmup_iterations, adaptive_iterations):
+    inc_best_posterior = -Inf
+
+    for i in range(n):
+        covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta = \
+        Adaptive_Metropolis_Hastings(type, data, scale(center), priors, covariance, adaptive_warmup_iterations, adaptive_iterations)
+        
+        if inc_best_posterior < best_posterior:
+            inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta = \
+                covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta
+
+    return inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta

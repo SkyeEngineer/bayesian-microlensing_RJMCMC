@@ -2,6 +2,10 @@
 # Part 4 Project, RJMCMC for Microlensing
 # [Main]
 
+import math
+from pickle import FALSE
+
+from numpy.core.numeric import Inf
 import MulensModel as mm
 import Functions as f
 import Autocorrelation as AC
@@ -18,7 +22,7 @@ import interfaceing as interf
 from multiprocessing import Pool
 from scipy.optimize import minimize
 from copy import deepcopy
-import corner
+
 from scipy.stats import chi2
 import scipy
 
@@ -29,151 +33,75 @@ import os.path
 import shutil
 from pathlib import Path
 
-
+# plotting resources
 pltf.Style()
+labels = ['Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', 'Rho', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
+letters = ['t0', 'u0', 'tE', 'p', 'log10(q)', 's', 'a']
+marker_size = 75
 
 
 
+## INPUTS ##
 
+suite_n = 0
 
-
-
-labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'log10(Mass Ratio)', r'Separation', r'Alpha']
-symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
-letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
-
-## INITIALISATION ##
-
-
-
-# Synthetic Event Parameters
-theta_Models = [
-    [36, 0.633, 31.5, 0.0096, 0.01, 1.27, 210.8], # 0 strong binary
-    [36, 0.833, 31.5,  0.001, 0.03, 1.10, 180], # 1 weak binary 1
-    [36, 0.933, 21.5, 0.0056, 0.065, 1.1, 210.8], # 2 weak binary 2
-    [36, 0.833, 31.5, 0.0096, 0.0001, 4.9, 223.8], # 3 indistiguishable from single
-    [36, 0.833, 31.5]  # 4 single
-    ]
-
-sn = 1
-theta_Model = np.array(theta_Models[sn])
-
-single_true = False#f.scale(theta_Model)
-binary_true = f.scale(theta_Model)
-
-burns = 25
-iters = 75
+adaptive_warmup_iterations = 25
+adaptive_iterations = 75
+warmup_loops = 5
 iterations = 100
-truncation_iterations = 0
 
 n_epochs = 720
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-n_points = 2
+signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-signal_to_noise_baseline = 60.0#np.random.uniform(23.0, 230.0) # Lower means noisier
+n_points = 2 # density for posterior contour plot
+n_sampled_curves = 250 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
 
+sbi = False
 
-if isinstance(single_true, np.ndarray):
+truncate = False
 
-    Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_Model)))
-    Model.set_magnification_methods([0., 'point_source', 72.])
+## INITIALISATION ##
 
-elif isinstance(binary_true, np.ndarray):
-
-    Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_Model)))
-    Model.set_magnification_methods([0., 'VBBL', 72.])
-
-
-Model.plot_magnification(t_range = [0, 72], subtract_2450000 = False, color = 'black')
-plt.savefig('temp.jpg')
-plt.clf()
-#throw=throw
+# synthetic event parameters
+model_parameter_suite = [
+    [36, 0.833, 31.5], # 0 single
+    [36, 0.633, 31.5, 0.0096, 0.01, 1.27, 210.8], # 1 weak binary
+    [36, 0.833, 31.5, 0.001, 0.03, 1.10, 180] # 2 caustic crossing binary
+    ]
+model_type_suite = [0, 1, 1]
 
 
-#0, 50, 25, 0.3
-# Generate "Synthetic" Lightcurve
-#epochs = Model.set_times(n_epochs = 720)
-
-epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-true_data = Model.magnification(epochs)
-#epochs = Model.set_times(n_epochs = 100)
-#error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
-random.seed(a = 99, version = 2)
+light_curve_type = model_type_suite[suite_n]
+true_theta = np.array(model_parameter_suite[suite_n])
 
 
-noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
-noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
-error = deepcopy(noise_sd)
-model_data = true_data + noise
+if light_curve_type == 0: single_true = f.scale(true_theta)
+else: single_true = False
 
-'''
-with open("OB110251.csv") as file:
-    array = np.loadtxt(file, delimiter=",")
-
-array = array[1008:3168][:]
-array = array[::3][:]
-array[:, 0] = array[:, 0] - array[0][0]
-print(array)
+if light_curve_type == 1: binary_true = f.scale(true_theta)
+else: binary_true = False
 
 
-Data = mm.MulensData(data_list = [array[:, 0], array[:, 1], array[:, 2]], phot_fmt = 'flux', chi2_fmt = 'flux')
-signal_n_epochs = 720
-signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
-true_signal_data = array[:, 1]
-signal_data = array[:, 1]
-'''
+data = f.Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_noise_baseline)
 
-Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
-signal_n_epochs = 720
-signal_epochs = np.linspace(0, 72, signal_n_epochs + 1)[:signal_n_epochs]
-true_signal_data = Model.magnification(signal_epochs)
-signal_data = model_data
-
-
-plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
-plt.ylabel('Magnification')
-plt.xlabel('Time [days]')
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.savefig('ObsTru.png', transparent=True)
-plt.clf()
-#throw=throw
-'''
-plt.scatter(epochs, signal_data, color = 'grey', s = 1, label='signal')
-plt.plot(epochs, true_data, color = 'red', label='true')
-plt.ylabel('Magnification')
-plt.xlabel('Time [days]')
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.savefig('Tru.png', transparent=True)
-plt.clf()
-'''
-
-#throw=throw
-#print(Model.magnification(epochs))
-
-
-
-
+# priors in scaled space
 if informative_priors == True:
     # informative priors (Zhang et al)
     s_pi = f.logUniDist(0.2, 5)
     #q_pi = f.logUniDist(10e-6, 1)
-    q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
-    #q_pi = f.uniDist(10e-6, 0.1)
+    log_q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
     alpha_pi = f.uniDist(0, 2*math.pi)
     u0_pi = f.uniDist(0, 2)
     t0_pi = f.uniDist(0, 72)
     tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
     rho_pi =  f.logUniDist(10**-4, 10**-2)
-    a = 0.5
-    m_pi = [1 - a, a]
-    priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
+    priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  log_q_pi, s_pi, alpha_pi]
 
 elif uniform_priors == True:
     # uninformative priors
@@ -184,494 +112,148 @@ elif uniform_priors == True:
     t0_upi = f.uniDist(0, 72)
     tE_upi = f.uniDist(1, 100)
     rho_upi =  f.uniDist(10**-4, 10**-2)
-
     priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
-    m_pi = [0.5, 0.5]
-
-#print(np.exp(f.logLikelihood(2, Data, theta_Models[0], priors)), "hi")
-#g=g
-
-#full_path = os.getcwd()
-#out_path = (str(Path(full_path).parents[0]))
-#with open(out_path+"/microlensing/output/binary_100K_720.pkl", "rb") as handle: binary_posterior = pickle.load(handle)
-
-single_Sposterior = True#interf.get_posteriors(1)
-binary_Sposterior = True#interf.get_posteriors(2)
 
 
-
-#u_full = binary_Sposterior.sample((1, ), x = Data.flux)
-#u_full.numpy
-#u = np.float64(u_full[0])[3:]
-#print(u)
-#throw=throw
-
-#arr, l_arr = interf.get_model_ensemble(binary_Sposterior, Data.flux, 1)
-
-sbi = False
 if sbi == True:
 
-    single_Sposterior = interf.get_posteriors(1)
-    binary_Sposterior = interf.get_posteriors(2)
+    single_surrogate_posterior = interf.get_posteriors(0)
+    binary_surrogate_posterior = interf.get_posteriors(1)
 
     # centreing points for inter-model jumps
-    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
-    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+    single_center = interf.get_model_centers(single_surrogate_posterior, data.flux)
+    binary_center = interf.get_model_centers(binary_surrogate_posterior, data.flux)
 
 else:
     
+    single_center = np.array([36.37017441,  0.83766584, 31.54711723])
 
-    center_1s = np.array([36.37017441,  0.83766584, 31.54711723]) #1
-    #center_1s = np.array([35.93706894,  0.83814418, 30.89567947])#3
-    #center_1s = np.array([35.98891449,  0.83486302, 30.986166])#4
-
-    center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175]) #1
-    #center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01, 1.09751643e-04, 8.47467631e-02, 2.32403427e-01, 1.16953224e+02]) #3, #4
-    #center_2s = np.array([3.57069664e+01, 8.28740132e-01, 3.13619919e+01, 1.06470281e-04, 2.02446827e-03, 1.91855073e+00, 2.07568512e+02]) #4
+    binary_center = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175])
 
 
-#center_1s = np.array([36., 0.133, 31.5])
-
-center_2ss = [
-    [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
-    [36., 0.133, 61.5, 0.00963, np.log(0.00092), 1.31, 210.8], # weak binary 1
-    [36., 0.133, 61.5, 0.0052, np.log(0.0006), 1.29, 210.9], # weak binary 2
-    [36., 0.133, 61.5, 0.0096, np.log(0.00002), 4.25, 223.8], # indistiguishable from single
-    ]
-#center_2 = np.array(center_2s[sn])
+#pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
+#pltf.Light_Curve_Fit_Error(1, binary_center, priors, data, True, "BinaryCenterSurr")
 
 
-
-#throw=throw
-
-#center_2s[4] = np.log(center_2s[4])
-#center_2s = f.scale(center_2s)
-
-#print("\n", center_2, " hi")
-
-#print(Data.flux)
-#binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
-
-pltf.Light_Curve_Fit_Error(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
-pltf.Light_Curve_Fit_Error(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
-#throw=throw
-
-#fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
-#min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
-#print(min_center_1)
-#center_1 = min_center_1.x
-
-#fun_2 = lambda x: -2*f.logLikelihood(2, Data, x, priors)
-#min_center_2 = minimize(fun_2, center_2s, method = 'Nelder-Mead', options={'maxfev': 1000})
-#print(min_center_2)
-#center_2 = min_center_2.x
-
-#pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenterOpt")
-
-#throw=throw
-
-
-#pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenterOpt")
-
-
-#center_2 = f.scale(center_2)
 
 # initial covariances (diagonal)
-cov_scale = 0.001 #0.01
+covariance_scale = 0.001 #0.01
 
-covariance_1 = np.zeros((3, 3))
-np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
+single_covariance = np.zeros((f.D(0), f.D(0)))
+np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
 
-covariance_2 = np.zeros((7, 7))
-np.fill_diagonal(covariance_2, np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])) #0.5
+binary_covariance = np.zeros((f.D(1), f.D(1)))
+np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 0.01]))
 
-#covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
-#covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
-#covariance_1 = np.outer(covariance_1s, covariance_1s)
-#covariance_2 = np.outer(covariance_2s, covariance_2s)
-#covariance_p = [covariance_1, covariance_2]
 
 # Use adaptiveMCMC to calculate initial covariances
-#burns = 50 #25
-#iters = 50 #250
-theta_1i = center_1s
-theta_2i = f.scale(center_2s)
-covariance_1p, states_1, means_1, c_1, covs_1, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
-covariance_2p, states_2, means_2, c_2, covs_2, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
+w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
+    f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
 
-covariance_p = [covariance_1p, covariance_2p]
-#print(covariance_1p)
-#print(covariance_2p)
-#throw=throw
-
-center_1 = bestt_1
-center_2 = bestt_2
-
-print(center_1)
-print(center_2)
-
-#print("Center 1", center_1, "True Chi", -(f.logLikelihood(1, Data, center_1, priors)))
-#print("Center 2", center_2, "True Chi", -(f.logLikelihood(2, Data, f.unscale(2, center_2), priors)))
-centers = [center_1, center_2]
+w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, w_b_covariance_history, w_b_best_posterior, w_b_best_theta =\
+    f.Loop_Adaptive_Warmup(warmup_loops, 1, data, binary_center, priors, binary_covariance, adaptive_warmup_iterations, adaptive_iterations)
 
 
-pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
-pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
+
+centers = [w_s_best_theta, w_b_best_theta]
 
 
-params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
+#pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
+#pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
 
-states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score = 
-center_1, center_2 = centers
+
+#params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
+
+initial_states = [w_s_chain_states[-1], w_b_chain_states[-1]]
+initial_means = [w_s_chain_means[-1], w_b_chain_means[-1]]
+n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
+initial_covariances = [single_covariance, binary_covariance]
+
+
+chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories =\
+    f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
+
+#center_1, center_2 = centers
 
 
 
 
-'''
-p = 2
-pool = Pool(p)
 
-poolSol = pool.map(ParralelMain, np.tile(params, (p, 1)))
+## PLOT RESULTS ##
 
-#print(poolSol[0][0])
-#print(poolSol[1][0])
-#print(poolSol[0][1])
-#print(poolSol[1][1])
+# construct the generalised state signal to analyse
+auxiliary_states = []
+auxiliary_states.append(chain_states[0])
 
+for i in range(1, iterations):
+    if chain_ms[i] == 0: # fill most recent binary non shared parameters if single
+        auxiliary_states.append(np.concatenate((chain_states[i], auxiliary_states[i - 1][f.D(1)-f.D(0):])))
 
-states = np.array(poolSol)[:, 0]
-adaptive_history = np.array(poolSol)[:, 1]
-#print(adaptive_history)
-#print(states)
+    if chain_ms[i] == 1: # currently binary
+        auxiliary_states.append(chain_states[i])
 
-## AUTO CORR ANALYSIS TRUNCATION + PLOTS ##
+auxiliary_states = np.array(auxiliary_states)
 
 
-# Plot the comparisons
-#N=iterations
-N = np.exp(np.linspace(np.log(1000), np.log(iterations), 10)).astype(int)
-#N = np.linspace((100), iterations, 20).astype(int)
+# truncate once m below 50 auto correlation times
+if truncate == True:
+    n_ac = 25
+    N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
 
-new = np.zeros((p, len(N)))
-#newm = np.empty(len(N))
-#newu = np.empty(len(N))
-for chain in range(p):
-    y = np.array(AC.scalarPolyProjection(states[chain]))
-#y = states
-#y= states
+    ac_time_m = np.zeros(len(N))
+    y_m = np.array(chain_ms)
 
     for i, n in enumerate(N):
-    #gw2010[i] = a.autocorr_gw2010(y[:, :n])
-        new[chain][i] = MC.autocorr.integrated_time(y[:n], c=5, tol=50, quiet=True)#AC.autocorr_new(y[:n])#autocorr_new(y[:, :n])
-    #newm[i] = MC.autocorr.integrated_time(jumpStates_2[:n, 4], c=5, tol=50, quiet=True)
-    #newu[i] = MC.autocorr.integrated_time(states_u[:n], c=5, tol=50, quiet=True)
-
-
-#plt.loglog(N, gw2010, "o-", label="G&W 2010")
-
-plt.plot(N, np.average(new, 0), "o-", label="Average Scalar")
-plt.plot(N, new[0][:], "o-", label="0")
-plt.plot(N, new[1][:], "o-", label="1")
-#plt.plot(N, newm, "--", label="M")
-#plt.plot(N, newu, label="newu")
-#plt.plot(np.linspace(1, iterations, num=iterations), y, "o-", label="new")
-
-ylim = plt.gca().get_ylim()
-plt.gca().set_xscale('log')
-plt.gca().set_yscale('log')
-plt.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
-#plt.axhline(true_tau, color="k", label="truth", zorder=-100)
-plt.ylim(ylim)
-plt.xlabel("number of samples, $N$")
-plt.ylabel(r"$\tau$ estimates")
-plt.legend(fontsize=14)
-plt.savefig('Plots/AutoCorr.png')
-plt.clf()
-
-#plt.plot(np.linspace(1, iterations, num=iterations), m, "o-", label="m")
-plt.plot(np.linspace(1, iterations, num=iterations), y, "-", label="scalar")
-plt.legend(fontsize=14)
-plt.savefig('Plots/Temp.png')
-plt.clf()
-
-
-pltf.AdaptiveProgression(adaptive_history, ['Single', 'Binary'], p)
-
-g=g
-'''
-
-
-
-
-
-
-
-
-
-## OTHER PLOT RESULTS ##
-
-markerSize=75
-
-states_2 = []
-jumpStates_2 = []
-h_ind = []
-h=0
-for i in range(iterations): # record all binary model states in the chain
-    if ms[i] == 2: 
-        states_2.append((states[i]))
-        if ms[i-1] == 1: 
-            jumpStates_2.append((states[i]))
-            h_ind.append(len(states_2))
-
-
-states_2=np.array(states_2)
-jumpStates_2 = np.array(jumpStates_2)
-
-
-
-states_1 = []
-h_states_1 = []
-h_ind1=[]
-for i in range(iterations): # record all single model states in the chain
-    if ms[i] == 1: 
-        states_1.append((states[i]))
-        if ms[i-1] == 2: 
-            h_states_1.append((states[i]))
-            h_ind1.append(len(states_1))
-
-states_1 = np.array(states_1)
-h_states_1 = np.array(h_states_1)
-
-
-
-details = True
-
-
-states_u = []
-for i in range(iterations): # record all single model states in the chain
-    states_u.append(states[i][1])
-states_u=np.array(states_u)
-
-
-#keep = deepcopy(plt.rcParams)
-
-
-
-#plt.rcParams.update(plt.rcParamsDefault)
-#plt.rcdefaults()
-#plt.style.use('default')
-#plt.rc_file_defaults()
-##plt.rcParams=keep
-
-#pltf.Style()
-#throw=throw
-
-#states_2df = pd.DataFrame(data = states_2, columns = labels)
-#print(states_2df)
-
-#grid = sns.PairGrid(data = states_2df, vars = labels, height = 7)
-#grid = grid.map_upper(pltf.PPlotWalk)
-#plt.savefig('Plots/RJ-binary-pplot.png')
-#plt.clf()
-
-
-
-#pltf.LightcurveFitError(2, bestt[1][:], priors, Data, Model, epochs, error, details, 'BestBinary')
-
-#pltf.LightcurveFitError(1, bestt[0][:], priors, Data, Model, epochs, error, details, 'BestSingle')
-
-
-# Output File:
-
-with open('results/run.txt', 'w') as file:
-    # Inputs
-    file.write('Inputs:\n')
-    file.write('Parameters: '+str(theta_Model)+'\n')
-    file.write('Number of observations: '+str(n_epochs)+', Signal to noise baseline: '+str(signal_to_noise_baseline)+'\n')
-    
-    if informative_priors == True:
-        type_priors = 'Informative'
-    elif uniform_priors == True:
-        type_priors = 'Uninformative'
-    file.write('Priors: '+type_priors+'\n')
-
-    # Run info
-    file.write('\n')
-    file.write('Run information:\n')
-    file.write('RJMCMC iterations: '+str(iterations-truncation_iterations)+', RJMCMC burn in: '+str(truncation_iterations)+' \n')
-    file.write('Accepted move fraction; Total'+str(score/iterations)+', Intra-model: '+str(-99)+', Inter-model: '+str(-99)+' \n')
-
-    # Results
-    P_S = 1-np.sum(ms-1)/(iterations-truncation_iterations)
-    P_B = np.sum(ms-1)/(iterations-truncation_iterations)
-    file.write('\n')
-    file.write('Results:\n')
-    file.write('Classifications; P(Singular): '+str(P_S)+', P(Binary): '+str(P_B)+' \n')
-    
-    if P_S >= P_B:
-        states_p = states_1
-        m_p = 1
-    elif P_S < P_B:
-        states_p = states_2
-        m_p = 2
-
-    for i in range(f.D(m_p)):
-        #no truncations yet!!!!!!!!!
-#        print(states_p)
-        mu = np.average(states_p[:, i])
-        sd = np.std(states_p[:, i])
-
-        file.write(letters[i]+': mean: '+str(mu)+', sd: '+str(sd)+' \n')
-
-
-
-
-n_density = 5
-
-pltf.AdaptiveProgression(adaptive_score[1], inter_props[1], covs[1][:], 'binary')
-pltf.AdaptiveProgression(adaptive_score[0], inter_props[0], covs[0][:], 'single')
-
-#throw=throw
-
-if False:
-
-
-
-
-
-    for i in range(7):
-
-
+        ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
         
-        #pltf.TracePlot(i, states_2, jumpStates_2, h_ind, labels, symbols, letters, 'binary', center_2, binary_true)
-        pltf.DistPlot(i, states_2, labels, symbols, letters, 2, 'binary', center_2, binary_true, priors, Data)
-        
-        for j in range(i+1, 7):
-            pltf.PlotWalk(i, j, states_2, labels, symbols, letters, 'binary', center_2, binary_true)
+        if ac_time_m[i] < 50 * N[i]: # linearly interpolate truncation point
+            slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
+            truncate = int(math.ceil((ac_time_m[i] - slope * N[i]) / (50 - slope)))
+            break
 
-            pltf.contourPlot(i, j, states_2, labels, symbols, letters, 'binary', center_2, binary_true, 2, priors, Data, n_density)
+        truncated = math.nan
 
-    ## SINGLE MODEL ##
-
+else: truncated = 0
 
 
-    for i in range(3):
-
-        #pltf.TracePlot(i, states_1, h_states_1, h_ind1, labels, symbols, letters, 'single', center_1, single_true)
-        pltf.DistPlot(i, states_1, labels, symbols, letters, 1, 'single', center_1, single_true, priors, Data)
-
-        for j in range(i+1, 3):
-            pltf.PlotWalk(i, j, states_1, labels, symbols, letters, 'single', center_1, single_true)
-
-            pltf.contourPlot(i, j, states_1, labels, symbols, letters, 'single', center_1, single_true, 1, priors, Data, n_density)
-
-
-sampled_curves = random.sample(range(0, np.size(ms, 0)), 100)#int(0.1*np.size(states_2, 0)))
-for i in sampled_curves:
-    #print(states[i])
-    #print(states[i, :])
-    pltf.PlotLightcurve(ms[i], f.unscale(ms[i], np.array(states[i])), 'Samples', 'red', 0.05, False, [0,72])
-
-#if len(theta_Model)>5:
-#    pltf.PlotLightcurve(2, theta_Model, 'True', 'black', 1, False, [0, 72])
-#else:
-#    pltf.PlotLightcurve(1, theta_Model, 'True', 'black', 1, False, [0, 72])
-#plt.legend()
-plt.scatter(epochs, Data.flux, label = 'signal', color = 'grey', s=1)
-plt.title('Joint Dist Samples')
-plt.xlabel('time [days]')
-plt.ylabel('Magnification')
-plt.tight_layout()
-plt.savefig('results/RJMCMC-Samples.png')
-plt.clf()
-
-
-
-plt.plot(np.linspace(1, iterations, num = iterations), ms, linewidth=0.5)
-plt.title('RJMCMC Model Trace')
-plt.xlabel('Iterations')
-plt.ylabel('Model Index')
-plt.locator_params(axis="y", nbins=2)
-plt.tight_layout()
-plt.savefig('Plots/M-Trace.png')
-plt.clf()
-
-
-
-
-'''
-plt.grid()
-plt.plot(np.linspace(1, iterations, num=iterations), AC.scalarPolyProjection(states), "-", label="scalar")
-#plt.legend(fontsize=14)
-plt.title('RJMCMC scalar indicator trace')
-plt.xlabel('Iterations')
-plt.ylabel('Scalar Indicator')
-plt.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
-plt.tight_layout()
-plt.savefig('Plots/Temp.png')
-plt.clf()
-'''
-
-
-states_auxilliary = []
-#jumpStates_2 = []
-#h_ind = []
-#h=0
-states_auxilliary.append(states[0])
-#states_auxilliary.append(states[1])
-for i in range(1, iterations): # record all binary model states in the chain
-    if ms[i] == 1:
-        #print(states_auxilliary[i - 1][3:])
-        states_auxilliary.append(np.concatenate((states[i], states_auxilliary[i - 1][3:])))
-        #if ms[i-1] == 1: 
-        #    jumpStates_2.append((states[i]))
-        #    h_ind.append(len(states_2))
-    if ms[i] == 2:
-        states_auxilliary.append(states[i])
-
-
-states_auxilliary = np.array(states_auxilliary)
-#jumpStates_2 = np.array(jumpStates_2)
-
-
-
-# Plot the comparisons
+# construct untruncated auto correlation functions
 n_ac = 10
 N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
 
-for p in range(7):
-    new_v = np.zeros(len(N))
-    yv = np.array(states_auxilliary[:, p])#np.array(AC.scalarPolyProjection(states))
+for p in range(f.D(1)):
+    ac_time_p = np.zeros(len(N))
+    y_p = np.array(auxiliary_states[:, p])
 
     for i, n in enumerate(N):
-        new_v[i] = MC.autocorr.integrated_time(yv[:n], c=5, tol=50, quiet=True)
+        ac_time_p[i] = MC.autocorr.integrated_time(y_p[:n], c = 5, tol = 50, quiet = True)
 
-    plt.loglog(N, new_v, "o-", label=r"$\tau$("+symbols[p]+")", color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
+    plt.loglog(N, ac_time_p, "o-", label=r'$\tau_{'+symbols[p]+r'}$)', color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
 
 
-new_m = np.zeros(len(N))
-ym = np.array(ms)
+# again for m
+ac_time_m = np.zeros(len(N))
+y_m = np.array(chain_ms)
 
 for i, n in enumerate(N):
 
-    new_m[i] = MC.autocorr.integrated_time(ym[:n], c=5, tol=50, quiet=True)
+    ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
 
-plt.loglog(N, new_m, "o-b", label=r"$\tau (M)$",  linewidth = 2, markersize = 5)
+plt.loglog(N, ac_time_m, "o-b", label=r"$\tau_{M}$",  linewidth = 2, markersize = 5)
 
 
-
+# plot details
 ylim = plt.gca().get_ylim()
 #plt.gca().set_xscale('log')
 #plt.gca().set_yscale('log')
 plt.plot(N, N / 50.0, "--k", label = r"$\tau = N/50$")
-
 plt.ylim(ylim)
+plt.axvline(truncate, alpha = 0.5)
 #plt.gca().set_yticks([])
 #plt.gca().set_xticks([])
-plt.title('Adpt-RJMCMC convergence assessment')
+plt.title('Adptv-RJMH convergence assessment')
 plt.xlabel("Samples, N")
 plt.ylabel(r"Autocorrelation time, $\tau$")
-#plt.grid()
+plt.grid()
 plt.legend()
 plt.tight_layout()
 plt.savefig('Plots/AutoCorr.png')
@@ -679,239 +261,130 @@ plt.clf()
 
 
 
+# record truncated states
+single_states = []
+binary_states = []
+
+for i in range(truncated, iterations):
+    if chain_ms[i] == 0: 
+        single_states.append(chain_states[i]) # record all single model states in the truncated chain
+
+    if chain_ms[i] == 1: 
+        binary_states.append(chain_states[i]) # record all binary model states in the truncated chain
+
+single_states = np.array(single_states)
+binary_states = np.array(binary_states)
 
 
-figure = corner.corner(states_2)
 
-ndim = 7
-# Extract the axes
-plt.rcParams['font.size'] = 9
-axes = np.array(figure.axes).reshape((ndim, ndim))
-#figure.clf()
-#plt.rcParams['font.size'] = 9
-# Loop over the diagonal
-
-for i in range(ndim):
-    ax = axes[i, i]
-
-    ax.cla()
-    ax.grid()
-    ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
-
-    ax.axes.get_xaxis().set_ticklabels([])
-    ax.axes.get_yaxis().set_ticklabels([])
+# output File:
+with open('results/run.txt', 'w') as file:
+    # inputs
+    file.write('Inputs:\n')
+    file.write('Parameters: ' + str(true_theta)+'\n')
+    file.write('Number of observations: ' + str(n_epochs)+', Signal to noise baseline: '+str(signal_to_noise_baseline)+'\n')
     
-# Loop over the histograms
-for yi in range(ndim):
-    for xi in range(yi):
-        ax = axes[yi, xi]
-        ax.cla()
-        ax.grid()
-        ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)#, markeredgewidth=0.0)
-        #ax.set_title(str(yi)+str(xi))
-            
-        if yi == ndim - 1:
-            ax.set_xlabel(symbols[xi])
-            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='x', labelrotation = 45)
+    if informative_priors == True:
+        type_priors = 'Informative'
+    elif uniform_priors == True:
+        type_priors = 'Uninformative'
+    file.write('Priors: '+type_priors+'\n')
 
-        else:    
-            ax.axes.get_xaxis().set_ticklabels([])
+    # run info
+    file.write('\n')
+    file.write('Run information:\n')
+    file.write('Iterations: '+str(iterations)+', Burn in: '+str(truncated)+' \n')
+    file.write('Accepted move fraction; Total'+str(np.sum(acc_history)/iterations)+',\
+        Intra-model: ' + str(np.sum(np.sum(inter_j_acc_histories)) / (len(inter_j_acc_histories[0]) + len(inter_j_acc_histories[1]))) + ',\
+        Inter-model: ' + str(np.sum(np.sum(intra_j_acc_histories)) / (len(intra_j_acc_histories[0]) + len(intra_j_acc_histories[1]))) + ' \n')
 
-        if xi == 0:
-            ax.set_ylabel(symbols[yi])
-            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='y', labelrotation = 45)
-
-        else:    
-            ax.axes.get_yaxis().set_ticklabels([])
-
-figure.savefig('results/corner.png', dpi=500)
-figure.clf()
-
-
-
-
-figure = corner.corner(states_2)
-
-ndim = 7
-# Extract the axes
-plt.rcParams['font.size'] = 9
-axes = np.array(figure.axes).reshape((ndim, ndim))
-#figure.clf()
-#plt.rcParams['font.size'] = 9
-# Loop over the diagonal
-
-if isinstance(binary_true, np.ndarray):
-    base = f.scale(theta_Model)
-else:
-    base = center_2
-
-#states = states_2
-m = 2
-
-for i in range(ndim):
-    ax = axes[i, i]
-
-    ax.cla()
-    ax.grid()
-    #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
-
-    ax.hist(states_2[:, i], bins = 50, density = True)
-
-
-
-    mu = np.average(states_2[:, i])
-    sd = np.std(states_2[:, i])
-    ax.axvline(mu, label = r'$\mu$', color = 'cyan')
-    ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color='cyan', label = r'$\sigma$')
-
-    if isinstance(binary_true, np.ndarray):
-        ax.axvline(base[i], label = 'True', color = 'red')
-
-    ax.xaxis.tick_top()
-    #ax.axes.get_xaxis().set_ticklabels([])
-    ax.axes.get_yaxis().set_ticklabels([])
+    # results
+    P_S = 1-np.sum(chain_ms[truncated:]) / (iterations-truncated)
+    P_B = np.sum(chain_ms[truncated:]) / (iterations-truncated)
+    file.write('\n')
+    file.write('Results:\n')
+    file.write('Classifications; P(single|y): '+str(P_S)+', P(binary|y): '+str(P_B)+' \n')
     
-# Loop over the histograms
-for yi in range(ndim):
-    for xi in range(yi):
-        ax = axes[yi, xi]
-        ax.cla()
-        #ax.grid()
-        #ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'spring', alpha = 0.25, marker = ".", s = 10)#, markeredgewidth=0.0)
-            
-            
-        yLower = np.min([np.min(states_2[:, yi]), base[yi]])
-        yUpper = np.max([np.max(states_2[:, yi]), base[yi]])
-        xLower = np.min([np.min(states_2[:, xi]), base[xi]])
-        xUpper = np.max([np.max(states_2[:, xi]), base[xi]])
+    if P_S >= P_B:
+        probable_states = single_states
+        probable_m = 0
 
-        yaxis = np.linspace(yLower, yUpper, n_points)
-        xaxis = np.linspace(xLower, xUpper, n_points)
-        density = np.zeros((n_points, n_points))
-        x = -1
-        y = -1
+    elif P_S < P_B:
+        probable_m_states = binary_states
+        probable_m = 1
 
-        for i in yaxis:
-            x += 1
-            y = -1
-            for j in xaxis:
-                y += 1
-                theta = deepcopy(base)
+    for i in range(f.D(probable_m)):
 
-                theta[xi] = j
-                theta[yi] = i
+        mu = np.average(probable_states[:, i])
+        sd = np.std(probable_states[:, i])
 
-                theta = f.unscale(m, theta)
-                #print(theta[4], xaxis, yaxis)
-                density[x][y] = np.exp(f.logLikelihood(m, Data, theta, priors)+f.priorProduct(m, Data, theta, priors))
-
-        density = np.sqrt(np.flip(density, 0)) # So lower bounds meet
-        #density = np.flip(density, 1) # So lower bounds meet
-        ax.imshow(density, interpolation='none', extent=[xLower, xUpper, yLower, yUpper,], aspect=(xUpper-xLower) / (yUpper-yLower))#, cmap = plt.cm.BuPu_r) #
-        #cbar = plt.colorbar(fraction = 0.046, pad = 0.04, ticks = [0, 1]) # empirical nice auto sizing
-        #ax = plt.gca()
-        #cbar.ax.set_yticklabels(['Initial\nStep', 'Final\nStep'], fontsize=9)
-        #cbar.ax.yaxis.set_label_position('right')
-
-
-        #https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
-
-        mu = [np.mean(states_2[:, xi]), np.mean(states_2[:, yi])]
-        K = np.cov([states_2[:, xi], states_2[:, yi]])
-        angles = np.linspace(0, 2*np.pi, 360)
-        R = [np.cos(angles), np.sin(angles)]
-        R = np.transpose(np.array(R))
-
-        for levels in [0.38, 0.86, 0.98]:
-
-            rad = np.sqrt(chi2.isf(levels, 2))
-            level_curve = rad*R.dot(scipy.linalg.sqrtm(K))
-            ax.plot(level_curve[:, 0]+mu[0], level_curve[:, 1]+mu[1], color = 'White')
-            
-
-        if isinstance(binary_true, np.ndarray):
-            ax.scatter(base[xi], base[yi], marker = '*', s = markerSize, c = 'red', alpha = 1)
-            ax.axvline(base[xi], color = 'red')
-            ax.axhline(base[yi], color = 'red')
+        file.write(letters[i]+': mean: '+str(mu)+', sd: '+str(sd)+' \n')
 
 
 
-        if yi == ndim - 1:
-            ax.set_xlabel(symbols[xi])
-            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='x', labelrotation = 45)
+# adaptive progression plots
+# want to include full history with warmup (w) too
+pltf.AdaptiveProgression(w_s_acceptance_history.append(intra_j_acc_histories[0]), w_s_covariance_history.append(cov_histories[0]), 'single')
+pltf.AdaptiveProgression(w_b_acceptance_history.append(intra_j_acc_histories[1]), w_s_covariance_history.append(cov_histories[1]), 'binary')
 
-        else:    
-            ax.axes.get_xaxis().set_ticklabels([])
+conditioned_cov_histories = []
+n_shared = f.D(0)
+for i in range(len(cov_histories[1])):
+    covariance = cov_histories[i]
 
-        if xi == 0:
-            ax.set_ylabel(symbols[yi])
-            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='y', labelrotation = 45)
-
-        else:    
-            ax.axes.get_yaxis().set_ticklabels([])
-
-figure.savefig('results/density_corner.png', dpi=500)
-figure.clf()
-
-
-
-
-
-figure = corner.corner(states_1)
-
-ndim = 3
-# Extract the axes
-plt.rcParams['font.size'] = 9
-axes = np.array(figure.axes).reshape((ndim, ndim))
-#figure.clf()
-#plt.rcParams['font.size'] = 9
-# Loop over the diagonal
-
-for i in range(ndim):
-    ax = axes[i, i]
-
-    ax.cla()
-    #ax.grid()
-    #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
-
-    ax.patch.set_alpha(0.0)
-    ax.axis('off')
-    ax.axes.get_xaxis().set_ticklabels([])
-    ax.axes.get_yaxis().set_ticklabels([])
+    c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
+    c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
+    c_21 = covariance[n_shared:, :n_shared] # same as above
+    c_22 = covariance[n_shared:, n_shared:] # covariance matrix of independent variables
+    c_22_inv = np.linalg.inv(c_22)
     
-# Loop over the histograms
-for yi in range(ndim):
-    for xi in range(yi):
-        ax = axes[yi, xi]
-        ax.cla()
-        ax.grid()
-        ax.scatter(states_2[:, xi]-center_2[xi], states_2[:, yi]-center_2[yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.25, marker = ".", s = 20)#, markeredgewidth=0.0)
-        ax.scatter(states_1[:, xi]-center_1[xi], states_1[:, yi]-center_1[yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+    conditioned_cov_histories.append(c_11 - c_12.dot(c_22_inv).dot(c_21))
 
-        #ax.set_title(str(yi)+str(xi))
-            
-        if yi == ndim - 1:
-            ax.set_xlabel(symbols[xi]+r'-\hat{\theta}')
-            #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='x', labelrotation = 45)
+pltf.AdaptiveProgression(inter_j_acc_histories, conditioned_cov_histories[1], 'conditioned') # progression for between model jump distribution
 
-        #else:    
-            ax.axes.get_xaxis().set_ticklabels([])
 
-        if xi == 0:
-            ax.set_ylabel(symbols[yi]+r'-\hat{\theta}')
-            #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
-            ax.tick_params(axis='y', labelrotation = 45)
 
-        #else:    
-            ax.axes.get_yaxis().set_ticklabels([])
+# plot of randomly sampled curves
+sampled_curves = random.sample(range(truncated, iterations), n_sampled_curves)
+for i in sampled_curves:
+    pltf.PlotLightcurve(chain_ms[i], f.unscale(np.array(chain_states[i])), False, 'red', 0.01, False, [0,72])
 
-figure.savefig('Plots/overlayed_corner.png', dpi=500)
-figure.clf()
+plt.scatter(epochs, data.flux, label = 'signal', color = 'grey', s = 1)
+plt.title('Joint distribution samples, N = '+str(n_sampled_curves))
+plt.xlabel('time [days]')
+plt.ylabel('Magnification')
+plt.tight_layout()
+plt.savefig('results/RJMH-Samples.png')
+plt.clf()
+
+
+# plot of model index trace
+plt.plot(x = np.linspace(1, iterations, num = iterations), y = chain_ms[truncated:] + 1, linewidth = 0.25)
+plt.title('RJMH Model Trace')
+plt.xlabel('Iterations')
+plt.ylabel('Model Index')
+plt.locator_params(axis = "y", nbins = 2) # only two ticks
+plt.tight_layout()
+plt.savefig('Plots/M-Trace.png')
+plt.clf()
+
+
+
+
+
+
+# begin corner plots
+# note that these destroy the style environment (plot these last)
+
+
+pltf.Walk_Plot(8, binary_states, symbols, 'binary-corner')
+
+pltf.Contour_Plot(8, n_points, binary_states, cov_histories[1][-1], binary_true, binary_center, 1, priors, data, symbols, 'binary-contour')
+
+pltf.Double_Plot(3, single_states - single_center, binary_states - binary_center, symbols + r'$-\hat{\theta}$', 'shifted-overlay')
+
+
+
 
 
 

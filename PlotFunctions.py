@@ -13,6 +13,7 @@ import matplotlib.patches as mpatches
 from scipy.stats import chi2
 import scipy
 import copy
+import corner
 
 
 plt.rcParams["font.family"] = "serif"
@@ -383,21 +384,43 @@ def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, 
     return
 
 
-def PlotLightcurve(m, Theta, label, color, alpha, caustics, ts):
+def Draw_Light_Curve_Noise_Error(data):
+    
+    error = data.err_flux
+    lower = data.flux - error
+    upper = data.flux + error
+    plt.fill_between(data.times, lower, upper, alpha = 0.25, label = r'$\sigma$')
+    plt.scatter(data.times, data.flux, label = 'signal', color = 'grey', s = 1)
+
+    plt.xlabel('Time [days]')
+    plt.ylabel('Magnification')
+
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+
+    return
+
+
+def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
+
+    if m == 0:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
 
     if m == 1:
-        Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], Theta)))
-        Model.set_magnification_methods([0., 'point_source', 72.])
-
-    if m == 2:
-        Model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], Theta)))
-        Model.set_magnification_methods([0., 'VBBL', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
+        model.set_magnification_methods([0., 'VBBL', 72.])
 
     if caustics:
-        Model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
-        Model.plot_caustics(color = 'purple', s = 2, marker = '.')
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
+        model.plot_caustics(color = 'purple', s = 2, marker = '.')
+    
+    elif isinstance(label, str):
+        model.plot_magnification(t_range = ts, color = color, label = label, alpha = alpha)
+
     else:
-        Model.plot_magnification(t_range = ts, subtract_2450000 = False, color = color, label = label, alpha = alpha)
+        model.plot_magnification(t_range = ts, color = color, alpha = alpha)
 
     return
 
@@ -416,4 +439,232 @@ def Style():
     plt.rcParams["grid.alpha"] = 0.25
 
     plt.rc('axes.formatter', useoffset=False)
+    return
+
+
+
+
+def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, data, symbols, name):
+
+    figure = corner.corner(states)
+
+    plt.rcParams['font.size'] = 9
+
+    # extract the axes
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+
+    # params to evaluate 2d slices at
+    if isinstance(true, np.ndarray):
+        base = true
+    else:
+        base = center
+
+    # Loop over the diagonal
+    for i in range(n_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+        ax.grid()
+
+        # distribution plots
+        ax.hist(states[:, i], bins = 50, density = True)
+
+        mu = np.average(states[:, i])
+        sd = np.std(states[:, i])
+        ax.axvline(mu, label = r'$\mu$', color = 'cyan')
+        ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color = 'cyan', label = r'$\sigma$')
+
+        if isinstance(true, np.ndarray):
+            ax.axvline(base[i], label = r'$\theta$', color = 'red')
+
+        ax.xaxis.tick_top()
+        ax.axes.get_yaxis().set_ticklabels([])
+        
+
+    # loop over lower triangular 
+    for yi in range(n_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            
+            # posterior heat map
+
+            yLower = np.min([np.min(states[:, yi]), base[yi]])
+            yUpper = np.max([np.max(states[:, yi]), base[yi]])
+            xLower = np.min([np.min(states[:, xi]), base[xi]])
+            xUpper = np.max([np.max(states[:, xi]), base[xi]])
+
+            yaxis = np.linspace(yLower, yUpper, n_points)
+            xaxis = np.linspace(xLower, xUpper, n_points)
+            density = np.zeros((n_points, n_points))
+            x = -1
+            y = -1
+
+            for i in yaxis:
+                x += 1
+                y = -1
+                for j in xaxis:
+                    y += 1
+                    theta = copy.deepcopy(base)
+
+                    theta[xi] = j
+                    theta[yi] = i
+
+                    density[x][y] = np.exp(f.Log_Likelihood(m, theta, priors, data) + f.Log_Prior_Product(m, theta, priors, data))
+
+            density = np.flip(density, 0) # so lower bounds meet
+            ax.imshow(density, interpolation = 'none', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower))
+
+
+            # the fit normal distribution's contours
+            # https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
+
+            mu = [np.mean(states[:, xi]), np.mean(states[:, yi])]
+            K = covariance[xi][yi]  #np.cov([states[:, xi], states[:, yi]])
+            angles = np.linspace(0, 2*math.pi, 360)
+            R = [np.cos(angles), np.sin(angles)]
+            R = np.transpose(np.array(R))
+
+            for level in [0.38]: # sigma levels
+
+                rad = np.sqrt(chi2.isf(level, 2))
+                level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
+                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'white')
+
+            # plot true values in scaled space if they exist
+            if isinstance(true, np.ndarray):
+                ax.scatter(base[xi], base[yi], marker = '*', s = 75, c = 'red', alpha = 1)
+                ax.axvline(base[xi], color = 'red')
+                ax.axhline(base[yi], color = 'red')
+
+            # labels if on edge
+            if yi == n_dim - 1:
+                ax.set_xlabel(symbols[xi])
+                ax.tick_params(axis='x', labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            # labels if on edge
+            if xi == 0:
+                ax.set_ylabel(symbols[yi])
+                ax.tick_params(axis = 'y', labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+    # inset plot of data
+    figure.axes([0.125, 0.7, 0.3, 0.2])
+    Draw_Light_Curve_Noise_Error(data)
+    ax = plt.gca()
+
+    figure.savefig('results/'+name+'.png', dpi=500)
+    figure.clf()
+
+    return
+
+
+
+
+def Double_Plot(ndim, states_1, states_2, symbols, name):
+
+
+    # construct shape with corner
+    figure = corner.corner(states_1)
+
+    #ndim = f.D(0)
+
+    # extract the axes
+    plt.rcParams['font.size'] = 9
+    axes = np.array(figure.axes).reshape((ndim, ndim))
+
+    # Loop over the diagonal
+    for i in range(ndim):
+        ax = axes[i, i]
+
+        ax.cla()
+        #ax.grid()
+        #ax.plot(np.linspace(1, len(states_2), len(states_2)), states_2[:, i], linewidth = 0.5)
+
+        ax.patch.set_alpha(0.0)
+        ax.axis('off')
+        ax.axes.get_xaxis().set_ticklabels([])
+        ax.axes.get_yaxis().set_ticklabels([])
+        
+    # loop over lower triangle
+    for yi in range(ndim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            ax.grid()
+            ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.25, marker = ".", s = 20)
+            ax.scatter(states_1[:, xi], states_1[:, yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+                
+            if yi == ndim - 1:
+                ax.set_xlabel(symbols[xi])
+                ax.tick_params(axis = 'x', labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0:
+                ax.set_ylabel(symbols[yi])
+                ax.tick_params(axis = 'y', labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+    figure.savefig('Plots/' + name + '.png', dpi = 500)
+    figure.clf()
+
+    return
+
+
+
+def Walk_Plot(n_dim, states, symbols, name):
+
+
+    plt.rcParams['font.size'] = 9
+
+    figure = corner.corner(states)
+
+    # extract the axes
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+
+    # loop diagonal
+    for i in range(n_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+        ax.grid()
+        ax.plot(np.linspace(1, len(states), len(states)), states[:, i], linewidth = 0.25)
+
+        ax.axes.get_xaxis().set_ticklabels([])
+        ax.axes.get_yaxis().set_ticklabels([])
+        
+    # loop lower triangular
+    for yi in range(n_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            ax.grid()
+            ax.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+                
+            if yi == n_dim - 1:
+                ax.set_xlabel(symbols[xi])
+                ax.tick_params(axis = 'x', labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0:
+                ax.set_ylabel(symbols[yi])
+                ax.tick_params(axis = 'y', labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+    figure.savefig('results/' + name + '.png', dpi = 500)
+    figure.clf()
+
     return
