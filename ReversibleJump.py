@@ -33,286 +33,12 @@ from pathlib import Path
 pltf.Style()
 
 
-def ParralelMain(arr):
 
-    sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations, Model, error, epochs, burns, iters = arr
 
 
-    sbi = False
-    if sbi == True:
 
-        single_Sposterior = interf.get_posteriors(1)
-        binary_Sposterior = interf.get_posteriors(2)
 
-        # centreing points for inter-model jumps
-        center_1s = interf.get_model_centers(single_Sposterior, signal_data)
-        center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
-    
-    else:
-        
-
-        center_1s = np.array([36.37017441,  0.83766584, 31.54711723]) #1
-        #center_1s = np.array([35.93706894,  0.83814418, 30.89567947])#3
-        #center_1s = np.array([35.98891449,  0.83486302, 30.986166])#4
-
-        
-
-
-
-
-        center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175]) #1
-        #center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01, 1.09751643e-04, 8.47467631e-02, 2.32403427e-01, 1.16953224e+02]) #3, #4
-        #center_2s = np.array([3.57069664e+01, 8.28740132e-01, 3.13619919e+01, 1.06470281e-04, 2.02446827e-03, 1.91855073e+00, 2.07568512e+02]) #4
-
-    
-    #center_1s = np.array([36., 0.133, 31.5])
-
-    center_2ss = [
-        [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
-        [36., 0.133, 61.5, 0.00963, np.log(0.00092), 1.31, 210.8], # weak binary 1
-        [36., 0.133, 61.5, 0.0052, np.log(0.0006), 1.29, 210.9], # weak binary 2
-        [36., 0.133, 61.5, 0.0096, np.log(0.00002), 4.25, 223.8], # indistiguishable from single
-        ]
-    #center_2 = np.array(center_2s[sn])
-
-
-
-    #throw=throw
-
-    #center_2s[4] = np.log(center_2s[4])
-    #center_2s = f.scale(center_2s)
-
-    #print("\n", center_2, " hi")
-
-    #print(Data.flux)
-    #binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
-
-    pltf.LightcurveFitError(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
-    pltf.LightcurveFitError(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
-    #throw=throw
-    
-    #fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
-    #min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
-    #print(min_center_1)
-    #center_1 = min_center_1.x
-
-    #fun_2 = lambda x: -2*f.logLikelihood(2, Data, x, priors)
-    #min_center_2 = minimize(fun_2, center_2s, method = 'Nelder-Mead', options={'maxfev': 1000})
-    #print(min_center_2)
-    #center_2 = min_center_2.x
-
-    #pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenterOpt")
-
-    #throw=throw
-
- 
-    #pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenterOpt")
-
-
-    #center_2 = f.scale(center_2)
-
-    # initial covariances (diagonal)
-    cov_scale = 0.001 #0.01
-
-    covariance_1 = np.zeros((3, 3))
-    np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
-
-    covariance_2 = np.zeros((7, 7))
-    np.fill_diagonal(covariance_2, np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])) #0.5
-
-    #covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
-    #covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
-    #covariance_1 = np.outer(covariance_1s, covariance_1s)
-    #covariance_2 = np.outer(covariance_2s, covariance_2s)
-    #covariance_p = [covariance_1, covariance_2]
-
-    # Use adaptiveMCMC to calculate initial covariances
-    #burns = 50 #25
-    #iters = 50 #250
-    theta_1i = center_1s
-    theta_2i = f.scale(center_2s)
-    covariance_1p, states_1, means_1, c_1, covs_1, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
-    covariance_2p, states_2, means_2, c_2, covs_2, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
-
-    covariance_p = [covariance_1p, covariance_2p]
-    #print(covariance_1p)
-    #print(covariance_2p)
-    #throw=throw
-
-    center_1 = bestt_1
-    center_2 = bestt_2
-    
-    print(center_1)
-    print(center_2)
-
-    #print("Center 1", center_1, "True Chi", -(f.logLikelihood(1, Data, center_1, priors)))
-    #print("Center 2", center_2, "True Chi", -(f.logLikelihood(2, Data, f.unscale(2, center_2), priors)))
-    centers = [center_1, center_2]
-
-
-    pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
-    pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
-
-
-    # loop specific values
-
-    #print(states_1[:, -1])
-    theta = np.array(center_2)#states_2[:, -1]#[36., 0.133, 61.5]#, 0.0014, 0.0009, 1.26, 224.]
-    print(type(theta))
-    m = 2
-    pi = (f.logLikelihood(m, Data, f.unscale(m, theta), priors))
-    #print(pi)
-
-    ms = np.zeros(iterations, dtype=int)
-    ms[0] = m
-    states = []
-    states.append(theta)
-
-    score = 0
-    Dscore = 0
-    Dtotal = 1
-    J_2 = np.prod(center_2[0:3])
-    J_1 = np.prod(center_1)
-    J = np.abs([J_1/J_2, J_2/J_1])
-    #print(J)
-
-    #adaptive params
-    t=[burns+iters, burns+iters]
-    I = [np.identity(3), np.identity(7)] 
-    s = [2.4**2 / 3, 2.4**2 / 7] # Arbitrary(ish), good value from Haario et al
-    eps = 1e-12 # Needs to be smaller than the scale of parameter values
-    #means = [np.zeros((3, iters+burns+iterations)), np.zeros((7, iters+burns+iterations))]
-    #print(means[0][:,0:2])
-    #print(means_1)
-    #means[0][:, 0:burns+iters] = means_1
-    #means[1][:, 0:burns+iters] = means_2
-    stored_mean = [means_1[:, -1], means_2[:, -1]]
-
-
-    bests = [0, 0]
-    bestt = [[], []]
-
-    print('Running RJMCMC')
-
-                
-    mem_2 = center_2#states_2[:, -1]
-    adaptive_score = [c_1.tolist(), c_2.tolist()]
-    inter_props = [[], []]
-
-    n_samples = 10000
-    samples, log_prob_samples = True, True#interf.get_model_ensemble(binary_Sposterior, signal_data, n_samples)
-    samples = True#(samples - f.unscale(2, center_2))/1 + f.unscale(2, center_2)
-
-    covs = [covs_1, covs_2]
-
-    for i in range(1, iterations): # loop through RJMCMC steps
-        
-        #diagnostics
-        #print(f'\rLikelihood: {np.exp(pi):.3f}', end='')
-        cf = i/(iterations-1);
-        print(f'Current: Likelihood {np.exp(pi):.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
-
-        mProp = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
-        #thetaProp = f.RJCenteredProposal(m, mProp, theta, covariance_p[mProp-1], centers, mem_2, priors) #states_2)
-
-        #priorRatio = np.exp(f.PriorRatio(m, mProp, f.unscale(m, theta), f.unscale(mProp, thetaProp), priors))
-        
-        #piProp = (f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp), priors))
-
-        #print(piProp, pi, priorRatio, mProp)
-        #scale = 1
-        
-        #if mProp == 2 and m == 1: 
-        #    l = (theta - centers[m-1]) / centers[m-1]
-        #    scale = 1/(np.max(l) - np.min(l))
-        #elif mProp == 1 and m == 2:
-        #    l = (thetaProp - centers[mProp-1]) / centers[mProp-1]
-        #    scale = 1/(np.max(l[0:3]) - np.min(l[0:3]))
-
-        #scale = 1
-
-        
-
-        thetaProp, piProp, acc = f.Propose(Data, signal_data, m, mProp, theta, pi, covariance_p, centers, binary_Sposterior, samples, log_prob_samples, n_samples, priors, mem_2, stored_mean, False)
-        #if random.random() <= scale * np.exp(piProp-pi) * priorRatio * m_pi[mProp-1]/m_pi[m-1] * J[mProp-1]: # metropolis acceptance
-        if random.random() <= acc * m_pi[mProp - 1] / m_pi[m - 1]: #*q!!!!!!!!!!!!# metropolis acceptance
-            if m == mProp: 
-                adaptive_score[mProp - 1].append(1)
-            else:
-                inter_props[mProp - 1].append(1)
-
-            theta = thetaProp
-            m = mProp
-            score += 1
-            pi = piProp
-            if mProp == 2: mem_2 = thetaProp
-
-            if bests[mProp-1] < np.exp(piProp): 
-                bests[mProp-1] = np.exp(piProp)
-                bestt[mProp-1] = f.unscale(mProp, thetaProp)
-
-        elif m == mProp: 
-            adaptive_score[mProp - 1].append(0)
-        else:
-            inter_props[mProp - 1].append(0)
-
-        '''
-        elif m != mProp and random.random() <= 0.5 and False: #Delayed rejection for Jump False: #
-            Dtotal += 1
-
-            thetaProp_2, piProp_2, acc_2 = f.Propose(Data, m, mProp, theta, pi, covariance_p, centers, mem_2, priors, True)
-
-            pi_2 = f.logLikelihood(mProp, Data, f.unscale(mProp, thetaProp_2), priors)
-            thetaProp_25, piProp_25, acc_25 = f.Propose(Data, mProp, m, thetaProp_2, pi_2, covariance_p, centers, mem_2, priors, False)
-            
-            if random.random() <= acc_2 * (1-acc_25)/(1 - acc) * 1/(2**3): #*q!!!!!!!!!!!!# delayed metropolis acceptance
-                theta = thetaProp_2
-                m = mProp
-                score += 1
-                Dscore += 1
-                pi = piProp_2
-                
-            if mProp==2: mem_2 = thetaProp_2
-
-            if bests[mProp-1] < np.exp(piProp_2): 
-                bests[mProp-1] = np.exp(piProp_2)
-                bestt[mProp-1] = f.unscale(mProp, thetaProp_2)
-        '''
-
-        #scale = 1
-        states.append(theta)
-        #print(type(theta))
-        ms[i] = m
-
-
-        tr = t[m-1]
-        
-        #means[m-1][:, tr] = (means[m-1][:, tr-1]*tr + theta)/(tr + 1) # recursive mean (offsets indices starting at zero by one)    
-        # update step (recursive covariance)
-
-        #covariance_p[m-1] = (tr - 1)/tr * covariance_p[m-1] + s[m-1]/tr * (tr*means[m-1][:, tr - 1]*np.transpose(means[m-1][:, tr - 1]) - (tr + 1)*means[m-1][:, tr]*np.transpose(means[m-1][:, tr]) + theta*np.transpose(theta)) #+ eps*I[m-1]
-        covs[m-1].append(covariance_p[m-1])
-        covariance_p[m-1] = (tr - 1)/tr * covariance_p[m - 1] + s[m-1]/(tr + 1) * np.outer(theta - stored_mean[m-1], theta - stored_mean[m-1]) + s[m-1]*eps*I[m-1]/tr
-        #(t*means[:, t - 1]*np.transpose(means[:, t - 1]) - (t + 1)*means[:, t]*np.transpose(means[:, t]) + states[:, t]*np.transpose(states[:, t]) + eps*I)
-        
-        #print('My Formula: ', f.check_symmetric(covariance_p[m-1], tol=1e-8))
-        
-        stored_mean[m-1] = (stored_mean[m-1]*tr + theta)/(tr + 1)
-
-        t[m-1] += 1
-
-    # performance diagnostics:
-    print("\nIterations: "+str(iterations))
-    print("Accepted Move Fraction: "+str(score/iterations))
-    print("Accepted Delayed Move Fraction: "+str(Dscore/Dtotal))
-    print("P(Singular): "+str(1-np.sum(ms-1)/iterations))
-    print("P(Binary): "+str(np.sum(ms-1)/iterations))
-    #print(states)
-
-    return states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score
-
-
-labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'ln(Mass Ratio)', r'Separation', r'Alpha']
+labels = [r'Impact Time [$days$]', r'Minimum Impact Parameter', r'Einstein Crossing Time [$days$]', r'Rho', r'log10(Mass Ratio)', r'Separation', r'Alpha']
 symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$q$', r'$s$', r'$\alpha$']
 letters = ['t0', 'u0', 'tE', 'p', 'q', 's', 'a']
 
@@ -437,9 +163,10 @@ plt.clf()
 if informative_priors == True:
     # informative priors (Zhang et al)
     s_pi = f.logUniDist(0.2, 5)
-    q_pi = f.logUniDist(10e-6, 1)
+    #q_pi = f.logUniDist(10e-6, 1)
+    q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
     #q_pi = f.uniDist(10e-6, 0.1)
-    alpha_pi = f.uniDist(0, 360)
+    alpha_pi = f.uniDist(0, 2*math.pi)
     u0_pi = f.uniDist(0, 2)
     t0_pi = f.uniDist(0, 72)
     tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
@@ -481,12 +208,120 @@ binary_Sposterior = True#interf.get_posteriors(2)
 
 #arr, l_arr = interf.get_model_ensemble(binary_Sposterior, Data.flux, 1)
 
+sbi = False
+if sbi == True:
 
+    single_Sposterior = interf.get_posteriors(1)
+    binary_Sposterior = interf.get_posteriors(2)
+
+    # centreing points for inter-model jumps
+    center_1s = interf.get_model_centers(single_Sposterior, signal_data)
+    center_2s = interf.get_model_centers(binary_Sposterior, signal_data)
+
+else:
+    
+
+    center_1s = np.array([36.37017441,  0.83766584, 31.54711723]) #1
+    #center_1s = np.array([35.93706894,  0.83814418, 30.89567947])#3
+    #center_1s = np.array([35.98891449,  0.83486302, 30.986166])#4
+
+    center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175]) #1
+    #center_2s = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01, 1.09751643e-04, 8.47467631e-02, 2.32403427e-01, 1.16953224e+02]) #3, #4
+    #center_2s = np.array([3.57069664e+01, 8.28740132e-01, 3.13619919e+01, 1.06470281e-04, 2.02446827e-03, 1.91855073e+00, 2.07568512e+02]) #4
+
+
+#center_1s = np.array([36., 0.133, 31.5])
+
+center_2ss = [
+    [36, 0.133, 61.5, 0.0096, np.log(0.002), 1.27, 210.8], # strong binary
+    [36., 0.133, 61.5, 0.00963, np.log(0.00092), 1.31, 210.8], # weak binary 1
+    [36., 0.133, 61.5, 0.0052, np.log(0.0006), 1.29, 210.9], # weak binary 2
+    [36., 0.133, 61.5, 0.0096, np.log(0.00002), 4.25, 223.8], # indistiguishable from single
+    ]
+#center_2 = np.array(center_2s[sn])
+
+
+
+#throw=throw
+
+#center_2s[4] = np.log(center_2s[4])
+#center_2s = f.scale(center_2s)
+
+#print("\n", center_2, " hi")
+
+#print(Data.flux)
+#binary_ensemble = interf.get_model_ensemble(binary_posterior, Data.flux, 100000)
+
+pltf.Light_Curve_Fit_Error(2, center_2s, priors, Data, Model, epochs, error, True, "BinaryCenterSurr")
+pltf.Light_Curve_Fit_Error(1, center_1s, priors, Data, Model, epochs, error, True, "SingleCenterSurr")
+#throw=throw
+
+#fun_1 = lambda x: -f.logLikelihood(1, Data, x, priors)
+#min_center_1 = minimize(fun_1, center_1s, method='Nelder-Mead')
+#print(min_center_1)
+#center_1 = min_center_1.x
+
+#fun_2 = lambda x: -2*f.logLikelihood(2, Data, x, priors)
+#min_center_2 = minimize(fun_2, center_2s, method = 'Nelder-Mead', options={'maxfev': 1000})
+#print(min_center_2)
+#center_2 = min_center_2.x
+
+#pltf.LightcurveFitError(2, center_2, priors, Data, Model, epochs, error, True, "BinaryCenterOpt")
+
+#throw=throw
+
+
+#pltf.LightcurveFitError(1, center_1, priors, Data, Model, epochs, error, True, "SingleCenterOpt")
+
+
+#center_2 = f.scale(center_2)
+
+# initial covariances (diagonal)
+cov_scale = 0.001 #0.01
+
+covariance_1 = np.zeros((3, 3))
+np.fill_diagonal(covariance_1, np.multiply(cov_scale, [0.1, 0.01, 0.1]))
+
+covariance_2 = np.zeros((7, 7))
+np.fill_diagonal(covariance_2, np.multiply(cov_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1])) #0.5
+
+#covariance_1s = np.multiply(1, [0.01, 0.01, 0.1])
+#covariance_2s = np.multiply(1, [0.01, 0.01, 0.1, 0.0001, 0.0001, 0.001, 0.001])#0.5
+#covariance_1 = np.outer(covariance_1s, covariance_1s)
+#covariance_2 = np.outer(covariance_2s, covariance_2s)
+#covariance_p = [covariance_1, covariance_2]
+
+# Use adaptiveMCMC to calculate initial covariances
+#burns = 50 #25
+#iters = 50 #250
+theta_1i = center_1s
+theta_2i = f.scale(center_2s)
+covariance_1p, states_1, means_1, c_1, covs_1, bests, bestt_1 = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1, burns, iters)
+covariance_2p, states_2, means_2, c_2, covs_2, bests, bestt_2 = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2, burns, iters)
+
+covariance_p = [covariance_1p, covariance_2p]
+#print(covariance_1p)
+#print(covariance_2p)
+#throw=throw
+
+center_1 = bestt_1
+center_2 = bestt_2
+
+print(center_1)
+print(center_2)
+
+#print("Center 1", center_1, "True Chi", -(f.logLikelihood(1, Data, center_1, priors)))
+#print("Center 2", center_2, "True Chi", -(f.logLikelihood(2, Data, f.unscale(2, center_2), priors)))
+centers = [center_1, center_2]
+
+
+pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
+pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
 
 
 params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
 
-states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score = ParralelMain(params)
+states, adaptive_score, inter_props, ms, bestt, bests, centers, covs, score = 
 center_1, center_2 = centers
 
 
@@ -1060,7 +895,7 @@ for yi in range(ndim):
         #ax.set_title(str(yi)+str(xi))
             
         if yi == ndim - 1:
-            ax.set_xlabel(symbols[xi])
+            ax.set_xlabel(symbols[xi]+r'-\hat{\theta}')
             #ax.ticklabel_format(axis = "x", style = "sci", scilimits = (0,0))
             ax.tick_params(axis='x', labelrotation = 45)
 
@@ -1068,7 +903,7 @@ for yi in range(ndim):
             ax.axes.get_xaxis().set_ticklabels([])
 
         if xi == 0:
-            ax.set_ylabel(symbols[yi])
+            ax.set_ylabel(symbols[yi]+r'-\hat{\theta}')
             #ax.ticklabel_format(axis = "y", style = "sci", scilimits = (0,0))
             ax.tick_params(axis='y', labelrotation = 45)
 

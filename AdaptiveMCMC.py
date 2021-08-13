@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
 import PlotFunctions as pltf
+from copy import deepcopy
 
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
@@ -70,14 +71,32 @@ plt.rcParams["grid.alpha"] = 0.25
 
 # Synthetic Event Parameters
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.00096, 'q': 0.0039, 's': 1.120, 'alpha': 223.8}) # strong binary
-Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.0004, 's': 1.33, 'alpha': 223.8}) # weak binary
+Model = mm.Model({'t_0': 36, 'u_0': 0.833, 't_E': 31.5, 'rho': 0.0096, 'q': 0.0004, 's': 1.33, 'alpha': 223.8}) # weak binary
 #Model = mm.Model({'t_0': 36, 'u_0': 0.133, 't_E': 61.5, 'rho': 0.0096, 'q': 0.02, 's': 1.1, 'alpha': 223.8}) # indistiguishable from single
 Model.set_magnification_methods([0., 'VBBL', 72.])
 
+n_epochs = 720
+
+
+
+signal_to_noise_baseline = (230-23)/2+23#np.random.uniform(23.0, 230.0) # Lower means noisier
+
 # Generate "Synthetic" Lightcurve
-t = Model.set_times(n_epochs = 72)
-error = Model.magnification(t) * 0 + np.max(Model.magnification(t))/10
-Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
+#t = Model.set_times(n_epochs)
+
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+true_data = Model.magnification(epochs)
+#epochs = Model.set_times(n_epochs = 100)
+#error = Model.magnification(epochs) * 0 + np.max(Model.magnification(epochs))/60 #Model.magnification(epochs)/100 + 0.5/Model.magnification(epochs)
+random.seed(a = 99, version = 2)
+
+noise = np.random.normal(0.0, np.sqrt(true_data) / signal_to_noise_baseline, n_epochs) 
+noise_sd = np.sqrt(true_data) / signal_to_noise_baseline
+error = deepcopy(noise_sd)
+model_data = true_data + noise
+#error = Model.magnification(t) * 0 + np.max(Model.magnification(t))/10
+#Data = mm.MulensData(data_list=[t, Model.magnification(t), error], phot_fmt='flux', chi2_fmt='flux')
+Data = mm.MulensData(data_list = [epochs, model_data, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
 
 # priors (Zhang et al)
 s_pi = f.logUniDist(0.2, 5)
@@ -92,7 +111,7 @@ priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  q_pi, s_pi, alpha_pi]
 # initial points
 theta_1i = np.array([36., 0.133, (61.5)])
 #theta_1i = np.array([36., 0.133, 61.5])
-theta_2i = np.array([35, 0.125, 61.1, 0.00988, np.log(0.000305), 1.258, 222.8]) # nice results for adaption
+theta_2i = np.array([35, 0.825, 31.1, 0.00988, np.log(0.000305), 1.258, 222.8]) # nice results for adaption
 #theta_2i = np.array([36., 0.133, 61.5, 0.0014, 0.00096, 1.2, 224.]) # nice results for model
 # print(np.exp(f.logLikelihood(1, Data, theta_1i)))
 # print(np.exp(f.logLikelihood(2, Data, theta_2i)))
@@ -105,12 +124,12 @@ np.fill_diagonal(covariance_2i, covariance_2id)
 #should be small to get a quick taste of size (too small makes growth to normal size to slow)
 
 burns = 25 #should be small to not bias later
-iters = 5075
+iters = 9975
 
 #covariance_1p, states_1, c_1, covs, bests, bestt = f.AdaptiveMCMC(1, Data, theta_1i, priors, covariance_1i, burns, iters)
 covariance_2p, states_2, means_2, c_2, covs, bests, bestt = f.AdaptiveMCMC(2, Data, theta_2i, priors, covariance_2i, burns, iters)
 
-pltf.AdaptiveProgression(c_2, covs)
+pltf.AdaptiveProgression(c_2, c_2, covs, 'binaryMCMC')
 
 throw=throw
 
