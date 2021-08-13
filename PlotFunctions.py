@@ -1,4 +1,4 @@
-from math import pi
+import math
 from numpy.core.defchararray import array
 from numpy.core.fromnumeric import mean
 from numpy.core.function_base import linspace
@@ -263,7 +263,7 @@ def DistPlot(xi, states, labels, symbols, letters, m, model, center, true, prior
     return
 
 
-def AdaptiveProgression(history, inters, covs, name):
+def Adaptive_Progression(history, covs, name):
 
     size = int(len(history)/25)#100#50
     
@@ -273,20 +273,17 @@ def AdaptiveProgression(history, inters, covs, name):
         plt.clf()
         return
 
-    
-    #for l in range(2):
-        #for chain in range(p):
+    #print(covs[:][:][1:5])
+
     acc = []
-    inter_acc = []
     trace = []
     bins = int(np.ceil(len(history) / size))
     for bin in range(bins - 1): # record the ratio of acceptance for each bin
         acc.append(np.sum(history[size*bin:size*(bin+1)]) / size)
-        inter_acc.append(np.sum(inters[size*bin:size*(bin+1)]) / size)
-            #print(chain, l, history[chain][l])
-        #print(covs[:][:][size*bin:size*(bin+1)])
-        #print('999999')
-        trace.append(np.sum(np.trace(covs[:][:][size*bin:size*(bin+1)])) / size)
+
+
+
+        trace.append(np.sum(np.trace(np.array(covs[:][:][size*bin:size*(bin+1)]))) / size)
 
 
 
@@ -298,9 +295,6 @@ def AdaptiveProgression(history, inters, covs, name):
 
     a1 = plt.axes()
     a1.plot((np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
-
-    a1.plot((np.linspace(0, len(inter_acc), num = len(inter_acc))), inter_acc, c = rate_colour, linestyle = 'dashed')
-    
 
     a1.set_ylabel('Rate of accepted proposals')
     a1.set_ylim((0.0, 1.0))
@@ -334,13 +328,13 @@ def AdaptiveProgression(history, inters, covs, name):
 
 
     plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
-    #plt.legend()
 
     plt.tight_layout()
     plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
     plt.clf()
 
     return
+
 
 def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
 
@@ -510,9 +504,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                     theta[xi] = j
                     theta[yi] = i
 
-                    density[x][y] = np.exp(f.Log_Likelihood(m, theta, priors, data) + f.Log_Prior_Product(m, theta, priors, data))
+                    density[x][y] = np.exp(f.Log_Likelihood(m, theta, priors, data) + f.Log_Prior_Product(m, theta, priors))
 
-            density = np.flip(density, 0) # so lower bounds meet
+            density = (np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
             ax.imshow(density, interpolation = 'none', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower))
 
 
@@ -520,7 +514,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             # https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
 
             mu = [np.mean(states[:, xi]), np.mean(states[:, yi])]
-            K = covariance[xi][yi]  #np.cov([states[:, xi], states[:, yi]])
+            row = np.array([xi, yi])
+            col = np.array([xi, yi])
+            K = covariance[row[:, np.newaxis], col]  #np.cov([states[:, xi], states[:, yi]])
             angles = np.linspace(0, 2*math.pi, 360)
             R = [np.cos(angles), np.sin(angles)]
             R = np.transpose(np.array(R))
@@ -554,9 +550,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                 ax.axes.get_yaxis().set_ticklabels([])
 
     # inset plot of data
-    figure.axes([0.125, 0.7, 0.3, 0.2])
-    Draw_Light_Curve_Noise_Error(data)
-    ax = plt.gca()
+    #figure.axes([0.125, 0.7, 0.3, 0.2])
+    #Draw_Light_Curve_Noise_Error(data)
+    #ax = plt.gca()
 
     figure.savefig('results/'+name+'.png', dpi=500)
     figure.clf()
@@ -621,7 +617,7 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
 
 
 
-def Walk_Plot(n_dim, states, symbols, name):
+def Walk_Plot(n_dim, states, data, symbols, name):
 
 
     plt.rcParams['font.size'] = 9
@@ -663,6 +659,13 @@ def Walk_Plot(n_dim, states, symbols, name):
 
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
+
+
+    # inset plot of data
+    #figure.axes([0.125, 0.7, 0.3, 0.2])
+    #Draw_Light_Curve_Noise_Error(data)
+    #ax = plt.gca()
+
 
     figure.savefig('results/' + name + '.png', dpi = 500)
     figure.clf()

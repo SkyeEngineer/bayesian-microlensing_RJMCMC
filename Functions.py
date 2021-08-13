@@ -139,7 +139,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
 
 
     # initial values
-    log_likelihood = Log_Likelihood(m, data, theta, priors)
+    log_likelihood = Log_Likelihood(m, theta, priors, data)
 
     best_posterior = np.exp(log_likelihood + Log_Prior_Product(m, theta, priors))
     best_theta = theta
@@ -149,7 +149,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = Gaussian_Proposal(theta, covariance)
         log_likelihood_proposed = Log_Likelihood(m, proposed, priors, data)
-        log_prior_ratio = Log_Prior_Ratio(m, m, theta, proposed, priors)
+        log_prior_ratio = Log_Prior_Ratio(m, m, theta, proposed, False, priors)
 
         if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
             theta = proposed
@@ -179,12 +179,12 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
 
         # user feedback
         cf = i / (iterations-1);
-        print(f'Best Loss Function: {1 / best_posterior:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Best Score Function: {best_posterior:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         # propose a new state and calculate the resulting likelihood and prior ratio
         proposed = Gaussian_Proposal(theta, covariance)
-        log_likelihood_proposed = Log_Likelihood(m, proposed, priors)
-        log_prior_ratio = np.exp(Log_Prior_Ratio(m, m, theta, proposed, priors))
+        log_likelihood_proposed = Log_Likelihood(m, proposed, priors, data)
+        log_prior_ratio = np.exp(Log_Prior_Ratio(m, m, theta, proposed, False, priors))
 
         if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
             theta = proposed
@@ -212,7 +212,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
         t += 1
 
     # performance
-    print(f"\n Model: {m}, Accepted Move Fraction: {(np.sum(acceptance_history) / (iterations+burns)):.4f}, Best Loss Function: {1 / best_posterior:.4f}")
+    print(f"\n Model: {m}, Accepted Move Fraction: {(np.sum(acceptance_history) / (iterations+burns)):4f}, Best Score Function: {best_posterior:.4f}")
 
     return covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta
 
@@ -237,7 +237,7 @@ def Gaussian_Proposal(theta, covariance):
 
 
 
-def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxilliary_variables):
+def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxiliary_variables):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -255,7 +255,6 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
     '''
     
     if m == m_prop: return Gaussian_Proposal(theta, covariances[m_prop]), 1 # intra-model move
-    
 
     else: # inter-model move
 
@@ -289,8 +288,8 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
 
             n_shared = D(m)
 
-            v = auxilliary_variables[n_shared:]
-            h = l + centers[m_prop][:auxilliary_variables]
+            v = auxiliary_variables[n_shared:]
+            h = l + centers[m_prop][:n_shared]
 
             theta_prop = np.concatenate((h, v)) # map without randomness
 
@@ -310,6 +309,8 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
             g_ratio = 1 # unity as symmetric forward and reverse jumps
 
             return theta_prop, g_ratio
+
+    
 
 
 
@@ -333,18 +334,18 @@ def unscale(theta):
     input to muLensModel
     '''
 
-    theta_unscaled = copy.deepcopy(theta)
-
+    theta_unscaled = deepcopy(theta)
+    #print(theta)
     if len(theta) == D(0): # no single parameters are scaled
         return theta_unscaled
     
     if len(theta) == D(1):
-        theta_unscaled[5] = np.exp10(theta_unscaled[5])
-        theta_unscaled[7] = theta_unscaled[5] * 180 / math.pi
+        theta_unscaled[4] = 10**theta_unscaled[4]
+        #theta_unscaled[6] = theta_unscaled[6] * 180 / math.pi
 
         return theta_unscaled
 
-    return 0
+    return
 
 
 
@@ -354,18 +355,18 @@ def scale(theta):
     jumps through paramter space
     '''
 
-    theta_scaled = copy.deepcopy(theta)
-
+    theta_scaled = deepcopy(theta)
+    #print(theta)
     if len(theta) == D(0): # no single parameters are scaled
         return theta_scaled
     
     if len(theta) == D(1):
-        theta_scaled[5] = np.log10(theta_scaled[5])
-        theta_scaled[7] = theta_scaled[5] * math.pi /180
+        theta_scaled[4] = np.log10(theta_scaled[4])
+        #theta_scaled[6] = theta_scaled[6] * math.pi /180
 
         return theta_scaled
 
-    return 0
+    return
 
 
 
@@ -378,6 +379,7 @@ def Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors):
     m_prop [int]: the index of the microlensing model to jump to
     theta [array like]: the scaled parameter values in the associated model space to jump from
     theta_prop [array like]: the scaled parameter values in the associated model space to jump too
+    auxiliary_variables [array like / bool]: most recent binary state in scaled space
     priors [array like]: a list of prior distribution objects for the lensing parameters, 
                          in the order of entries in theta, in scaled space
 
@@ -389,14 +391,17 @@ def Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors):
     log_product_denomenator = Log_Prior_Product(m, theta, priors)
 
 
+
     if m_prop != m: # adjust ratio with auxiliary variable product density for inter-model jumps
+        aux_true_scale = unscale(auxiliary_variables)
+
         if m_prop < m:
             for parameter in range(D(m_prop), D(m)): # cycle through each auxiliary parameter and associated prior
-                log_product_numerator += (priors[parameter].log_PDF(auxiliary_variables[parameter])) # product using log rules
+                log_product_numerator += (priors[parameter].log_PDF(aux_true_scale[parameter])) # product using log rules
 
         if m < m_prop:
             for parameter in range(D(m), D(m_prop)): # cycle through each auxiliary parameter and associated prior
-                log_product_denomenator += (priors[parameter].log_PDF(auxiliary_variables[parameter])) # product using log rules
+                log_product_denomenator += (priors[parameter].log_PDF(aux_true_scale[parameter])) # product using log rules
 
 
     log_prior_ratio = log_product_numerator - log_product_denomenator # ratio using log rules
@@ -421,8 +426,10 @@ def Log_Prior_Product(m, theta, priors):
 
     log_prior_product = 0.
 
+    theta_true_scale = unscale(theta)
+
     for parameter in range(D(m)):
-        log_prior_product += (priors[parameter].log_PDF(theta[parameter])) # product using log rules
+        log_prior_product += (priors[parameter].log_PDF(theta_true_scale[parameter])) # product using log rules
 
     return log_prior_product
 
@@ -442,13 +449,14 @@ def Log_Likelihood(m, theta, priors, data):
     log_likelihood [scalar]: log likelihood parameters represent lightcuvre with model
     '''
 
+    theta_true_scale = unscale(theta)
     # check if parameter is not in prior bounds, and ensure it is not accepted if so
     for parameter in range(D(m)):
-        if not priors[parameter].in_Bounds(theta[parameter]): return -Inf
+        if not priors[parameter].in_Bounds(theta_true_scale[parameter]): return -Inf
 
     if m == 0:
         try: # for when moves are out of bounds of model valididty
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], unscale(theta))))
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_true_scale)))
             model.set_magnification_methods([0., 'point_source', 72.])
 
             A = model.magnification(data.time) # compute parameter lightcuvre
@@ -464,7 +472,7 @@ def Log_Likelihood(m, theta, priors, data):
 
     if m == 1:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], unscale(theta))))
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_true_scale)))
             model.set_magnification_methods([0., 'VBBL', 72.])
 
             A = model.magnification(data.time)  # compute parameter lightcuvre
@@ -534,7 +542,7 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
     acceptance_history[0] = 1
 
     covariances = initial_covariances
-    covariances_history = initial_covariances
+    covariances_history = [[initial_covariances[0]], [initial_covariances[1]]]
 
 
     print('Running Adpt-RJMH')
@@ -542,9 +550,9 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
         
         #diagnostics
         cf = i / (iterations-1);
-        print(f'Current: Loss Function {1/np.exp():.4f}, M {m} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        print(f'Current: M {m+1} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
-        m_prop = random.randint(1,2) # since all models are equally likelly, this has no presence in the acceptance step
+        m_prop = random.randint(0, 1) # since all models are equally likelly, this has no presence in the acceptance step
 
 
         theta_prop, g_ratio = Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxiliary_variables)
@@ -593,7 +601,7 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
         covariances_history[m].append(covariances[m])
         covariances[m] = (t-1)/t*covariances[m] + s[m]/(t+1) * np.outer(theta-chain_model_means[m], theta-chain_model_means[m]) + s[m]*eps*I[m]/t
 
-        print('Is Symmetric?', check_symmetric(covariances[m], tol=1e-8))
+        # print('Is Symmetric?', check_symmetric(covariances[m], tol=1e-8))
         
         chain_model_means[m] = (chain_model_means[m]*t + theta) / (t+1)
 
@@ -672,6 +680,8 @@ def Loop_Adaptive_Warmup(n, type, data, center, priors, covariance, adaptive_war
         covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta = \
         Adaptive_Metropolis_Hastings(type, data, scale(center), priors, covariance, adaptive_warmup_iterations, adaptive_iterations)
         
+        print('hi', best_posterior)
+
         if inc_best_posterior < best_posterior:
             inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta = \
                 covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta

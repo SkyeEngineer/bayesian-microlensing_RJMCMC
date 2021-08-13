@@ -44,20 +44,20 @@ marker_size = 75
 
 ## INPUTS ##
 
-suite_n = 0
+suite_n = 1
 
 adaptive_warmup_iterations = 25
 adaptive_iterations = 75
 warmup_loops = 5
-iterations = 100
+iterations = 1000
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 23.0 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 2 # density for posterior contour plot
-n_sampled_curves = 250 # sampled curves for viewing distribution of curves
+n_points = 3 # density for posterior contour plot
+n_sampled_curves = 25 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
@@ -94,14 +94,14 @@ data = f.Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to
 if informative_priors == True:
     # informative priors (Zhang et al)
     s_pi = f.logUniDist(0.2, 5)
-    #q_pi = f.logUniDist(10e-6, 1)
-    log_q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
-    alpha_pi = f.uniDist(0, 2*math.pi)
+    q_pi = f.logUniDist(10e-6, 1)
+    #log_q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
+    alpha_pi = f.uniDist(0, 360)
     u0_pi = f.uniDist(0, 2)
     t0_pi = f.uniDist(0, 72)
     tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
     rho_pi =  f.logUniDist(10**-4, 10**-2)
-    priors = [t0_pi, u0_pi,  tE_pi, rho_pi,  log_q_pi, s_pi, alpha_pi]
+    priors = [t0_pi, u0_pi, tE_pi, rho_pi, q_pi, s_pi, alpha_pi]
 
 elif uniform_priors == True:
     # uninformative priors
@@ -126,9 +126,9 @@ if sbi == True:
 
 else:
     
-    single_center = np.array([36.37017441,  0.83766584, 31.54711723])
+    single_center = np.array([36, 0.833, 31.5])
 
-    binary_center = np.array([3.64606857e+01, 8.32321227e-01, 3.14062214e+01,  0.001, 0.004, 1.40, 175])
+    binary_center = np.array([36, 0.833, 31.5, 0.001, 0.0004, 1.40, 175])
 
 
 #pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
@@ -164,10 +164,10 @@ centers = [w_s_best_theta, w_b_best_theta]
 
 #params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
 
-initial_states = [w_s_chain_states[-1], w_b_chain_states[-1]]
-initial_means = [w_s_chain_means[-1], w_b_chain_means[-1]]
+initial_states = [w_s_chain_states[:, -1], w_b_chain_states[:, -1]]
+initial_means = [w_s_chain_means[:, -1], w_b_chain_means[:, -1]]
 n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
-initial_covariances = [single_covariance, binary_covariance]
+initial_covariances = [w_single_covariance, w_binary_covariance]
 
 
 chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories =\
@@ -183,17 +183,17 @@ chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_
 
 # construct the generalised state signal to analyse
 auxiliary_states = []
-auxiliary_states.append(chain_states[0])
+auxiliary_states.append(initial_states[1])
+print(initial_states[1])
 
 for i in range(1, iterations):
     if chain_ms[i] == 0: # fill most recent binary non shared parameters if single
-        auxiliary_states.append(np.concatenate((chain_states[i], auxiliary_states[i - 1][f.D(1)-f.D(0):])))
+        auxiliary_states.append(np.concatenate((chain_states[i], auxiliary_states[i - 1][f.D(0):])))
 
     if chain_ms[i] == 1: # currently binary
         auxiliary_states.append(chain_states[i])
 
 auxiliary_states = np.array(auxiliary_states)
-
 
 # truncate once m below 50 auto correlation times
 if truncate == True:
@@ -227,7 +227,7 @@ for p in range(f.D(1)):
     for i, n in enumerate(N):
         ac_time_p[i] = MC.autocorr.integrated_time(y_p[:n], c = 5, tol = 50, quiet = True)
 
-    plt.loglog(N, ac_time_p, "o-", label=r'$\tau_{'+symbols[p]+r'}$)', color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
+    plt.loglog(N, ac_time_p, "o-", label = symbols[p], color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
 
 
 # again for m
@@ -238,7 +238,7 @@ for i, n in enumerate(N):
 
     ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
 
-plt.loglog(N, ac_time_m, "o-b", label=r"$\tau_{M}$",  linewidth = 2, markersize = 5)
+plt.loglog(N, ac_time_m, "o-b", label=r"$\tau_M$",  linewidth = 2, markersize = 5)
 
 
 # plot details
@@ -310,7 +310,7 @@ with open('results/run.txt', 'w') as file:
         probable_m = 0
 
     elif P_S < P_B:
-        probable_m_states = binary_states
+        probable_states = binary_states
         probable_m = 1
 
     for i in range(f.D(probable_m)):
@@ -324,13 +324,25 @@ with open('results/run.txt', 'w') as file:
 
 # adaptive progression plots
 # want to include full history with warmup (w) too
-pltf.AdaptiveProgression(w_s_acceptance_history.append(intra_j_acc_histories[0]), w_s_covariance_history.append(cov_histories[0]), 'single')
-pltf.AdaptiveProgression(w_b_acceptance_history.append(intra_j_acc_histories[1]), w_s_covariance_history.append(cov_histories[1]), 'binary')
+
+single_cov_histories = deepcopy(w_s_covariance_history)
+single_cov_histories.append(cov_histories[0][0])
+#print(single_cov_histories)
+single_cov_histories = np.stack(np.array(single_cov_histories), 0)
+
+binary_cov_histories = deepcopy(w_b_covariance_history)
+binary_cov_histories.append(cov_histories[1][0])
+
+binary_cov_histories = np.stack(np.array(binary_cov_histories), 0)
+
+pltf.Adaptive_Progression(np.concatenate((w_s_acceptance_history, intra_j_acc_histories[0])), single_cov_histories, 'single')
+pltf.Adaptive_Progression(np.concatenate((w_b_acceptance_history, intra_j_acc_histories[1])), binary_cov_histories, 'binary')
 
 conditioned_cov_histories = []
 n_shared = f.D(0)
-for i in range(len(cov_histories[1])):
-    covariance = cov_histories[i]
+for i in range(len(cov_histories[1][0])):
+    covariance = cov_histories[1][0]
+    print(covariance)
 
     c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
     c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
@@ -340,7 +352,9 @@ for i in range(len(cov_histories[1])):
     
     conditioned_cov_histories.append(c_11 - c_12.dot(c_22_inv).dot(c_21))
 
-pltf.AdaptiveProgression(inter_j_acc_histories, conditioned_cov_histories[1], 'conditioned') # progression for between model jump distribution
+conditioned_cov_histories = np.stack(np.array(conditioned_cov_histories), 0)
+
+pltf.Adaptive_Progression(inter_j_acc_histories[0], conditioned_cov_histories, 'conditioned') # progression for between model jump distribution
 
 
 
@@ -359,7 +373,7 @@ plt.clf()
 
 
 # plot of model index trace
-plt.plot(x = np.linspace(1, iterations, num = iterations), y = chain_ms[truncated:] + 1, linewidth = 0.25)
+plt.plot(np.linspace(1, iterations, num = iterations), chain_ms[truncated:] + 1, linewidth = 0.25)
 plt.title('RJMH Model Trace')
 plt.xlabel('Iterations')
 plt.ylabel('Model Index')
@@ -370,18 +384,17 @@ plt.clf()
 
 
 
-
-
-
 # begin corner plots
 # note that these destroy the style environment (plot these last)
 
+pltf.Walk_Plot(7, binary_states, data, symbols, 'binary-corner')
 
-pltf.Walk_Plot(8, binary_states, symbols, 'binary-corner')
+#print(binary_cov_histories[:][:][-1])
 
-pltf.Contour_Plot(8, n_points, binary_states, cov_histories[1][-1], binary_true, binary_center, 1, priors, data, symbols, 'binary-contour')
+pltf.Contour_Plot(7, n_points, binary_states, binary_cov_histories[:][:][-1], binary_true, binary_center, 1, priors, data, symbols, 'binary-contour')
 
-pltf.Double_Plot(3, single_states - single_center, binary_states - binary_center, symbols + r'$-\hat{\theta}$', 'shifted-overlay')
+shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
+pltf.Double_Plot(3, single_states - single_center, binary_states - binary_center, symbols, 'shifted-overlay')
 
 
 
