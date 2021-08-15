@@ -15,7 +15,7 @@ import copy
 
 pltf.Style
 
-if False:
+if True:
     plt.grid()
 
     #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
@@ -25,18 +25,18 @@ if False:
 
     theta_q = copy.deepcopy(theta_r)
     theta_q[4] = theta_q[4] + 0.001
-    pltf.PlotLightcurve(2, theta_q, r"$\uparrow q$", "red", 1, False, ts)
+    pltf.PlotLightcurve(1, theta_q, r"$\uparrow q$", "red", 1, False, ts)
     
     theta_s = copy.deepcopy(theta_r)
     theta_s[5] = theta_s[5] + 0.04
-    pltf.PlotLightcurve(2, theta_s, r"$\uparrow s$", "orange", 1, False, ts)
+    pltf.PlotLightcurve(1, theta_s, r"$\uparrow s$", "orange", 1, False, ts)
 
     theta_a = copy.deepcopy(theta_r)
     theta_a[6] = theta_a[6] + 120
     #theta_a[6] = theta_a[6] - 60
-    pltf.PlotLightcurve(2, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [32, 72])
+    pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [32, 72])
 
-    pltf.PlotLightcurve(2, theta_r, "Reference", "black", 1, False, ts)
+    pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1, False, ts)
 
     plt.title('Binary lens parameterisation')
     plt.xlabel('Time [days]')
@@ -45,8 +45,8 @@ if False:
     plt.tight_layout()
 
     plt.axes([0.125, 0.7, 0.3, 0.2])
-    pltf.PlotLightcurve(2, theta_r, " ", "black", 1, True, [5, 45])
-    pltf.PlotLightcurve(2, theta_a, " ", "blue", 1, True, [20, 60])
+    pltf.PlotLightcurve(1, theta_r, " ", "black", 1, True, [5, 45])
+    pltf.PlotLightcurve(1, theta_a, " ", "blue", 1, True, [20, 60])
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
@@ -59,7 +59,7 @@ if False:
     plt.savefig('Plots/BinaryParamCurve.png')
     plt.clf()
 
-if False:
+if True:
     plt.grid()
 
 
@@ -68,17 +68,17 @@ if False:
     
     theta_t0 = copy.deepcopy(theta_r)
     theta_t0[0] = theta_t0[0] + 15
-    pltf.PlotLightcurve(1, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
+    pltf.PlotLightcurve(0, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
     
     theta_u0 = copy.deepcopy(theta_r)
     theta_u0[1] = theta_u0[1] - 0.02
-    pltf.PlotLightcurve(1, theta_u0, r"$\downarrow u_0$", "orange", 1, False, ts)
+    pltf.PlotLightcurve(0, theta_u0, r"$\downarrow u_0$", "orange", 1, False, ts)
 
     theta_tE = copy.deepcopy(theta_r)
     theta_tE[2] = theta_tE[2] + 25
-    pltf.PlotLightcurve(1, theta_tE, r"$\uparrow t_E$", "red", 1, False, ts)
+    pltf.PlotLightcurve(0, theta_tE, r"$\uparrow t_E$", "red", 1, False, ts)
 
-    pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1, False, ts)
+    pltf.PlotLightcurve(0, theta_r, "Reference", "black", 1, False, ts)
 
     plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')
@@ -88,7 +88,7 @@ if False:
     plt.savefig('Plots/SingleParamCurve.png')
     plt.clf()
 
-
+close=close
 
 # Get chi2 by creating a new model and fitting to previously generated data
 def chi2(t_0, u_0, t_E, rho, q, s, alpha, Data):

@@ -47,24 +47,24 @@ marker_size = 75
 suite_n = 0
 
 adaptive_warmup_iterations = 25
-adaptive_iterations = 975
+adaptive_iterations = 225
 warmup_loops = 1
-iterations = 5000
+iterations = 250
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
 signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 3 # density for posterior contour plot
-n_sampled_curves = 250 # sampled curves for viewing distribution of curves
+n_points = 2 # density for posterior contour plot
+n_sampled_curves = 10 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
 
 sbi = False
 
-truncate = True
+truncate = False
 
 ## INITIALISATION ##
 
@@ -204,11 +204,11 @@ if truncate == True:
     y_m = np.array(chain_ms)
 
     for i, n in enumerate(N):
-        ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
+        ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 5, quiet = True)
         
         if ac_time_m[i] < N[i]/50: # linearly interpolate truncation point
             if i == 0:
-                truncated = 0
+                truncated = N[i]
             else:
                 slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
                 truncated = int(math.ceil((ac_time_m[i] - slope * N[i]) / (1/50 - slope)))
@@ -228,7 +228,7 @@ for p in range(f.D(1)):
     y_p = np.array(auxiliary_states[:, p])
 
     for i, n in enumerate(N):
-        ac_time_p[i] = MC.autocorr.integrated_time(y_p[:n], c = 5, tol = 50, quiet = True)
+        ac_time_p[i] = MC.autocorr.integrated_time(y_p[:n], c = 5, tol = 5, quiet = True)
 
     plt.loglog(N, ac_time_p, "o-", label = symbols[p], color = plt.cm.autumn(p/6), linewidth = 2, markersize = 5)
 
@@ -239,7 +239,7 @@ y_m = np.array(chain_ms)
 
 for i, n in enumerate(N):
 
-    ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
+    ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 5, quiet = True, )
 
 plt.loglog(N, ac_time_m, "o-b", label=r"$M$",  linewidth = 2, markersize = 5)
 
@@ -250,16 +250,16 @@ ylim = plt.gca().get_ylim()
 #plt.gca().set_yscale('log')
 plt.plot(N, N / 50.0, "--k", label = r"$\tau = N/50$")
 plt.ylim(ylim)
-plt.axvline(truncated, alpha = 0.5)
+#plt.axvline(truncated, alpha = 0.5)
 #plt.gca().set_yticks([])
 #plt.gca().set_xticks([])
-plt.title('Adptv-RJMH convergence assessment')
-plt.xlabel("Samples, N")
+#plt.title('Adptv-RJMH convergence assessment')
+plt.xlabel(r"Samples, $N$")
 plt.ylabel(r"Autocorrelation time, $\tau$")
 #plt.grid()
-plt.legend()
+plt.legend(fontsize = 7)
 plt.tight_layout()
-plt.savefig('Plots/AutoCorr.png')
+plt.savefig('Plots/ACTime.png')
 plt.clf()
 
 # record states
@@ -363,9 +363,12 @@ pltf.Adaptive_Progression(np.concatenate((w_b_acceptance_history, intra_j_acc_hi
 
 conditioned_cov_histories = []
 n_shared = f.D(0)
+
+print(inter_cov_history[:][:][0], inter_cov_history[:][:][1], inter_cov_history[:][:][-1])
+
 for i in range(len(inter_cov_history)):
     covariance = inter_cov_history[:][:][i]
-    #3print(covariance)
+
 
     c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
     c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
@@ -375,7 +378,7 @@ for i in range(len(inter_cov_history)):
     
     conditioned_cov_histories.append(c_11 - c_12.dot(c_22_inv).dot(c_21))
 
-conditioned_cov_histories = np.stack(np.array(conditioned_cov_histories), 0)
+conditioned_cov_histories = np.array(conditioned_cov_histories)
 
 pltf.Adaptive_Progression(inter_j_acc_histories, conditioned_cov_histories, 'conditioned') # progression for between model jump distribution
 
@@ -387,7 +390,7 @@ for i in sampled_curves:
     pltf.PlotLightcurve(chain_ms[i], f.unscale(np.array(chain_states[i])), False, 'red', 0.01, False, [0,72])
 
 plt.scatter(epochs, data.flux, label = 'signal', color = 'grey', s = 1)
-plt.title('Joint distribution samples, N = '+str(n_sampled_curves))
+#plt.title('Joint distribution samples, N = '+str(n_sampled_curves))
 plt.xlabel('time [days]')
 plt.ylabel('Magnification')
 plt.tight_layout()
@@ -402,7 +405,7 @@ plt.xlabel('Iterations')
 plt.ylabel('Model Index')
 plt.locator_params(axis = "y", nbins = 2) # only two ticks
 plt.tight_layout()
-plt.savefig('Plots/M-Trace.png')
+#plt.savefig('Plots/M-Trace.png')
 plt.clf()
 
 

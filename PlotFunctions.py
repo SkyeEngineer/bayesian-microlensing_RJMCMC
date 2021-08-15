@@ -1,6 +1,6 @@
 import math
 from numpy.core.defchararray import array
-from numpy.core.fromnumeric import mean
+from numpy.core.fromnumeric import mean, ndim
 from numpy.core.function_base import linspace
 import MulensModel as mm
 import Functions as f
@@ -15,7 +15,7 @@ import scipy
 import copy
 import corner
 
-
+'''
 plt.rcParams["font.family"] = "serif"
 plt.rcParams['font.size'] = 12
 
@@ -31,7 +31,7 @@ plt.rcParams["grid.alpha"] = 0.25
 
 
 plt.rc('axes.formatter', useoffset=False)
-
+'''
 
 def PlotWalk(xi, yi, states, labels, symbols, letters, model, center, true):
 
@@ -269,7 +269,7 @@ def Adaptive_Progression(history, covs, name):
     
     if len(history) <= size or size == 0:
         plt.scatter(0, 0)
-        plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
+        plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png')
         plt.clf()
         return
 
@@ -277,17 +277,33 @@ def Adaptive_Progression(history, covs, name):
 
     acc = []
     trace = []
+    stable_trace = []
+    covs = np.array(covs)
     bins = int(np.ceil(len(history) / size))
     for bin in range(bins - 1): # record the ratio of acceptance for each bin
         acc.append(np.sum(history[size*bin:size*(bin+1)]) / size)
 
 
 
-        trace.append(np.sum(np.trace(np.array(covs[:][:][size*bin:size*(bin+1)]))) / size)
+        trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
+        stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][:3, :3], 0, 2)) / size)
 
+    #covs = np.array(covs)
+    print(covs[0][:3, :3])
+    print(covs[0][:3][:3])
+    print(covs[0])
+    
+    #print(np.trace(covs[0:2][:3, :3]))
+    print(np.trace(covs[0:2], 0, 2))
+    print(np.sum(np.trace(covs[0:2], 0, 2)))
+    #print(np.sum(np.sum(np.trace(covs[0:2], 1, 2))))
+    #print(np.trace(covs[1]))
+    #print(covs[-2, -1][:, :])
 
-
-    normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
+    min = np.min([np.min(trace), np.min(stable_trace)])
+    max = np.max(trace)
+    normed_trace = (trace - min)/(max-min)
+    normed_stable_trace = (stable_trace - min)/(max-min)
 
 
     rate_colour = 'purple'
@@ -305,7 +321,8 @@ def Adaptive_Progression(history, covs, name):
     a2 = a1.twinx()
 
     a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
-    a2.set_ylabel(r'Average $\sum$ Tr$(K_{xx}$)')
+    a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
+    a2.set_ylabel(r'Average $\sum Tr(K_{xx}$)')
     
     a2.set_ylim((0.0, 1.0))
     a2.set_yticks([0.0, 1.0])
@@ -327,10 +344,10 @@ def Adaptive_Progression(history, covs, name):
     a2.tick_params(axis = 'y', colors = trace_colour)
 
 
-    plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
+    #plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
 
     plt.tight_layout()
-    plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
+    plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png')
     plt.clf()
 
     return
@@ -378,20 +395,27 @@ def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, detail
     return
 
 
-def Draw_Light_Curve_Noise_Error(data):
+def Draw_Light_Curve_Noise_Error(data, ax):
+
+    ax.axis('on')
     
     error = data.err_flux
     lower = data.flux - error
     upper = data.flux + error
-    plt.fill_between(data.times, lower, upper, alpha = 0.25, label = r'$\sigma$')
-    plt.scatter(data.times, data.flux, label = 'signal', color = 'grey', s = 1)
+    ax.fill_between(data.time, lower, upper, alpha = 0.5, label = r'$\pm\sigma$')
+    ax.scatter(data.time, data.flux, label = 'signal', color = 'black', s = 1)
 
-    plt.xlabel('Time [days]')
-    plt.ylabel('Magnification')
 
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
+    ax.set_xlabel('Time [days]')
+    ax.set_ylabel('Magnification')
+    #ax.xticks(ax.xticks())
+    #ax.yticks(ax.yticks())
+
+
+
+    ax.legend(fontsize = 14, handlelength=0.7)
+    #plt.grid()
+    #ax.tight_layout()
 
     return
 
@@ -419,7 +443,7 @@ def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
     return
 
 def Style():
-    plt.rcParams["font.family"] = "serif"
+    plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams['font.size'] = 12
 
     plt.style.use('seaborn-bright')
@@ -442,7 +466,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
 
     figure = corner.corner(states)
 
-    plt.rcParams['font.size'] = 9
+    plt.rcParams['font.size'] = 8
+    plt.rcParams['axes.titlesize'] = 14
+    plt.rcParams['axes.labelsize'] = 14
 
     # extract the axes
     axes = np.array(figure.axes).reshape((n_dim, n_dim))
@@ -458,22 +484,35 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         ax = axes[i, i]
 
         ax.cla()
-        ax.grid()
+        #ax.grid()
 
         # distribution plots
         ax.hist(states[:, i], bins = 50, density = True)
 
         mu = np.average(states[:, i])
         sd = np.std(states[:, i])
-        ax.axvline(mu, label = r'$\mu$', color = 'cyan')
-        ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color = 'cyan', label = r'$\sigma$')
+        ax.axvline(mu, label = r'$\mu$', color = 'black')
+        ax.axvspan(mu - sd, mu + sd, alpha = 0.1, color = 'cyan', label = r'$\sigma$')
 
         if isinstance(true, np.ndarray):
             ax.axvline(base[i], label = r'$\theta$', color = 'red')
 
-        # ax.xaxis.tick_top()
-        ax.axes.get_xaxis().set_ticklabels([])
-        ax.axes.get_yaxis().set_ticklabels([])
+        #ax.xaxis.tick_top()
+        #ax.yaxis.tick_right()
+        ax.set_title(r'$\bar{\mu} = $'+f'{mu:.4}'+',\n'+r'$\bar{\sigma} = \pm$'+f'{sd:.4}')
+
+        if i == 0: 
+            ax.set_ylabel(symbols[i])
+            #ax.tick_params(axis='y', labelrotation = 45)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+        elif i == n_dim - 1:
+            ax.set_xlabel(symbols[i])
+            ax.tick_params(axis='x', labelrotation = 45)
+            ax.axes.get_yaxis().set_ticklabels([])
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
 
 
         xLower = np.min([np.min(states[:, i]), base[i]])
@@ -488,7 +527,12 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         if xLower < priors[i].lb and i != 4:
             xLower = priors[i].lb
 
+        if i == 4:
+            xLower = np.log(10e-6)
+
         ax.set_xlim((xLower, xUpper))
+
+
 
     # loop over lower triangular 
     for yi in range(n_dim):
@@ -509,6 +553,8 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                 yUpper = priors[yi].rb
             if yLower < priors[yi].lb and yi != 4:
                 yLower = priors[yi].lb
+            if yi == 4:
+                yLower = np.log(10e-6)
 
             xLower = np.min([np.min(states[:, xi]), base[xi]])
             xUpper = np.max([np.max(states[:, xi]), base[xi]])
@@ -521,6 +567,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                 xUpper = priors[xi].rb
             if xLower < priors[xi].lb and xi != 4:
                 xLower = priors[xi].lb
+
+            if xi == 4:
+                xLower = np.log(10e-6)
 
             yaxis = np.linspace(yLower, yUpper, n_points)
             xaxis = np.linspace(xLower, xUpper, n_points)
@@ -558,7 +607,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             ylim = ax.get_ylim()
             xlim = ax.get_xlim()
 
-            for level in [1 - 0.989, 1 - 0.865, 0.38]: # sigma levels
+            for level in [1 - 0.989, 1 - 0.865, 1 - 0.393]: # sigma levels
 
                 rad = np.sqrt(chi2.isf(level, 2))
                 level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
@@ -591,8 +640,21 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
 
     # inset plot of data
     #figure.axes([0.125, 0.7, 0.3, 0.2])
-    #Draw_Light_Curve_Noise_Error(data)
+    
+
+    #ax = axes[0, n_dim-1]
     #ax = plt.gca()
+    axs = figure.get_axes()[4].get_gridspec()
+    half = math.floor(n_dim/2)
+    ax = figure.add_subplot(axs[:half, n_dim-half:n_dim])
+
+    Draw_Light_Curve_Noise_Error(data, ax)
+
+    #sampled_curves = random.sample(range(len(states)), 50)
+    #for i in sampled_curves:
+    #    PlotLightcurve(m, f.unscale(np.array(states[i])), False, 'red', 0.01, False, [0,72])
+
+
 
     figure.savefig('results/'+name+'.png', dpi=500)
     figure.clf()
@@ -611,7 +673,9 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
     #ndim = f.D(0)
 
     # extract the axes
-    plt.rcParams['font.size'] = 9
+    plt.rcParams['font.size'] = 8
+    plt.rcParams['axes.titlesize'] = 14
+    plt.rcParams['axes.labelsize'] = 14
     axes = np.array(figure.axes).reshape((ndim, ndim))
 
     # Loop over the diagonal
@@ -632,7 +696,7 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
         for xi in range(yi):
             ax = axes[yi, xi]
             ax.cla()
-            ax.grid()
+            #ax.grid()
             ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.25, marker = ".", s = 20)
             ax.scatter(states_1[:, xi], states_1[:, yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
                 
@@ -660,9 +724,13 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
 def Walk_Plot(n_dim, states, data, symbols, name):
 
 
-    plt.rcParams['font.size'] = 9
+    
 
     figure = corner.corner(states)
+
+    plt.rcParams['font.size'] = 8
+    plt.rcParams['axes.titlesize'] = 14
+    plt.rcParams['axes.labelsize'] = 14
 
     # extract the axes
     axes = np.array(figure.axes).reshape((n_dim, n_dim))
@@ -672,18 +740,35 @@ def Walk_Plot(n_dim, states, data, symbols, name):
         ax = axes[i, i]
 
         ax.cla()
-        ax.grid()
+        #ax.grid()
         ax.plot(np.linspace(1, len(states), len(states)), states[:, i], linewidth = 0.25)
 
-        ax.axes.get_xaxis().set_ticklabels([])
-        ax.axes.get_yaxis().set_ticklabels([])
+
+
+        if i == 0: 
+            ax.set_ylabel(symbols[i])
+            ax.tick_params(axis='y', labelrotation = 45)
+            #ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+        elif i == n_dim - 1:
+            ax.set_xlabel(symbols[i])
+            #ax.tick_params(axis='x', labelrotation = 45)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        #ax.xaxis.tick_top()
+        #ax.yaxis.tick_right()
+        #ax.set_title(symbols[i])
         
     # loop lower triangular
     for yi in range(n_dim):
         for xi in range(yi):
             ax = axes[yi, xi]
             ax.cla()
-            ax.grid()
+            #ax.grid()
             ax.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
                 
             if yi == n_dim - 1:
