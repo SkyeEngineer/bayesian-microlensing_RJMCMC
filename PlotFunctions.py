@@ -267,7 +267,7 @@ def Adaptive_Progression(history, covs, name):
 
     size = int(len(history)/25)#100#50
     
-    if len(history) <= size:
+    if len(history) <= size or size == 0:
         plt.scatter(0, 0)
         plt.savefig('Plots/Adaptive-RJMCMC-acceptance-progression-'+name+'.png')
         plt.clf()
@@ -300,7 +300,7 @@ def Adaptive_Progression(history, covs, name):
     a1.set_ylim((0.0, 1.0))
 
 
-    plt.grid()
+    #plt.grid()
     a1.set_xlabel(f'Binned iterations over time [{size} samples]')
     a2 = a1.twinx()
 
@@ -336,7 +336,7 @@ def Adaptive_Progression(history, covs, name):
     return
 
 
-def LightcurveFitError(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
+def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
 
     if m == 1:
         FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
@@ -471,9 +471,24 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         if isinstance(true, np.ndarray):
             ax.axvline(base[i], label = r'$\theta$', color = 'red')
 
-        ax.xaxis.tick_top()
+        # ax.xaxis.tick_top()
+        ax.axes.get_xaxis().set_ticklabels([])
         ax.axes.get_yaxis().set_ticklabels([])
-        
+
+
+        xLower = np.min([np.min(states[:, i]), base[i]])
+        xUpper = np.max([np.max(states[:, i]), base[i]])
+        xWidth = xUpper - xLower
+        xUpper += xWidth/2
+        xLower -= xWidth/2
+
+        # limits within prior bounds
+        if xUpper > priors[i].rb and i != 4:
+            xUpper = priors[i].rb
+        if xLower < priors[i].lb and i != 4:
+            xLower = priors[i].lb
+
+        ax.set_xlim((xLower, xUpper))
 
     # loop over lower triangular 
     for yi in range(n_dim):
@@ -482,11 +497,30 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             ax.cla()
             
             # posterior heat map
-
+            # work out limits and double them
             yLower = np.min([np.min(states[:, yi]), base[yi]])
             yUpper = np.max([np.max(states[:, yi]), base[yi]])
+            yWidth = yUpper - yLower
+            yUpper += yWidth/2
+            yLower -= yWidth/2
+
+            # limits within prior bounds
+            if yUpper > priors[yi].rb and yi != 4:
+                yUpper = priors[yi].rb
+            if yLower < priors[yi].lb and yi != 4:
+                yLower = priors[yi].lb
+
             xLower = np.min([np.min(states[:, xi]), base[xi]])
             xUpper = np.max([np.max(states[:, xi]), base[xi]])
+            xWidth = xUpper - xLower
+            xUpper += xWidth/2
+            xLower -= xWidth/2
+
+            # limits within prior bounds
+            if xUpper > priors[xi].rb and xi != 4:
+                xUpper = priors[xi].rb
+            if xLower < priors[xi].lb and xi != 4:
+                xLower = priors[xi].lb
 
             yaxis = np.linspace(yLower, yUpper, n_points)
             xaxis = np.linspace(xLower, xUpper, n_points)
@@ -506,7 +540,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
 
                     density[x][y] = np.exp(f.Log_Likelihood(m, theta, priors, data) + f.Log_Prior_Product(m, theta, priors))
 
-            density = (np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
+            density = np.sqrt(np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
             ax.imshow(density, interpolation = 'none', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower))
 
 
@@ -521,11 +555,17 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             R = [np.cos(angles), np.sin(angles)]
             R = np.transpose(np.array(R))
 
-            for level in [0.38]: # sigma levels
+            ylim = ax.get_ylim()
+            xlim = ax.get_xlim()
+
+            for level in [1 - 0.989, 1 - 0.865, 0.38]: # sigma levels
 
                 rad = np.sqrt(chi2.isf(level, 2))
                 level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
                 ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'white')
+
+            ax.set_ylim(ylim)
+            ax.set_xlim(xlim)
 
             # plot true values in scaled space if they exist
             if isinstance(true, np.ndarray):

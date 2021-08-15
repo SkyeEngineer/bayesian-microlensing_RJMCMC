@@ -44,34 +44,34 @@ marker_size = 75
 
 ## INPUTS ##
 
-suite_n = 1
+suite_n = 0
 
 adaptive_warmup_iterations = 25
-adaptive_iterations = 75
-warmup_loops = 5
-iterations = 1000
+adaptive_iterations = 975
+warmup_loops = 1
+iterations = 5000
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = 23.0 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
 n_points = 3 # density for posterior contour plot
-n_sampled_curves = 25 # sampled curves for viewing distribution of curves
+n_sampled_curves = 250 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
 
 sbi = False
 
-truncate = False
+truncate = True
 
 ## INITIALISATION ##
 
 # synthetic event parameters
 model_parameter_suite = [
     [36, 0.833, 31.5], # 0 single
-    [36, 0.633, 31.5, 0.0096, 0.01, 1.27, 210.8], # 1 weak binary
+    [36, 0.833, 31.5, 0.0096, 0.01, 1.27, 210.8], # 1 weak binary
     [36, 0.833, 31.5, 0.001, 0.03, 1.10, 180] # 2 caustic crossing binary
     ]
 model_type_suite = [0, 1, 1]
@@ -128,7 +128,7 @@ else:
     
     single_center = np.array([36, 0.833, 31.5])
 
-    binary_center = np.array([36, 0.833, 31.5, 0.001, 0.0004, 1.40, 175])
+    binary_center = np.array([36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8])
 
 
 #pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
@@ -143,7 +143,7 @@ single_covariance = np.zeros((f.D(0), f.D(0)))
 np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
 
 binary_covariance = np.zeros((f.D(1), f.D(1)))
-np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 0.01]))
+np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1]))
 
 
 # Use adaptiveMCMC to calculate initial covariances
@@ -156,7 +156,7 @@ w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, 
 
 
 centers = [w_s_best_theta, w_b_best_theta]
-
+print(centers)
 
 #pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
 #pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
@@ -170,7 +170,7 @@ n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
 initial_covariances = [w_single_covariance, w_binary_covariance]
 
 
-chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories =\
+chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
     f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
 
 #center_1, center_2 = centers
@@ -206,9 +206,12 @@ if truncate == True:
     for i, n in enumerate(N):
         ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
         
-        if ac_time_m[i] < 50 * N[i]: # linearly interpolate truncation point
-            slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
-            truncate = int(math.ceil((ac_time_m[i] - slope * N[i]) / (50 - slope)))
+        if ac_time_m[i] < N[i]/50: # linearly interpolate truncation point
+            if i == 0:
+                truncated = 0
+            else:
+                slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
+                truncated = int(math.ceil((ac_time_m[i] - slope * N[i]) / (1/50 - slope)))
             break
 
         truncated = math.nan
@@ -238,7 +241,7 @@ for i, n in enumerate(N):
 
     ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 50, quiet = True)
 
-plt.loglog(N, ac_time_m, "o-b", label=r"$\tau_M$",  linewidth = 2, markersize = 5)
+plt.loglog(N, ac_time_m, "o-b", label=r"$M$",  linewidth = 2, markersize = 5)
 
 
 # plot details
@@ -247,25 +250,24 @@ ylim = plt.gca().get_ylim()
 #plt.gca().set_yscale('log')
 plt.plot(N, N / 50.0, "--k", label = r"$\tau = N/50$")
 plt.ylim(ylim)
-plt.axvline(truncate, alpha = 0.5)
+plt.axvline(truncated, alpha = 0.5)
 #plt.gca().set_yticks([])
 #plt.gca().set_xticks([])
 plt.title('Adptv-RJMH convergence assessment')
 plt.xlabel("Samples, N")
 plt.ylabel(r"Autocorrelation time, $\tau$")
-plt.grid()
+#plt.grid()
 plt.legend()
 plt.tight_layout()
 plt.savefig('Plots/AutoCorr.png')
 plt.clf()
 
+# record states
 
-
-# record truncated states
 single_states = []
 binary_states = []
 
-for i in range(truncated, iterations):
+for i in range(iterations):
     if chain_ms[i] == 0: 
         single_states.append(chain_states[i]) # record all single model states in the truncated chain
 
@@ -274,6 +276,20 @@ for i in range(truncated, iterations):
 
 single_states = np.array(single_states)
 binary_states = np.array(binary_states)
+
+# record truncated states
+tr_single_states = []
+tr_binary_states = []
+
+for i in range(truncated, iterations):
+    if chain_ms[i] == 0: 
+        tr_single_states.append(chain_states[i]) # record all single model states in the truncated chain
+
+    if chain_ms[i] == 1: 
+        tr_binary_states.append(chain_states[i]) # record all binary model states in the truncated chain
+
+tr_single_states = np.array(tr_single_states)
+tr_binary_states = np.array(tr_binary_states)
 
 
 
@@ -294,9 +310,9 @@ with open('results/run.txt', 'w') as file:
     file.write('\n')
     file.write('Run information:\n')
     file.write('Iterations: '+str(iterations)+', Burn in: '+str(truncated)+' \n')
-    file.write('Accepted move fraction; Total'+str(np.sum(acc_history)/iterations)+',\
-        Intra-model: ' + str(np.sum(np.sum(inter_j_acc_histories)) / (len(inter_j_acc_histories[0]) + len(inter_j_acc_histories[1]))) + ',\
-        Inter-model: ' + str(np.sum(np.sum(intra_j_acc_histories)) / (len(intra_j_acc_histories[0]) + len(intra_j_acc_histories[1]))) + ' \n')
+    file.write('Accepted move fraction; Total: '+str(np.sum(acc_history)/iterations)+',\
+        Inter-model: ' + str(np.sum(inter_j_acc_histories) / (len(inter_j_acc_histories))) + ',\
+        Intra-model: ' + str(np.sum(np.sum(intra_j_acc_histories)) / (len(intra_j_acc_histories[0]) + len(intra_j_acc_histories[1]))) + ' \n')
 
     # results
     P_S = 1-np.sum(chain_ms[truncated:]) / (iterations-truncated)
@@ -306,11 +322,11 @@ with open('results/run.txt', 'w') as file:
     file.write('Classifications; P(single|y): '+str(P_S)+', P(binary|y): '+str(P_B)+' \n')
     
     if P_S >= P_B:
-        probable_states = single_states
+        probable_states = tr_single_states
         probable_m = 0
 
     elif P_S < P_B:
-        probable_states = binary_states
+        probable_states = tr_binary_states
         probable_m = 1
 
     for i in range(f.D(probable_m)):
@@ -325,24 +341,31 @@ with open('results/run.txt', 'w') as file:
 # adaptive progression plots
 # want to include full history with warmup (w) too
 
-single_cov_histories = deepcopy(w_s_covariance_history)
-single_cov_histories.append(cov_histories[0][0])
+single_cov_histories = np.array(deepcopy(w_s_covariance_history))
+single_cov_histories = np.concatenate((np.array(w_s_covariance_history), np.array(cov_histories[0][:])))
+#print(cov_histories[0][:][:])
+
+#single_cov_histories = np.stack(np.array(single_cov_histories), 0)
 #print(single_cov_histories)
-single_cov_histories = np.stack(np.array(single_cov_histories), 0)
 
-binary_cov_histories = deepcopy(w_b_covariance_history)
-binary_cov_histories.append(cov_histories[1][0])
+#binary_cov_histories = deepcopy(w_b_covariance_history)
+#binary_cov_histories.append(cov_histories[1][:])
 
-binary_cov_histories = np.stack(np.array(binary_cov_histories), 0)
+#binary_cov_histories = np.stack(np.array(binary_cov_histories), 0)
+
+binary_cov_histories = np.array(deepcopy(w_b_covariance_history))
+binary_cov_histories = np.concatenate((np.array(w_b_covariance_history), np.array(cov_histories[1][:])))
+
+
 
 pltf.Adaptive_Progression(np.concatenate((w_s_acceptance_history, intra_j_acc_histories[0])), single_cov_histories, 'single')
 pltf.Adaptive_Progression(np.concatenate((w_b_acceptance_history, intra_j_acc_histories[1])), binary_cov_histories, 'binary')
 
 conditioned_cov_histories = []
 n_shared = f.D(0)
-for i in range(len(cov_histories[1][0])):
-    covariance = cov_histories[1][0]
-    print(covariance)
+for i in range(len(inter_cov_history)):
+    covariance = inter_cov_history[:][:][i]
+    #3print(covariance)
 
     c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
     c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
@@ -354,7 +377,7 @@ for i in range(len(cov_histories[1][0])):
 
 conditioned_cov_histories = np.stack(np.array(conditioned_cov_histories), 0)
 
-pltf.Adaptive_Progression(inter_j_acc_histories[0], conditioned_cov_histories, 'conditioned') # progression for between model jump distribution
+pltf.Adaptive_Progression(inter_j_acc_histories, conditioned_cov_histories, 'conditioned') # progression for between model jump distribution
 
 
 
@@ -373,7 +396,7 @@ plt.clf()
 
 
 # plot of model index trace
-plt.plot(np.linspace(1, iterations, num = iterations), chain_ms[truncated:] + 1, linewidth = 0.25)
+plt.plot(np.linspace(truncated, iterations, num = iterations - truncated ), chain_ms[truncated:] + 1, linewidth = 0.25)
 plt.title('RJMH Model Trace')
 plt.xlabel('Iterations')
 plt.ylabel('Model Index')
@@ -391,10 +414,14 @@ pltf.Walk_Plot(7, binary_states, data, symbols, 'binary-corner')
 
 #print(binary_cov_histories[:][:][-1])
 
-pltf.Contour_Plot(7, n_points, binary_states, binary_cov_histories[:][:][-1], binary_true, binary_center, 1, priors, data, symbols, 'binary-contour')
+pltf.Contour_Plot(7, n_points, tr_binary_states, binary_cov_histories[:][:][-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour')
 
 shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
-pltf.Double_Plot(3, single_states - single_center, binary_states - binary_center, symbols, 'shifted-overlay')
+
+#print(single_states)
+#print(centers[0])
+
+pltf.Double_Plot(3, tr_single_states - centers[0], tr_binary_states - centers[1], shifted_symbols, 'shifted-overlay')
 
 
 

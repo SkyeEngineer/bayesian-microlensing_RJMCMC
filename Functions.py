@@ -536,13 +536,15 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
 
     intra_jump_acceptance_histories = [[], []]
     intra_jump_acceptance_histories[m].append(1) # first state counts as jump
-    inter_jump_acceptance_histories = [[], []]
+    inter_jump_acceptance_histories = []
 
     acceptance_history = np.zeros((iterations))
     acceptance_history[0] = 1
 
     covariances = initial_covariances
     covariances_history = [[initial_covariances[0]], [initial_covariances[1]]]
+    inter_cov_history = [initial_covariances[1]]
+
 
 
     print('Running Adpt-RJMH')
@@ -570,7 +572,8 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
             if m == m_prop: 
                 intra_jump_acceptance_histories[m_prop].append(1)
             else:
-                inter_jump_acceptance_histories[m_prop].append(1)
+                inter_jump_acceptance_histories.append(1)
+                inter_cov_history.append(covariances[1])
 
             theta = theta_prop
             m = m_prop
@@ -589,8 +592,9 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
             acceptance_history[i] = 0
         
         else:
-            inter_jump_acceptance_histories[m_prop].append(0)
+            inter_jump_acceptance_histories.append(0)
             acceptance_history[i] = 0
+            inter_cov_history.append(covariances[1])
 
         chain_states.append(theta)
         chain_ms[i] = m
@@ -613,7 +617,7 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
     print("P(Singular|y): " + str(1-np.sum(chain_ms) / iterations))
     print("P(Binary|y): " + str(np.sum(chain_ms) / iterations))
 
-    return chain_states, chain_ms, best_thetas, best_posteriors, covariances_history, acceptance_history, inter_jump_acceptance_histories, intra_jump_acceptance_histories
+    return chain_states, chain_ms, best_thetas, best_posteriors, covariances_history, acceptance_history, inter_jump_acceptance_histories, intra_jump_acceptance_histories, inter_cov_history
 
 
 
