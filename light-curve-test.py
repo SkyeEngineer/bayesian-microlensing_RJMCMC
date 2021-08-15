@@ -16,7 +16,7 @@ import copy
 pltf.Style
 
 if True:
-    plt.grid()
+    #plt.grid()
 
     #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
     theta_r = [36, 0.133, 61.5,  0.001, 0.009, 1.10, 180]
@@ -38,7 +38,7 @@ if True:
 
     pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1, False, ts)
 
-    plt.title('Binary lens parameterisation')
+    #plt.title('Binary lens parameterisation')
     plt.xlabel('Time [days]')
     plt.ylabel('Magnification')
     plt.legend()
@@ -60,7 +60,7 @@ if True:
     plt.clf()
 
 if True:
-    plt.grid()
+    #plt.grid()
 
 
     theta_r = [36, 0.133, 61.5]
@@ -80,7 +80,7 @@ if True:
 
     pltf.PlotLightcurve(0, theta_r, "Reference", "black", 1, False, ts)
 
-    plt.title('Single lens parameterisation')
+    #plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')
     plt.ylabel('Magnification')
     plt.legend()

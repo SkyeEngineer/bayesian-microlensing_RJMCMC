@@ -5,10 +5,10 @@ Priors: Informative
 
 Run information:
 Iterations: 250, Burn in: 0 
-Accepted move fraction; Total: 0.444,        Inter-model: 0.584070796460177,        Intra-model: 0.3284671532846715 
+Accepted move fraction; Total: 0.296,        Inter-model: 0.2992125984251969,        Intra-model: 0.2926829268292683 
 
 Results:
-Classifications; P(single|y): 0.604, P(binary|y): 0.396 
-t0: mean: 36.03444294867619, sd: 0.04071134409170242 
-u0: mean: 0.8333049231852823, sd: 0.0005934215027700678 
-tE: mean: 31.48097966451924, sd: 0.06439180281013704 
+Classifications; P(single|y): 0.848, P(binary|y): 0.152 
+t0: mean: 35.92725132427, sd: 0.03645609138169124 
+u0: mean: 0.833260777807001, sd: 0.0004673111798496643 
+tE: mean: 31.53799478199815, sd: 0.04107948320041789 

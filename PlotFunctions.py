@@ -300,10 +300,10 @@ def Adaptive_Progression(history, covs, name):
     #print(np.trace(covs[1]))
     #print(covs[-2, -1][:, :])
 
-    min = np.min([np.min(trace), np.min(stable_trace)])
-    max = np.max(trace)
-    normed_trace = (trace - min)/(max-min)
-    normed_stable_trace = (stable_trace - min)/(max-min)
+    #min = np.min([np.min(trace), np.min(stable_trace)])
+    #max = np.max(trace)
+    normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
+    normed_stable_trace = (stable_trace - np.min(stable_trace))/(np.max(stable_trace)-np.min(stable_trace))
 
 
     rate_colour = 'purple'
@@ -312,17 +312,17 @@ def Adaptive_Progression(history, covs, name):
     a1 = plt.axes()
     a1.plot((np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
 
-    a1.set_ylabel('Rate of accepted proposals')
+    a1.set_ylabel('Acceptance rate per bin')
     a1.set_ylim((0.0, 1.0))
 
 
     #plt.grid()
-    a1.set_xlabel(f'Binned iterations over time [{size} samples]')
+    a1.set_xlabel(f'Binned iterations over time')
     a2 = a1.twinx()
 
     a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
     a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
-    a2.set_ylabel(r'Average $\sum Tr(K_{xx}$)')
+    a2.set_ylabel(r'Average $Tr(K_{xx})$ per bin')
     
     a2.set_ylim((0.0, 1.0))
     a2.set_yticks([0.0, 1.0])
@@ -347,7 +347,7 @@ def Adaptive_Progression(history, covs, name):
     #plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
 
     plt.tight_layout()
-    plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png')
+    plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png', bbox_inches="tight")
     plt.clf()
 
     return
@@ -389,7 +389,7 @@ def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, detail
     plt.legend()
     #plt.grid()
     plt.tight_layout()
-    plt.savefig('Plots/' + name + '-Fit.png')
+    plt.savefig('Plots/' + name + '-Fit.png', bbox_inches="tight")
     plt.clf()
 
     return
@@ -618,7 +618,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
 
             # plot true values in scaled space if they exist
             if isinstance(true, np.ndarray):
-                ax.scatter(base[xi], base[yi], marker = '*', s = 75, c = 'red', alpha = 1)
+                ax.scatter(base[xi], base[yi], marker = 'o', s = 75, c = 'red', alpha = 1)
                 ax.axvline(base[xi], color = 'red')
                 ax.axhline(base[yi], color = 'red')
 
@@ -655,8 +655,8 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
     #    PlotLightcurve(m, f.unscale(np.array(states[i])), False, 'red', 0.01, False, [0,72])
 
 
-
-    figure.savefig('results/'+name+'.png', dpi=500)
+    #plt.tight_layout()
+    figure.savefig('results/'+name+'.png', dpi=500, bbox_inches="tight")
     figure.clf()
 
     return
@@ -697,8 +697,8 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
             ax = axes[yi, xi]
             ax.cla()
             #ax.grid()
-            ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.25, marker = ".", s = 20)
-            ax.scatter(states_1[:, xi], states_1[:, yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+            ax.scatter(states_2[:, xi], states_2[:, yi], c = np.linspace(0.0, 1.0, len(states_2)), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(states_1[:, xi], states_1[:, yi], c = np.linspace(0.0, 1.0, len(states_1)), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
                 
             if yi == ndim - 1:
                 ax.set_xlabel(symbols[xi])
@@ -714,7 +714,8 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
-    figure.savefig('Plots/' + name + '.png', dpi = 500)
+    #plt.tight_layout()
+    figure.savefig('Plots/' + name + '.png', dpi = 500, bbox_inches="tight")
     figure.clf()
 
     return
@@ -769,7 +770,7 @@ def Walk_Plot(n_dim, states, data, symbols, name):
             ax = axes[yi, xi]
             ax.cla()
             #ax.grid()
-            ax.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.25, marker = ".", s = 20)
+            ax.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
                 
             if yi == n_dim - 1:
                 ax.set_xlabel(symbols[xi])
@@ -791,8 +792,8 @@ def Walk_Plot(n_dim, states, data, symbols, name):
     #Draw_Light_Curve_Noise_Error(data)
     #ax = plt.gca()
 
-
-    figure.savefig('results/' + name + '.png', dpi = 500)
+    #plt.tight_layout()
+    figure.savefig('results/' + name + '.png', dpi = 500, bbox_inches="tight")
     figure.clf()
 
     return
