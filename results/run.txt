@@ -4,11 +4,11 @@ Number of observations: 720, Signal to noise baseline: 126.5
 Priors: Informative
 
 Run information:
-Iterations: 250, Burn in: 0 
-Accepted move fraction; Total: 0.296,        Inter-model: 0.2992125984251969,        Intra-model: 0.2926829268292683 
+Iterations: 5000, Burn in: 0 
+Accepted move fraction; Total: 0.324,        Inter-model: 0.4416326530612245,        Intra-model: 0.21098039215686273 
 
 Results:
-Classifications; P(single|y): 0.848, P(binary|y): 0.152 
-t0: mean: 35.92725132427, sd: 0.03645609138169124 
-u0: mean: 0.833260777807001, sd: 0.0004673111798496643 
-tE: mean: 31.53799478199815, sd: 0.04107948320041789 
+Classifications; P(single|y): 0.5136000000000001, P(binary|y): 0.4864 
+t0: mean: 35.899626458871985, sd: 0.03432413646697851 
+u0: mean: 0.833653684151213, sd: 0.0006134530990401463 
+tE: mean: 31.557604391054, sd: 0.06004034366988963 

@@ -47,17 +47,17 @@ marker_size = 75
 suite_n = 0
 
 adaptive_warmup_iterations = 25
-adaptive_iterations = 225
+adaptive_iterations = 975
 warmup_loops = 1
-iterations = 250
+iterations = 5000
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
 signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 2 # density for posterior contour plot
-n_sampled_curves = 10 # sampled curves for viewing distribution of curves
+n_points = 5 # density for posterior contour plot
+n_sampled_curves = 250 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
@@ -386,9 +386,12 @@ pltf.Adaptive_Progression(inter_j_acc_histories, conditioned_cov_histories, 'con
 
 # plot of randomly sampled curves
 sampled_curves = random.sample(range(truncated, iterations), n_sampled_curves)
+sampled_params =[]
 for i in sampled_curves:
     pltf.PlotLightcurve(chain_ms[i], f.unscale(np.array(chain_states[i])), False, 'red', 0.01, False, [0,72])
-
+    sampled_params.append(np.append(chain_ms[i], f.unscale(np.array(chain_states[i]))))
+print(sampled_params)
+#sampled_params = np.array(sampled_params)
 plt.scatter(epochs, data.flux, label = 'signal', color = 'grey', s = 1)
 #plt.title('Joint distribution samples, N = '+str(n_sampled_curves))
 plt.xlabel('time [days]')
@@ -413,11 +416,13 @@ plt.clf()
 # begin corner plots
 # note that these destroy the style environment (plot these last)
 
-pltf.Walk_Plot(7, binary_states, data, symbols, 'binary-corner')
+pltf.Walk_Plot(6, single_states, np.delete(binary_states, 3, 1), np.delete(auxiliary_states, 3, 1), data, np.delete(np.array(symbols), 3), 'binary-corner', sampled_params)
 
 #print(binary_cov_histories[:][:][-1])
 
-pltf.Contour_Plot(7, n_points, tr_binary_states, binary_cov_histories[:][:][-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour')
+#pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_true, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
+pltf.Contour_Plot(7, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour', P_B)
+
 
 shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
 

@@ -14,6 +14,7 @@ from scipy.stats import chi2
 import scipy
 import copy
 import corner
+import matplotlib as mpl
 
 '''
 plt.rcParams["font.family"] = "serif"
@@ -403,7 +404,7 @@ def Draw_Light_Curve_Noise_Error(data, ax):
     lower = data.flux - error
     upper = data.flux + error
     ax.fill_between(data.time, lower, upper, alpha = 0.5, label = r'$\pm\sigma$')
-    ax.scatter(data.time, data.flux, label = 'signal', color = 'black', s = 1)
+    ax.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
 
 
     ax.set_xlabel('Time [days]')
@@ -462,7 +463,7 @@ def Style():
 
 
 
-def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, data, symbols, name):
+def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, data, symbols, name, P):
 
     figure = corner.corner(states)
 
@@ -638,28 +639,44 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
-    # inset plot of data
-    #figure.axes([0.125, 0.7, 0.3, 0.2])
-    
 
-    #ax = axes[0, n_dim-1]
-    #ax = plt.gca()
+    # inset lightcurve
     axs = figure.get_axes()[4].get_gridspec()
     half = math.floor(n_dim/2)
     ax = figure.add_subplot(axs[:half, n_dim-half:n_dim])
-
     Draw_Light_Curve_Noise_Error(data, ax)
+    #ax.tick_params(axis="x", direction="in", pad=-22)
+    #ax.tick_params(axis="y", direction="in", pad=-22)
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position("top")
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
+    
+    # classification prob text
+    ax = axes[0, 3]
+    ax.text(0, 0, 'Classification:\n'+r'$\mathbb{P}(m=$'+str(m+1)+r'|$\gamma$)='+f'{P:.2f}', size=20, va='center', ha='center')
 
-    #sampled_curves = random.sample(range(len(states)), 50)
-    #for i in sampled_curves:
-    #    PlotLightcurve(m, f.unscale(np.array(states[i])), False, 'red', 0.01, False, [0,72])
+    # fake cbar
+    #ax = axes[4, 6]
+    #col_map = plt.get_cmap('viridis')
+    #cbar = mpl.colorbar.ColorbarBase(ax, cmap=col_map, orientation = 'vertical')
+    #cbar.set_ticks([0, 1])
+    #cbar.set_ticklabels([r'$Min \pi$', r'$Max \pi$'])
 
+    #cbar = figure.colorbar(fraction = 0.046, pad = 0.04, ticks = [0, 1]) # empirical nice auto sizing
+    #cbar.ax.set_yticklabels([r'$Min \pi$', r'$Max \pi$'], fontsize=9)
+    #cbar.ax.yaxis.set_label_position('')
+    #ax.()
 
-    #plt.tight_layout()
-    figure.savefig('results/'+name+'.png', dpi=500, bbox_inches="tight")
+    figure.savefig('results/'+name+'.png', dpi=500, bbox_inches="tight") #tight layout destroys spacing
     figure.clf()
 
     return
+
+
+
+
+
 
 
 
@@ -722,12 +739,17 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
 
 
 
-def Walk_Plot(n_dim, states, data, symbols, name):
+
+
+
+
+
+def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name, sampled_params):
 
 
     
 
-    figure = corner.corner(states)
+    figure = corner.corner(binary_states)
 
     plt.rcParams['font.size'] = 8
     plt.rcParams['axes.titlesize'] = 14
@@ -742,7 +764,8 @@ def Walk_Plot(n_dim, states, data, symbols, name):
 
         ax.cla()
         #ax.grid()
-        ax.plot(np.linspace(1, len(states), len(states)), states[:, i], linewidth = 0.25)
+        #ax.plot(np.linspace(1, len(binary_states), len(states)), states[:, i], linewidth = 0.25)
+        ax.plot(np.linspace(1, len(signals[:, i]), len(signals[:, 1])), signals[:, i], linewidth = 0.25)
 
 
 
@@ -770,7 +793,7 @@ def Walk_Plot(n_dim, states, data, symbols, name):
             ax = axes[yi, xi]
             ax.cla()
             #ax.grid()
-            ax.scatter(states[:, xi], states[:, yi], c = np.linspace(0.0, 1.0, len(states)), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(binary_states[:, xi], binary_states[:, yi], c = np.linspace(0.0, 1.0, len(binary_states)), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
                 
             if yi == n_dim - 1:
                 ax.set_xlabel(symbols[xi])
@@ -786,11 +809,70 @@ def Walk_Plot(n_dim, states, data, symbols, name):
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
+            if xi < f.D(0) and yi < f.D(0):
+                axs = figure.get_axes()[4].get_gridspec()
+                axt = figure.add_subplot(axs[xi, yi])
+                axt.scatter(single_states[:, yi], single_states[:, xi], c = np.linspace(0.0, 1.0, len(single_states)), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+                #axt.axes.get_yaxis().set_ticklabels([])
+                #axt.axes.get_xaxis().set_ticklabels([])
 
     # inset plot of data
     #figure.axes([0.125, 0.7, 0.3, 0.2])
     #Draw_Light_Curve_Noise_Error(data)
     #ax = plt.gca()
+
+    axs = figure.get_axes()[4].get_gridspec()
+    #half = math.floor(n_dim/2)
+    ax = figure.add_subplot(axs[:3, n_dim-3:n_dim])
+
+    plt.axes(ax)
+    plt.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
+
+    for params in sampled_params:
+        #pltf.PlotLightcurve(chain_ms[i], f.unscale(np.array(chain_states[i])), False, 'red', 0.01, False, [0,72])
+        #sampled_params[i].append([chain_ms[i], f.unscale(np.array(chain_states[i]))])
+        
+        m = params[0]
+        theta = params[1:]
+
+        if m == 0:
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+            model.set_magnification_methods([0., 'point_source', 72.])
+
+        if m == 1:
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
+            model.set_magnification_methods([0., 'VBBL', 72.])
+
+        model.plot_magnification(t_range = [0, 72], color = 'red', alpha = 0.25)
+    
+
+    handles, labels = ax.get_legend_handles_labels()
+    patch = mpatches.Patch(color='red', label=r'$\theta, N=1$', alpha = 0.25)   
+    #line = Line2D([0], [0], label='manual line', color='k')
+    handles.extend([patch])
+    plt.legend(handles=handles)
+
+
+    #red_patch = mpatches.Patch()
+    #plt.legend(handles=[red_patch])
+
+
+
+    #ax.fill_between(data.time, lower, upper, alpha = 0.5, label = r'$\pm\sigma$')
+    #ax.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
+
+    #ax.tick_params(axis="y", direction="in", pad=-22)
+    #ax.tick_params(axis="x", direction="in", pad=-22)
+    ax.set_xlabel('Time [days]')
+    ax.set_ylabel('Magnification')
+    ax.xaxis.tick_top()
+    ax.xaxis.set_label_position("top")
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
+    #plt.legend()
+
+
+        
 
     #plt.tight_layout()
     figure.savefig('results/' + name + '.png', dpi = 500, bbox_inches="tight")
