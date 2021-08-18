@@ -403,8 +403,9 @@ def Draw_Light_Curve_Noise_Error(data, ax):
     error = data.err_flux
     lower = data.flux - error
     upper = data.flux + error
+    ax.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 2)
     ax.fill_between(data.time, lower, upper, alpha = 0.5, label = r'$\pm\sigma$')
-    ax.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
+    
 
 
     ax.set_xlabel('Time [days]')
@@ -751,9 +752,12 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
 
     figure = corner.corner(binary_states)
 
-    plt.rcParams['font.size'] = 8
-    plt.rcParams['axes.titlesize'] = 14
-    plt.rcParams['axes.labelsize'] = 14
+    ls = 20
+    lr = 45
+    n_lb = 3
+    plt.rcParams['font.size'] = 12
+    #plt.rcParams['axes.titlesize'] = 1
+    plt.rcParams['axes.labelsize'] = 20
 
     # extract the axes
     axes = np.array(figure.axes).reshape((n_dim, n_dim))
@@ -765,17 +769,19 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
         ax.cla()
         #ax.grid()
         #ax.plot(np.linspace(1, len(binary_states), len(states)), states[:, i], linewidth = 0.25)
-        ax.plot(np.linspace(1, len(signals[:, i]), len(signals[:, 1])), signals[:, i], linewidth = 0.25)
-
+        ax.plot(np.linspace(1, len(signals[:, i]), len(signals[:, 1])), signals[:, i], linewidth = 0.25, color='black')
+        
 
 
         if i == 0: 
             ax.set_ylabel(symbols[i])
-            ax.tick_params(axis='y', labelrotation = 45)
+            ax.yaxis.label.set_size(ls)
+            ax.tick_params(axis='y', labelrotation = lr)
             #ax.axes.get_yaxis().set_ticklabels([])
             ax.axes.get_xaxis().set_ticklabels([])
         elif i == n_dim - 1:
             ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(ls)
             #ax.tick_params(axis='x', labelrotation = 45)
             ax.axes.get_yaxis().set_ticklabels([])
             ax.axes.get_xaxis().set_ticklabels([])
@@ -783,6 +789,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
             ax.axes.get_xaxis().set_ticklabels([])
             ax.axes.get_yaxis().set_ticklabels([])
 
+        ax.locator_params(nbins = n_lb) # 3 ticks max
         #ax.xaxis.tick_top()
         #ax.yaxis.tick_right()
         #ax.set_title(symbols[i])
@@ -797,24 +804,54 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
                 
             if yi == n_dim - 1:
                 ax.set_xlabel(symbols[xi])
-                ax.tick_params(axis = 'x', labelrotation = 45)
+                ax.xaxis.label.set_size(ls)
+                ax.tick_params(axis = 'x', labelrotation = lr)
 
             else:    
                 ax.axes.get_xaxis().set_ticklabels([])
 
             if xi == 0:
                 ax.set_ylabel(symbols[yi])
-                ax.tick_params(axis = 'y', labelrotation = 45)
+                ax.yaxis.label.set_size(ls)
+                ax.tick_params(axis = 'y', labelrotation = lr)
 
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
+            ax.locator_params(nbins = n_lb) # 3 ticks max
+
+            # add upper triangular plots
             if xi < f.D(0) and yi < f.D(0):
                 axs = figure.get_axes()[4].get_gridspec()
                 axt = figure.add_subplot(axs[xi, yi])
                 axt.scatter(single_states[:, yi], single_states[:, xi], c = np.linspace(0.0, 1.0, len(single_states)), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
-                #axt.axes.get_yaxis().set_ticklabels([])
-                #axt.axes.get_xaxis().set_ticklabels([])
+
+                
+
+                #axt.xaxis.tick_top()
+                #axt.xaxis.set_label_position("top")
+
+
+                
+                if yi == f.D(0)-1:
+                    axt.set_ylabel(symbols[xi])
+                    ax.yaxis.label.set_size(ls)
+                    axt.yaxis.tick_right()
+                    axt.yaxis.set_label_position("right")
+                    axt.tick_params(axis = 'y', labelrotation = lr)
+                else:
+                    axt.axes.get_yaxis().set_ticklabels([])
+                
+                if xi == 0:
+                    axt.set_xlabel(symbols[yi])
+                    axt.tick_params(axis = 'x', labelrotation = lr)
+                    ax.xaxis.label.set_size(ls)
+                    axt.xaxis.tick_top()
+                    axt.xaxis.set_label_position("top") 
+                else:
+                    axt.axes.get_xaxis().set_ticklabels([])
+
+                axt.locator_params(nbins = n_lb) # 3 ticks max
 
     # inset plot of data
     #figure.axes([0.125, 0.7, 0.3, 0.2])
@@ -823,11 +860,13 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
 
     axs = figure.get_axes()[4].get_gridspec()
     #half = math.floor(n_dim/2)
-    ax = figure.add_subplot(axs[:3, n_dim-3:n_dim])
-
-    plt.axes(ax)
-    plt.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
-
+    ax = figure.add_subplot(axs[:2, n_dim-2:n_dim])
+    Draw_Light_Curve_Noise_Error(data, ax)
+    #ax.tick_params(axis = "y", direction = "in", pad = -25)
+    #ax.tick_params(axis = "x", direction = "in", pad = -15)
+    #plt.axes(ax)
+    #plt.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 3)
+    '''
     for params in sampled_params:
         #pltf.PlotLightcurve(chain_ms[i], f.unscale(np.array(chain_states[i])), False, 'red', 0.01, False, [0,72])
         #sampled_params[i].append([chain_ms[i], f.unscale(np.array(chain_states[i]))])
@@ -843,14 +882,14 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
             model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
             model.set_magnification_methods([0., 'VBBL', 72.])
 
-        model.plot_magnification(t_range = [0, 72], color = 'red', alpha = 0.25)
+    #    model.plot_magnification(t_range = [0, 72], color = 'red', alpha = 0.25)
     
 
     handles, labels = ax.get_legend_handles_labels()
     patch = mpatches.Patch(color='red', label=r'$\theta, N=1$', alpha = 0.25)   
     #line = Line2D([0], [0], label='manual line', color='k')
     handles.extend([patch])
-    plt.legend(handles=handles)
+    #plt.legend(handles=handles, fontsize = 10)
 
 
     #red_patch = mpatches.Patch()
@@ -865,11 +904,12 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
     #ax.tick_params(axis="x", direction="in", pad=-22)
     ax.set_xlabel('Time [days]')
     ax.set_ylabel('Magnification')
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position("top")
-    ax.yaxis.tick_right()
-    ax.yaxis.set_label_position("right")
+    #ax.xaxis.tick_top()
+    #ax.xaxis.set_label_position("top")
+    #ax.yaxis.tick_right()
+    #ax.yaxis.set_label_position("right")
     #plt.legend()
+    '''
 
 
         

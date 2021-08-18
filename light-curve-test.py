@@ -2,6 +2,7 @@
 # Part 4 Project, RJMCMC for Microlensing
 # [Lightcurve plotting]
 
+from interfaceing import get_model_centers, get_posteriors
 from os import error
 from numpy.core.defchararray import title
 from numpy.core.fromnumeric import size
@@ -13,7 +14,30 @@ import matplotlib.patches as mpatches
 import PlotFunctions as pltf
 import copy
 
+
 pltf.Style
+
+theta = [36, 0.1, 36, 0.01, 0.8, 0.25, 123]
+#theta = [36, 0.1, 36, 0.01, 0.01, 0.6, 123]
+#theta = [36, 0.1, 36, 0.001, 0.005, 0.8, 89] symmetric casutic grazing
+n_epochs = 720
+epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+for a in [73, 123, 304]:
+    #print(a)
+    theta[-1] = a
+    data = f.Synthetic_Light_Curve(theta, 1, n_epochs, 2300)
+    plt.plot(data.time, data.flux, linewidth = 0.99, label = a)
+
+#theta = get_model_centers(get_posteriors(1), data.flux)
+#data = f.Synthetic_Light_Curve(theta, 1, n_epochs, 230.0)
+#plt.plot(data.time, data.flux, linestyle = "dashed", label = theta[-1])
+plt.legend()
+print(theta)
+plt.savefig('temp.png')
+plt.clf()
+
+
+throw=throw
 
 if True:
     #plt.grid()

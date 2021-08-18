@@ -47,7 +47,7 @@ marker_size = 75
 suite_n = 0
 
 adaptive_warmup_iterations = 25
-adaptive_iterations = 975
+adaptive_iterations = 75
 warmup_loops = 1
 iterations = 5000
 
@@ -56,8 +56,8 @@ epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
 signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 5 # density for posterior contour plot
-n_sampled_curves = 250 # sampled curves for viewing distribution of curves
+n_points = 2 # density for posterior contour plot
+n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
 uniform_priors = False
 informative_priors = True
