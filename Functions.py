@@ -324,7 +324,7 @@ def D(m):
     m == 1 -> binary 
     '''
 
-    D = [5, 8]
+    D = [3, 6]
     return D[m]
 
 
@@ -341,7 +341,7 @@ def unscale(theta):
         return theta_unscaled
     
     if len(theta) == D(1):
-        theta_unscaled[5] = 10**theta_unscaled[5]
+        theta_unscaled[3] = 10**theta_unscaled[3]
         #theta_unscaled[6] = theta_unscaled[6] * 180 / math.pi
 
         return theta_unscaled
@@ -362,7 +362,7 @@ def scale(theta):
         return theta_scaled
     
     if len(theta) == D(1):
-        theta_scaled[5] = np.log10(theta_scaled[5])
+        theta_scaled[3] = np.log10(theta_scaled[3])
         #theta_scaled[6] = theta_scaled[6] * math.pi /180
 
         return theta_scaled
@@ -458,10 +458,10 @@ def Log_Likelihood(m, theta, priors, data):
 
     if m == 0:
         try: # for when moves are out of bounds of model valididty
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta_true_scale[1:])))
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_true_scale)))
             model.set_magnification_methods([0., 'point_source', 72.])
 
-            A = (model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
+            A = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
             y = data.flux # signal
             sd = data.err_flux # error
             chi2 = np.sum((y - A)**2/sd**2)
@@ -474,10 +474,10 @@ def Log_Likelihood(m, theta, priors, data):
 
     if m == 1:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_true_scale[1:])))
-            model.set_magnification_methods([0., 'VBBL', 72.])
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta_true_scale)))
+            model.set_magnification_methods([0., 'point_source', 72.])
 
-            A = (model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
+            A = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
             y = data.flux # signal
             sd = data.err_flux # error
             chi2 = np.sum((y - A)**2/sd**2)
@@ -656,16 +656,16 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
     '''
 
     if light_curve_type == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], true_theta[1:])))
-        model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], true_theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
 
     elif light_curve_type == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], true_theta[1:])))
-        model.set_magnification_methods([0., 'VBBL', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], true_theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
 
     # exact signal
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    true_signal = (model.magnification(epochs) - 1.0) * true_theta[0] + 1.0 # adjust for fs
+    true_signal = model.magnification(epochs) #(model.magnification(epochs) - 1.0) * true_theta[0] + 1.0 # adjust for fs
 
     # simulate noise in gaussian errored flux space
     noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 

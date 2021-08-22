@@ -17,7 +17,7 @@ import copy
 
 pltf.Style
 
-theta = [1.0, 36, 0.1, 36, 0.01, 0.8, 0.25, 123]
+theta = [36, 0.1, 36, 0.8, 0.25, 123]
 #theta = [36, 0.1, 36, 0.01, 0.01, 0.6, 123]
 #theta = [36, 0.1, 36, 0.001, 0.005, 0.8, 89] symmetric casutic grazing
 n_epochs = 720
@@ -41,34 +41,41 @@ if True:
     #plt.grid()
 
     #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
-    theta_r = [1.0, 36, 0.133, 61.5,  0.001, 0.009, 1.10, 180]
+    theta_r = [36, 0.133, 61.5, 0.009, 1.10, 180]
 
     ts = [0, 72]
 
+
+
     theta_q = copy.deepcopy(theta_r)
-    theta_q[5] = theta_q[5] + 0.001
+    theta_q[3] = theta_q[3] + 0.0015
     pltf.PlotLightcurve(1, theta_q, r"$\uparrow q$", "red", 1, False, ts)
     
     theta_s = copy.deepcopy(theta_r)
-    theta_s[6] = theta_s[6] + 0.04
+    theta_s[4] = theta_s[4] + 0.04
     pltf.PlotLightcurve(1, theta_s, r"$\uparrow s$", "orange", 1, False, ts)
 
     theta_a = copy.deepcopy(theta_r)
-    theta_a[7] = theta_a[7] + 120
+    theta_a[5] = theta_a[5] + 90
     #theta_a[6] = theta_a[6] - 60
-    pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [32, 72])
+    pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [28, 72])
 
-    pltf.PlotLightcurve(1, theta_r, "Ref", "black", 1, False, ts)
+    plt.legend()
+
+    pltf.PlotLightcurve(1, theta_r, "base", "black", 1, False, ts)
 
     #plt.title('Binary lens parameterisation')
     plt.xlabel('Time [days]')
     plt.ylabel('Magnification')
-    plt.legend()
+
     plt.tight_layout()
 
-    plt.axes([0.125, 0.7, 0.3, 0.2])
-    pltf.PlotLightcurve(1, theta_r, " ", "black", 1, True, [5, 45])
+    plt.axes([0.125, 0.55, 0.3, 0.3])
+    pltf.PlotLightcurve(1, theta_q, " ", "red", 1, True, [5, 45])
+    pltf.PlotLightcurve(1, theta_s, " ", "orange", 1, True, [5, 45])
     pltf.PlotLightcurve(1, theta_a, " ", "blue", 1, True, [20, 60])
+    pltf.PlotLightcurve(1, theta_r, " ", "black", 1, True, [5, 45])
+    
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     ax.axes.yaxis.set_visible(False)
@@ -78,45 +85,80 @@ if True:
 
 
 
-    plt.savefig('Plots/BinaryParamCurve.png')
+    plt.savefig('Plots/BinaryParamCurve.png', dpi=500)
     plt.clf()
 
 if True:
     #plt.grid()
 
 
-    theta_r = [1.0, 36, 0.133, 61.5, 0.001]
+    theta_r = [36, 0.133, 61.5]
     ts = [0, 72]
 
-    theta_fs = copy.deepcopy(theta_r)
-    theta_fs[0] = theta_fs[0] - 0.1
-    pltf.PlotLightcurve(0, theta_fs, r"$\downarrow f_s$", "purple", 1, False, ts)
+    #theta_fs = copy.deepcopy(theta_r)
+    #theta_fs[0] = theta_fs[0] - 0.1
+    #pltf.PlotLightcurve(0, theta_fs, r"$\downarrow f_s$", "purple", 1, False, ts)
 
     theta_t0 = copy.deepcopy(theta_r)
-    theta_t0[1] = theta_t0[1] + 15
+    theta_t0[0] = theta_t0[0] + 15
     pltf.PlotLightcurve(0, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
     
     theta_u0 = copy.deepcopy(theta_r)
-    theta_u0[2] = theta_u0[2] - 0.02
+    theta_u0[1] = theta_u0[1] - 0.02
     pltf.PlotLightcurve(0, theta_u0, r"$\downarrow u_0$", "orange", 1, False, ts)
 
     theta_tE = copy.deepcopy(theta_r)
-    theta_tE[3] = theta_tE[3] + 25
+    theta_tE[2] = theta_tE[2] + 25
     pltf.PlotLightcurve(0, theta_tE, r"$\uparrow t_E$", "red", 1, False, ts)
 
-    theta_p = copy.deepcopy(theta_r)
-    theta_p[4] = theta_tE[4] + 0.1
-    pltf.PlotLightcurve(0, theta_p, r"$\uparrow \rho$", "green", 1, False, ts)
+    #theta_p = copy.deepcopy(theta_r)
+    #theta_p[3] = theta_tE[3] + 0.1
+    #pltf.PlotLightcurve(0, theta_p, r"$\uparrow \rho$", "green", 1, False, ts)
 
-    pltf.PlotLightcurve(0, theta_r, "Ref", "black", 1, False, ts)
+    plt.legend()
+
+    pltf.PlotLightcurve(0, theta_r, "base", "black", 1, False, ts)
 
     #plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')
     plt.ylabel('Magnification')
-    plt.legend()
+
     plt.tight_layout()
     plt.savefig('Plots/SingleParamCurve.png')
     plt.clf()
+
+
+    theta_r = [36, 0.133, 61.5, 0.0001]
+    theta_fs = 1 - 0.1
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta_r)))
+    model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+    A = (model.magnification(epochs) - 1.0)*theta_fs + 1.0
+    plt.plot(epochs, A, color = 'blue', label = r"$\downarrow f_s$", alpha = 1)
+
+
+    theta_p = copy.deepcopy(theta_r)
+    theta_p[3] = theta_p[3] + 0.0999
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta_p)))
+    model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+    A = model.magnification(epochs)
+    plt.plot(epochs, A, color = 'red', label = r"$\uparrow \rho$", alpha = 1)
+
+
+    plt.legend()
+    #theta_p = copy.deepcopy(theta_r)
+    #theta_p[3] = theta_p[3] - 0.0001
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta_r)))
+    model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+    A = model.magnification(epochs)
+    plt.plot(epochs, A, color = 'black', label = "base", alpha = 1)
+
+    plt.xlabel('Time [days]')
+    plt.ylabel('Magnification')
+
+    plt.tight_layout()
+    plt.savefig('Plots/FiniteParamCurve.png')
+    plt.clf()
+
 
 close=close
 

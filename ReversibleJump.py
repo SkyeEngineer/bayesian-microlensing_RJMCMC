@@ -41,14 +41,14 @@ from pathlib import Path
 suite_n = 1
 
 adaptive_warmup_iterations = 25 # mcmc steps without adaption
-adaptive_iterations = 1975 # mcmc steos with adaption
+adaptive_iterations = 975 # mcmc steos with adaption
 warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 4000 # rjmcmc steps
+iterations = 5000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 230#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
 n_points = 2 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
@@ -68,9 +68,9 @@ truncate = False # automatically truncate burn in period based on autocorrelatio
 
 # synthetic event parameters
 model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-    [0.1, 36, 0.833, 31.5, 0.0096], # 0 single
-    [0.8, 36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8], # 1 weak binary
-    [0.1, 36, 0.833, 31.5, 0.001, 0.03, 1.10, 180]] # 2 caustic crossing binary
+    [36, 0.833, 31.5], # 0 single
+    [36, 0.833, 31.5, 0.0001, 1.27, 210.8], # 1 weak binary
+    [36, 0.833, 31.5, 0.03, 1.10, 180]] # 2 caustic crossing binary
 model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
 
 
@@ -102,7 +102,7 @@ if informative_priors == True:
     rho_pi =  f.logUniDist(10**-4, 10**-2)
     fs_pi = f.logUniDist(0.1, 1)
 
-    priors = [fs_pi, t0_pi, u0_pi, tE_pi, rho_pi, q_pi, s_pi, alpha_pi]
+    priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 
 elif uniform_priors == True:
     
@@ -132,8 +132,8 @@ if sbi == True:
 else: 
     
     # use known values for centers 
-    single_center = np.array([0.8, 36, 0.833, 31.5, 0.0096])
-    binary_center = np.array([0.8, 36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8])
+    single_center = np.array([36, 0.833, 31.5])
+    binary_center = np.array([36, 0.833, 31.5, 0.0001, 1.27, 210.8])
 
 # plot unoptimised centers
 #pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
@@ -143,9 +143,9 @@ else:
 # initial covariances (diagonal)
 covariance_scale = 0.001 # reduce diagonals by a multiple
 single_covariance = np.zeros((f.D(0), f.D(0)))
-np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.01, 0.1, 0.01, 0.1, 0.0001]))
+np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
 binary_covariance = np.zeros((f.D(1), f.D(1)))
-np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.01, 0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1]))
+np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.1, 0.01, 10]))
 
 # use adaptiveMCMC to calculate initial covariances and optimise centers
 w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
@@ -176,9 +176,9 @@ chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_
 
 # plotting resources
 pltf.Style()
-labels = ['Source Flux Fraction', 'Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', 'Rho', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
-symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
-letters = ['fs', 't0', 'u0', 'tE', 'p', 'log10(q)', 's', 'a']
+labels = ['Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
+symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
+letters = ['t0', 'u0', 'tE', 'log10(q)', 's', 'a']
 marker_size = 75
 
 # construct the generalised state signal to analyse
@@ -364,7 +364,7 @@ pltf.Adaptive_Progression(np.concatenate((w_b_acceptance_history, intra_j_acc_hi
 conditioned_cov_histories = []
 n_shared = f.D(0)
 
-print(inter_cov_history[:][:][0], inter_cov_history[:][:][1], inter_cov_history[:][:][-1])
+#print(inter_cov_history[:][:][0], inter_cov_history[:][:][1], inter_cov_history[:][:][-1])
 
 for i in range(len(inter_cov_history)):
     covariance = inter_cov_history[:][:][i]
@@ -417,11 +417,13 @@ plt.clf()
 # note that these destroy the style environment (plot these last)
 
 #pltf.Walk_Plot(6, single_states, np.delete(binary_states, 3, 1), np.delete(auxiliary_states, 3, 1), data, np.delete(np.array(symbols), 3), 'binary-corner', sampled_params)
+pltf.Walk_Plot(6, single_states, binary_states, auxiliary_states, data, symbols, 'binary-corner', sampled_params)
+
 
 #print(binary_cov_histories[:][:][-1])
 
 #pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_true, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
-pltf.Contour_Plot(8, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour', P_B)
+pltf.Contour_Plot(6, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour', P_B)
 
 
 shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']

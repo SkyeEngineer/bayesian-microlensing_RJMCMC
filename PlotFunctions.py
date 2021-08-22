@@ -287,7 +287,7 @@ def Adaptive_Progression(history, covs, name):
 
 
         trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
-        stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][1:4, 1:4], 0, 2)) / size)
+        stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][:3, :3], 0, 2)) / size)
 
     #covs = np.array(covs)
     #print(covs[0][:3, :3])
@@ -305,6 +305,8 @@ def Adaptive_Progression(history, covs, name):
     #max = np.max(trace)
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
     normed_stable_trace = (stable_trace - np.min(stable_trace))/(np.max(stable_trace)-np.min(stable_trace))
+    #normed_trace = (trace - min)/(max-min)
+    #normed_stable_trace = (stable_trace - min)/(max-min)
 
 
     rate_colour = 'purple'
@@ -322,7 +324,8 @@ def Adaptive_Progression(history, covs, name):
     a2 = a1.twinx()
 
     a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
-    a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
+    if len(covs[0][:]) == f.D(1):
+        a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
     a2.set_ylabel(r'Average $Tr(K_{xx})$ per bin')
     
     a2.set_ylim((0.0, 1.0))
@@ -357,12 +360,12 @@ def Adaptive_Progression(history, covs, name):
 def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
 
     if m == 1:
-        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], FitTheta)))
-        FitModel.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
+        FitModel.set_magnification_methods([0., 'point_source', 72.])
 
     if m == 2:
-        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], FitTheta)))
-        FitModel.set_magnification_methods([0., 'VBBL', 72.])
+        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], FitTheta)))
+        FitModel.set_magnification_methods([0., 'point_source', 72.])
 
 
     
@@ -426,27 +429,27 @@ def Draw_Light_Curve_Noise_Error(data, ax):
 def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
 
     if m == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta[1:])))
-        model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
 
     if m == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta[1:])))
-        model.set_magnification_methods([0., 'VBBL', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta)))
+        model.set_magnification_methods([0., 'point_source', 72.])
 
     epochs = np.linspace(ts[0], ts[1], 720)
 
     if caustics:
         model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
-        model.plot_caustics(color = 'purple', s = 2, marker = '.')
+        model.plot_caustics(color = color, s = 2, marker = '.', n_points=10000)
 
     elif isinstance(label, str):
         
-        A = (model.magnification(epochs) - 1.0) * theta[0] + 1.0
+        A = model.magnification(epochs)#(model.magnification(epochs) - 1.0) * theta[0] + 1.0
         plt.plot(epochs, A, color = color, label = label, alpha = alpha)
 
     else:
 
-        A = (model.magnification(epochs) - 1.0) * theta[0] + 1.0
+        A = model.magnification(epochs)#(model.magnification(epochs) - 1.0) * theta[0] + 1.0
         plt.plot(epochs, A, color = color, alpha = alpha)
 
     return
@@ -531,13 +534,13 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         xLower -= xWidth/2
 
         # limits within prior bounds
-        if xUpper > priors[i].rb and i != 5:
+        if xUpper > priors[i].rb and i != 3:
             xUpper = priors[i].rb
-        if xLower < priors[i].lb and i != 5:
+        if xLower < priors[i].lb and i != 3:
             xLower = priors[i].lb
 
-        if i == 5:
-            xLower = np.log(10e-6)
+        if i == 3:
+            xLower = np.log10(10e-6)
 
         ax.set_xlim((xLower, xUpper))
 
@@ -558,12 +561,12 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             yLower -= yWidth/2
 
             # limits within prior bounds
-            if yUpper > priors[yi].rb and yi != 5:
+            if yUpper > priors[yi].rb and yi != 3:
                 yUpper = priors[yi].rb
-            if yLower < priors[yi].lb and yi != 5:
+            if yLower < priors[yi].lb and yi != 3:
                 yLower = priors[yi].lb
-            if yi == 5:
-                yLower = np.log(10e-6)
+            if yi == 3:
+                yLower = np.log10(10e-6)
 
             xLower = np.min([np.min(states[:, xi]), base[xi]])
             xUpper = np.max([np.max(states[:, xi]), base[xi]])
@@ -572,13 +575,13 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             xLower -= xWidth/2
 
             # limits within prior bounds
-            if xUpper > priors[xi].rb and xi != 5:
+            if xUpper > priors[xi].rb and xi != 3:
                 xUpper = priors[xi].rb
-            if xLower < priors[xi].lb and xi != 5:
+            if xLower < priors[xi].lb and xi != 3:
                 xLower = priors[xi].lb
 
-            if xi == 5:
-                xLower = np.log(10e-6)
+            if xi == 3:
+                xLower = np.log10(10e-6)
 
             yaxis = np.linspace(yLower, yUpper, n_points)
             xaxis = np.linspace(xLower, xUpper, n_points)
@@ -651,7 +654,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
     # inset lightcurve
     axs = figure.get_axes()[4].get_gridspec()
     half = math.floor(n_dim/2)
-    ax = figure.add_subplot(axs[:half, n_dim-half:n_dim])
+    ax = figure.add_subplot(axs[:2, 4:n_dim])
     Draw_Light_Curve_Noise_Error(data, ax)
     #ax.tick_params(axis="x", direction="in", pad=-22)
     #ax.tick_params(axis="y", direction="in", pad=-22)
