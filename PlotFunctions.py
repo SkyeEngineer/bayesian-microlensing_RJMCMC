@@ -287,16 +287,16 @@ def Adaptive_Progression(history, covs, name):
 
 
         trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
-        stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][:3, :3], 0, 2)) / size)
+        stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][1:4, 1:4], 0, 2)) / size)
 
     #covs = np.array(covs)
-    print(covs[0][:3, :3])
-    print(covs[0][:3][:3])
-    print(covs[0])
+    #print(covs[0][:3, :3])
+    #print(covs[0][:3][:3])
+    #print(covs[0])
     
     #print(np.trace(covs[0:2][:3, :3]))
-    print(np.trace(covs[0:2], 0, 2))
-    print(np.sum(np.trace(covs[0:2], 0, 2)))
+    #print(np.trace(covs[0:2], 0, 2))
+    #print(np.sum(np.trace(covs[0:2], 0, 2)))
     #print(np.sum(np.sum(np.trace(covs[0:2], 1, 2))))
     #print(np.trace(covs[1]))
     #print(covs[-2, -1][:, :])
@@ -386,6 +386,7 @@ def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, detail
     TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True', alpha = 1)
 
     FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'dashed', alpha=0.75)
+    print('add flux to plot')
 
     plt.legend()
     #plt.grid()
@@ -425,11 +426,11 @@ def Draw_Light_Curve_Noise_Error(data, ax):
 def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
 
     if m == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta[1:])))
         model.set_magnification_methods([0., 'point_source', 72.])
 
     if m == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta[1:])))
         model.set_magnification_methods([0., 'VBBL', 72.])
 
     if caustics:
@@ -437,9 +438,11 @@ def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
         model.plot_caustics(color = 'purple', s = 2, marker = '.')
     
     elif isinstance(label, str):
+        print('add flux to plot')
         model.plot_magnification(t_range = ts, color = color, label = label, alpha = alpha)
 
     else:
+        print('add flux to plot')
         model.plot_magnification(t_range = ts, color = color, alpha = alpha)
 
     return
@@ -524,12 +527,12 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         xLower -= xWidth/2
 
         # limits within prior bounds
-        if xUpper > priors[i].rb and i != 4:
+        if xUpper > priors[i].rb and i != 5:
             xUpper = priors[i].rb
-        if xLower < priors[i].lb and i != 4:
+        if xLower < priors[i].lb and i != 5:
             xLower = priors[i].lb
 
-        if i == 4:
+        if i == 5:
             xLower = np.log(10e-6)
 
         ax.set_xlim((xLower, xUpper))
@@ -551,9 +554,9 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             yLower -= yWidth/2
 
             # limits within prior bounds
-            if yUpper > priors[yi].rb and yi != 4:
+            if yUpper > priors[yi].rb and yi != 5:
                 yUpper = priors[yi].rb
-            if yLower < priors[yi].lb and yi != 4:
+            if yLower < priors[yi].lb and yi != 5:
                 yLower = priors[yi].lb
             if yi == 4:
                 yLower = np.log(10e-6)
@@ -565,12 +568,12 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             xLower -= xWidth/2
 
             # limits within prior bounds
-            if xUpper > priors[xi].rb and xi != 4:
+            if xUpper > priors[xi].rb and xi != 5:
                 xUpper = priors[xi].rb
-            if xLower < priors[xi].lb and xi != 4:
+            if xLower < priors[xi].lb and xi != 5:
                 xLower = priors[xi].lb
 
-            if xi == 4:
+            if xi == 5:
                 xLower = np.log(10e-6)
 
             yaxis = np.linspace(yLower, yUpper, n_points)

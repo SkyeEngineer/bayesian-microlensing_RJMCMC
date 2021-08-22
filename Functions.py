@@ -101,7 +101,8 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
     priors [array like]: an array of prior distribution objects for the lensing parameters,
                          in the order of entries in theta
     covariance [array like]: the covariance to initialise with when proposing a move. 
-                             Can be the diagonal entries only or a complete matrix
+                             Can be the diagonal entries only or a complete matrix.
+                             In the order of theta
     burns [int]: how many iterations to perform before beginning to adapt the covariance matrix
     iterations [int]: how many further iterations to perform while adapting the covariance matrix
 
@@ -115,7 +116,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
     best_theta [array like]: array of scaled state that produced best_posterior
     '''
 
-    if burns <= 0: #
+    if burns < 25:
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix")
     
     # initialise
@@ -127,7 +128,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
 
 
     acceptance_history = np.zeros((iterations + burns))
-    acceptance_history[0] = 1
+    acceptance_history[0] = 1 # first state (move) accepted
 
     chain_states = np.zeros((d, iterations + burns))
     chain_states[:, 0] = theta
@@ -154,7 +155,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
         if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acceptance_history[i] = 1
+            acceptance_history[i] = 1 # accept proposal
 
             # store best state
             posterior_density = np.exp(log_likelihood_proposed + Log_Prior_Product(m, theta, priors))
@@ -162,7 +163,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
                 best_posterior = posterior_density
                 best_theta = theta
 
-        else: acceptance_history[i] = 0
+        else: acceptance_history[i] = 0 # reject proposal
         
         # update storage
         chain_states[:, i] = theta
@@ -189,7 +190,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
         if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acceptance_history[t] = 1
+            acceptance_history[t] = 1 # accept proposal
 
             # store best state
             posterior_density = np.exp(log_likelihood_proposed + Log_Prior_Product(m, theta, priors))
@@ -197,7 +198,7 @@ def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iter
                 best_posterior = posterior_density
                 best_theta = theta
 
-        else: acceptance_history[t] = 0
+        else: acceptance_history[t] = 0 # reject proposal
  
         chain_states[:, t] = theta
         chain_means[:, t] = (chain_means[:, t-1]*t + theta)/(t + 1) # recursive mean
@@ -323,7 +324,7 @@ def D(m):
     m == 1 -> binary 
     '''
 
-    D = [3, 7]
+    D = [5, 8]
     return D[m]
 
 
@@ -340,7 +341,7 @@ def unscale(theta):
         return theta_unscaled
     
     if len(theta) == D(1):
-        theta_unscaled[4] = 10**theta_unscaled[4]
+        theta_unscaled[5] = 10**theta_unscaled[5]
         #theta_unscaled[6] = theta_unscaled[6] * 180 / math.pi
 
         return theta_unscaled
@@ -361,7 +362,7 @@ def scale(theta):
         return theta_scaled
     
     if len(theta) == D(1):
-        theta_scaled[4] = np.log10(theta_scaled[4])
+        theta_scaled[5] = np.log10(theta_scaled[5])
         #theta_scaled[6] = theta_scaled[6] * math.pi /180
 
         return theta_scaled
@@ -450,16 +451,17 @@ def Log_Likelihood(m, theta, priors, data):
     '''
 
     theta_true_scale = unscale(theta)
+
     # check if parameter is not in prior bounds, and ensure it is not accepted if so
     for parameter in range(D(m)):
         if not priors[parameter].in_Bounds(theta_true_scale[parameter]): return -Inf
 
     if m == 0:
         try: # for when moves are out of bounds of model valididty
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_true_scale)))
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta_true_scale[1:])))
             model.set_magnification_methods([0., 'point_source', 72.])
 
-            A = model.magnification(data.time) # compute parameter lightcuvre
+            A = (model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
             y = data.flux # signal
             sd = data.err_flux # error
             chi2 = np.sum((y - A)**2/sd**2)
@@ -472,10 +474,10 @@ def Log_Likelihood(m, theta, priors, data):
 
     if m == 1:
         try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_true_scale)))
+            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta_true_scale[1:])))
             model.set_magnification_methods([0., 'VBBL', 72.])
 
-            A = model.magnification(data.time)  # compute parameter lightcuvre
+            A = (model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
             y = data.flux # signal
             sd = data.err_flux # error
             chi2 = np.sum((y - A)**2/sd**2)
@@ -567,7 +569,7 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
 
 
         if random.random() <= acc_pi: # metropolis acceptance
-            acceptance_history[i] = 1
+            acceptance_history[i] = 1 # accept proposal
             
             if m == m_prop: 
                 intra_jump_acceptance_histories[m_prop].append(1)
@@ -589,11 +591,11 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
 
         elif m == m_prop: 
             intra_jump_acceptance_histories[m_prop].append(0)
-            acceptance_history[i] = 0
+            acceptance_history[i] = 0 # reject move
         
         else:
             inter_jump_acceptance_histories.append(0)
-            acceptance_history[i] = 0
+            acceptance_history[i] = 0 # reject jump
             inter_cov_history.append(covariances[1])
 
         chain_states.append(theta)
@@ -654,16 +656,16 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
     '''
 
     if light_curve_type == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], true_theta)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], true_theta[1:])))
         model.set_magnification_methods([0., 'point_source', 72.])
 
     elif light_curve_type == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], true_theta)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], true_theta[1:])))
         model.set_magnification_methods([0., 'VBBL', 72.])
 
     # exact signal
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    true_signal = model.magnification(epochs)
+    true_signal = (model.magnification(epochs) - 1.0) * true_theta[0] + 1.0 # adjust for fs
 
     # simulate noise in gaussian errored flux space
     noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 
@@ -677,15 +679,40 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
 
 
 
-def Loop_Adaptive_Warmup(n, type, data, center, priors, covariance, adaptive_warmup_iterations, adaptive_iterations):
-    inc_best_posterior = -Inf
+def Loop_Adaptive_Warmup(n, m, data, theta, priors, covariance, adaptive_warmup_iterations, adaptive_iterations):
+    '''
+    Repeat the adaptive mcmc warmup process used for each model in Adpt-RJMH
+    and store the best run for use in Adpt-RJMH
+    --------------------------------------------
+    n [int]: number of repeats
+    m [int]: the index of the microlensing model to use (0 or 1, single or binary)
+    data [muLens data]: the data of the microlensing event to analyse
+    theta [array like]: the unscaled parameter values in the associated model space to start from
+    priors [array like]: an array of prior distribution objects for the lensing parameters, in same order as theta
+    covariance [array like]: the covariance to initialise with when proposing a move. 
+                             Can be the diagonal entries only or a complete matrix.
+                             In the order of theta
+    adaptive_warmup_iterations [int]: number of MCMC steps without adapting cov
+    adaptive_iterations [int]: remaining number of MCMC steps
+
+    Returns:
+    inc_covariance [array like] : final adaptive covariance matrix reached 
+    inc_chain_states [array like]: array of scaled states visited
+    inc_chain_means [array like]: array of mean scaled states of the chain
+    inc_acceptance_history [array like]: array of accepted moves. 1 if the proposal was accepted, 0 otherwise.
+    inc_covariance_history [array like]: list of scaled states visited
+    inc_best_posterior [scalar]: best posterior density visited
+    inc_best_theta [array like]: array of scaled state that produced best_posterior
+    '''
+
+    inc_best_posterior = -Inf # initialise incumbent value to always get beaten
 
     for i in range(n):
+        # run MCMC
         covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta = \
-        Adaptive_Metropolis_Hastings(type, data, scale(center), priors, covariance, adaptive_warmup_iterations, adaptive_iterations)
-        
-        print('hi', best_posterior)
+        Adaptive_Metropolis_Hastings(m, data, scale(theta), priors, covariance, adaptive_warmup_iterations, adaptive_iterations)
 
+        # if best posterior density state is better than incumbent, update store
         if inc_best_posterior < best_posterior:
             inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta = \
                 covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta

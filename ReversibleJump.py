@@ -33,23 +33,17 @@ import os.path
 import shutil
 from pathlib import Path
 
-# plotting resources
-pltf.Style()
-labels = ['Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', 'Rho', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
-symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
-letters = ['t0', 'u0', 'tE', 'p', 'log10(q)', 's', 'a']
-marker_size = 75
 
-
-
+#-----------
 ## INPUTS ##
+#-----------
 
-suite_n = 0
+suite_n = 1
 
-adaptive_warmup_iterations = 25
-adaptive_iterations = 75
-warmup_loops = 1
-iterations = 5000
+adaptive_warmup_iterations = 25 # mcmc steps without adaption
+adaptive_iterations = 1975 # mcmc steos with adaption
+warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
+iterations = 4000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
@@ -59,20 +53,24 @@ signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lo
 n_points = 2 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
-uniform_priors = False
+uniform_priors = False 
 informative_priors = True
 
-sbi = False
+sbi = False # use neural net to get maximum aposteriori estimate for centreing points
 
-truncate = False
+truncate = False # automatically truncate burn in period based on autocorrelation of m
+
+#---------------
+## END INPUTS ##
+#---------------
 
 ## INITIALISATION ##
 
 # synthetic event parameters
 model_parameter_suite = [
-    [36, 0.833, 31.5], # 0 single
-    [36, 0.833, 31.5, 0.0096, 0.01, 1.27, 210.8], # 1 weak binary
-    [36, 0.833, 31.5, 0.001, 0.03, 1.10, 180] # 2 caustic crossing binary
+    [0.1, 36, 0.833, 31.5, 0.0096], # 0 single
+    [0.8, 36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8], # 1 weak binary
+    [0.1, 36, 0.833, 31.5, 0.001, 0.03, 1.10, 180] # 2 caustic crossing binary
     ]
 model_type_suite = [0, 1, 1]
 
@@ -87,11 +85,13 @@ else: single_true = False
 if light_curve_type == 1: binary_true = f.scale(true_theta)
 else: binary_true = False
 
-
+# store a synthetic lightcurve. Could otherwise use f.Read_Light_Curve(file_name)
 data = f.Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_noise_baseline)
 
-# priors in scaled space
+
+# priors in true space
 if informative_priors == True:
+
     # informative priors (Zhang et al)
     s_pi = f.logUniDist(0.2, 5)
     q_pi = f.logUniDist(10e-6, 1)
@@ -101,9 +101,12 @@ if informative_priors == True:
     t0_pi = f.uniDist(0, 72)
     tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
     rho_pi =  f.logUniDist(10**-4, 10**-2)
-    priors = [t0_pi, u0_pi, tE_pi, rho_pi, q_pi, s_pi, alpha_pi]
+    fs_pi = f.logUniDist(0.1, 1)
+
+    priors = [fs_pi, t0_pi, u0_pi, tE_pi, rho_pi, q_pi, s_pi, alpha_pi]
 
 elif uniform_priors == True:
+    
     # uninformative priors
     s_upi = f.uniDist(0.2, 3)
     q_upi = f.uniDist(10e-6, 0.1)
@@ -112,11 +115,13 @@ elif uniform_priors == True:
     t0_upi = f.uniDist(0, 72)
     tE_upi = f.uniDist(1, 100)
     rho_upi =  f.uniDist(10**-4, 10**-2)
+    
     priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 
 
 if sbi == True:
 
+    # get nueral network posteriors for each model
     single_surrogate_posterior = interf.get_posteriors(0)
     binary_surrogate_posterior = interf.get_posteriors(1)
 
@@ -124,62 +129,57 @@ if sbi == True:
     single_center = interf.get_model_centers(single_surrogate_posterior, data.flux)
     binary_center = interf.get_model_centers(binary_surrogate_posterior, data.flux)
 
-else:
+else: 
     
-    single_center = np.array([36, 0.833, 31.5])
+    # use known values for centers 
+    single_center = np.array([0.8, 36, 0.833, 31.5, 0.0096])
+    binary_center = np.array([0.8, 36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8])
 
-    binary_center = np.array([36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8])
-
-
+# plot unoptimised centers
 #pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
 #pltf.Light_Curve_Fit_Error(1, binary_center, priors, data, True, "BinaryCenterSurr")
 
 
-
 # initial covariances (diagonal)
-covariance_scale = 0.001 #0.01
-
+covariance_scale = 0.001 # reduce diagonals by a multiple
 single_covariance = np.zeros((f.D(0), f.D(0)))
-np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
-
+np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.01, 0.1, 0.01, 0.1, 0.0001]))
 binary_covariance = np.zeros((f.D(1), f.D(1)))
-np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1]))
+np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.01, 0.1, 0.01, 0.1, 0.0001, 0.1, 0.01, 1]))
 
-
-# Use adaptiveMCMC to calculate initial covariances
+# use adaptiveMCMC to calculate initial covariances and optimise centers
 w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
     f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
-
 w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, w_b_covariance_history, w_b_best_posterior, w_b_best_theta =\
     f.Loop_Adaptive_Warmup(warmup_loops, 1, data, binary_center, priors, binary_covariance, adaptive_warmup_iterations, adaptive_iterations)
 
-
-
-centers = [w_s_best_theta, w_b_best_theta]
-print(centers)
-
+# plot optimised centers
 #pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
 #pltf.LightcurveFitError(1, bestt_1, priors, Data, Model, epochs, error, True, "SingleCenterMCMC")
 
 
-#params = [sn, Data, signal_data, priors, binary_Sposterior, single_Sposterior, m_pi, iterations,  Model, error, epochs, burns, iters]
-
+# Load resources for RJMCMC
+centers = [w_s_best_theta, w_b_best_theta]
 initial_states = [w_s_chain_states[:, -1], w_b_chain_states[:, -1]]
 initial_means = [w_s_chain_means[:, -1], w_b_chain_means[:, -1]]
 n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
 initial_covariances = [w_single_covariance, w_binary_covariance]
 
-
+# run RJMCMC
 chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
     f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
 
-#center_1, center_2 = centers
 
-
-
-
-
+#-----------------
 ## PLOT RESULTS ##
+#-----------------
+
+# plotting resources
+pltf.Style()
+labels = ['Source Flux Fraction', 'Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', 'Rho', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
+symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$\rho$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
+letters = ['fs', 't0', 'u0', 'tE', 'p', 'log10(q)', 's', 'a']
+marker_size = 75
 
 # construct the generalised state signal to analyse
 auxiliary_states = []
@@ -416,12 +416,12 @@ plt.clf()
 # begin corner plots
 # note that these destroy the style environment (plot these last)
 
-pltf.Walk_Plot(6, single_states, np.delete(binary_states, 3, 1), np.delete(auxiliary_states, 3, 1), data, np.delete(np.array(symbols), 3), 'binary-corner', sampled_params)
+#pltf.Walk_Plot(6, single_states, np.delete(binary_states, 3, 1), np.delete(auxiliary_states, 3, 1), data, np.delete(np.array(symbols), 3), 'binary-corner', sampled_params)
 
 #print(binary_cov_histories[:][:][-1])
 
 #pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_true, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
-pltf.Contour_Plot(7, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour', P_B)
+pltf.Contour_Plot(8, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, 'binary-contour', P_B)
 
 
 shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
