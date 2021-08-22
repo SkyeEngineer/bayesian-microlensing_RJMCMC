@@ -17,7 +17,7 @@ import copy
 
 pltf.Style
 
-theta = [36, 0.1, 36, 0.01, 0.8, 0.25, 123]
+theta = [1.0, 36, 0.1, 36, 0.01, 0.8, 0.25, 123]
 #theta = [36, 0.1, 36, 0.01, 0.01, 0.6, 123]
 #theta = [36, 0.1, 36, 0.001, 0.005, 0.8, 89] symmetric casutic grazing
 n_epochs = 720
@@ -37,30 +37,28 @@ plt.savefig('temp.png')
 plt.clf()
 
 
-throw=throw
-
 if True:
     #plt.grid()
 
     #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
-    theta_r = [36, 0.133, 61.5,  0.001, 0.009, 1.10, 180]
+    theta_r = [1.0, 36, 0.133, 61.5,  0.001, 0.009, 1.10, 180]
 
     ts = [0, 72]
 
     theta_q = copy.deepcopy(theta_r)
-    theta_q[4] = theta_q[4] + 0.001
+    theta_q[5] = theta_q[5] + 0.001
     pltf.PlotLightcurve(1, theta_q, r"$\uparrow q$", "red", 1, False, ts)
     
     theta_s = copy.deepcopy(theta_r)
-    theta_s[5] = theta_s[5] + 0.04
+    theta_s[6] = theta_s[6] + 0.04
     pltf.PlotLightcurve(1, theta_s, r"$\uparrow s$", "orange", 1, False, ts)
 
     theta_a = copy.deepcopy(theta_r)
-    theta_a[6] = theta_a[6] + 120
+    theta_a[7] = theta_a[7] + 120
     #theta_a[6] = theta_a[6] - 60
     pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [32, 72])
 
-    pltf.PlotLightcurve(1, theta_r, "Reference", "black", 1, False, ts)
+    pltf.PlotLightcurve(1, theta_r, "Ref", "black", 1, False, ts)
 
     #plt.title('Binary lens parameterisation')
     plt.xlabel('Time [days]')
@@ -87,22 +85,30 @@ if True:
     #plt.grid()
 
 
-    theta_r = [36, 0.133, 61.5]
+    theta_r = [1.0, 36, 0.133, 61.5, 0.001]
     ts = [0, 72]
-    
+
+    theta_fs = copy.deepcopy(theta_r)
+    theta_fs[0] = theta_fs[0] - 0.1
+    pltf.PlotLightcurve(0, theta_fs, r"$\downarrow f_s$", "purple", 1, False, ts)
+
     theta_t0 = copy.deepcopy(theta_r)
-    theta_t0[0] = theta_t0[0] + 15
+    theta_t0[1] = theta_t0[1] + 15
     pltf.PlotLightcurve(0, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
     
     theta_u0 = copy.deepcopy(theta_r)
-    theta_u0[1] = theta_u0[1] - 0.02
+    theta_u0[2] = theta_u0[2] - 0.02
     pltf.PlotLightcurve(0, theta_u0, r"$\downarrow u_0$", "orange", 1, False, ts)
 
     theta_tE = copy.deepcopy(theta_r)
-    theta_tE[2] = theta_tE[2] + 25
+    theta_tE[3] = theta_tE[3] + 25
     pltf.PlotLightcurve(0, theta_tE, r"$\uparrow t_E$", "red", 1, False, ts)
 
-    pltf.PlotLightcurve(0, theta_r, "Reference", "black", 1, False, ts)
+    theta_p = copy.deepcopy(theta_r)
+    theta_p[4] = theta_tE[4] + 0.1
+    pltf.PlotLightcurve(0, theta_p, r"$\uparrow \rho$", "green", 1, False, ts)
+
+    pltf.PlotLightcurve(0, theta_r, "Ref", "black", 1, False, ts)
 
     #plt.title('Single lens parameterisation')
     plt.xlabel('Time [days]')

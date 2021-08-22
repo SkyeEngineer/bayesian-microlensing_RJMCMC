@@ -67,12 +67,11 @@ truncate = False # automatically truncate burn in period based on autocorrelatio
 ## INITIALISATION ##
 
 # synthetic event parameters
-model_parameter_suite = [
+model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
     [0.1, 36, 0.833, 31.5, 0.0096], # 0 single
     [0.8, 36, 0.833, 31.5, 0.0096, 0.0001, 1.27, 210.8], # 1 weak binary
-    [0.1, 36, 0.833, 31.5, 0.001, 0.03, 1.10, 180] # 2 caustic crossing binary
-    ]
-model_type_suite = [0, 1, 1]
+    [0.1, 36, 0.833, 31.5, 0.001, 0.03, 1.10, 180]] # 2 caustic crossing binary
+model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
 
 
 light_curve_type = model_type_suite[suite_n]
@@ -115,8 +114,9 @@ elif uniform_priors == True:
     t0_upi = f.uniDist(0, 72)
     tE_upi = f.uniDist(1, 100)
     rho_upi =  f.uniDist(10**-4, 10**-2)
+    fs_upi = f.uniDist(0.1, 1)
     
-    priors = [t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
+    priors = [fs_upi, t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 
 
 if sbi == True:

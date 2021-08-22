@@ -657,7 +657,7 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
 
     if light_curve_type == 0:
         model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], true_theta[1:])))
-        model.set_magnification_methods([0., 'point_source', 72.])
+        model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
 
     elif light_curve_type == 1:
         model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], true_theta[1:])))

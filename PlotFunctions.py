@@ -357,8 +357,8 @@ def Adaptive_Progression(history, covs, name):
 def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
 
     if m == 1:
-        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
-        FitModel.set_magnification_methods([0., 'point_source', 72.])
+        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], FitTheta)))
+        FitModel.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
 
     if m == 2:
         FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], FitTheta)))
@@ -427,23 +427,27 @@ def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
 
     if m == 0:
         model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho'], theta[1:])))
-        model.set_magnification_methods([0., 'point_source', 72.])
+        model.set_magnification_methods([0., 'finite_source_uniform_Gould94', 72.])
 
     if m == 1:
         model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta[1:])))
         model.set_magnification_methods([0., 'VBBL', 72.])
 
+    epochs = np.linspace(ts[0], ts[1], 720)
+
     if caustics:
         model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
         model.plot_caustics(color = 'purple', s = 2, marker = '.')
-    
+
     elif isinstance(label, str):
-        print('add flux to plot')
-        model.plot_magnification(t_range = ts, color = color, label = label, alpha = alpha)
+        
+        A = (model.magnification(epochs) - 1.0) * theta[0] + 1.0
+        plt.plot(epochs, A, color = color, label = label, alpha = alpha)
 
     else:
-        print('add flux to plot')
-        model.plot_magnification(t_range = ts, color = color, alpha = alpha)
+
+        A = (model.magnification(epochs) - 1.0) * theta[0] + 1.0
+        plt.plot(epochs, A, color = color, alpha = alpha)
 
     return
 
@@ -558,7 +562,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                 yUpper = priors[yi].rb
             if yLower < priors[yi].lb and yi != 5:
                 yLower = priors[yi].lb
-            if yi == 4:
+            if yi == 5:
                 yLower = np.log(10e-6)
 
             xLower = np.min([np.min(states[:, xi]), base[xi]])
