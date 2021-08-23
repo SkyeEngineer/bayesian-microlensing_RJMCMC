@@ -351,7 +351,7 @@ def Adaptive_Progression(history, covs, name):
     #plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
 
     plt.tight_layout()
-    plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png', bbox_inches="tight")
+    plt.savefig('results/'+name+'ARJMH-acc-prog.png', bbox_inches="tight")
     plt.clf()
 
     return
@@ -650,7 +650,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
-
+    '''
     # inset lightcurve
     axs = figure.get_axes()[4].get_gridspec()
     half = math.floor(n_dim/2)
@@ -662,11 +662,11 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
     ax.xaxis.set_label_position("top")
     ax.yaxis.tick_right()
     ax.yaxis.set_label_position("right")
-    
+
     # classification prob text
     ax = axes[0, 3]
     ax.text(0, 0, 'Classification:\n'+r'$\mathbb{P}(m=$'+str(m+1)+r'|$\gamma$)='+f'{P:.2f}', size=20, va='center', ha='center')
-
+    '''   
     # fake cbar
     #ax = axes[4, 6]
     #col_map = plt.get_cmap('viridis')
@@ -765,7 +765,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
     ls = 20
     lr = 45
     n_lb = 3
-    plt.rcParams['font.size'] = 12
+    plt.rcParams['font.size'] = 8
     #plt.rcParams['axes.titlesize'] = 1
     plt.rcParams['axes.labelsize'] = 20
 
@@ -868,10 +868,10 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
     #Draw_Light_Curve_Noise_Error(data)
     #ax = plt.gca()
 
-    axs = figure.get_axes()[4].get_gridspec()
+    #axs = figure.get_axes()[4].get_gridspec()
     #half = math.floor(n_dim/2)
-    ax = figure.add_subplot(axs[:2, n_dim-2:n_dim])
-    Draw_Light_Curve_Noise_Error(data, ax)
+    #ax = figure.add_subplot(axs[:2, n_dim-2:n_dim])
+    #Draw_Light_Curve_Noise_Error(data, ax)
     #ax.tick_params(axis = "y", direction = "in", pad = -25)
     #ax.tick_params(axis = "x", direction = "in", pad = -15)
     #plt.axes(ax)

@@ -1,14 +1,14 @@
 Inputs:
-Parameters: [3.600e+01 8.330e-01 3.150e+01 1.000e-04 1.270e+00 2.108e+02]
+Parameters: [36.    0.33 31.5 ]
 Number of observations: 720, Signal to noise baseline: 230
 Priors: Informative
 
 Run information:
-Iterations: 5000, Burn in: 0 
-Accepted move fraction; Total: 0.3588,        Inter-model: 0.4391304347826087,        Intra-model: 0.2765182186234818 
+Iterations: 5000, Burn in: 199 
+Accepted move fraction; Total: 0.3576,        Inter-model: 0.37312220868859114,        Intra-model: 0.34253054789121007 
 
 Results:
-Classifications; P(single|y): 0.5126, P(binary|y): 0.4874 
-t0: mean: 36.01103420612032, sd: 0.018119327774017462 
-u0: mean: 0.8334213094617576, sd: 0.0003294466558392589 
-tE: mean: 31.50400335711492, sd: 0.035363381793405604 
+Classifications; P(single|y): 0.7408873151426786, P(binary|y): 0.2591126848573214 
+t0: mean: 35.99800058104097, sd: 0.0037848865414666652 
+u0: mean: 0.33006441805520137, sd: 8.745880782855419e-05 
+tE: mean: 31.499953707776967, sd: 0.009020243166131687 
