@@ -679,7 +679,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
     #cbar.ax.yaxis.set_label_position('')
     #ax.()
 
-    figure.savefig('results/'+name+'.png', dpi=500, bbox_inches="tight") #tight layout destroys spacing
+    figure.savefig('results/'+name+'.png', bbox_inches="tight") #tight layout destroys spacing
     figure.clf()
 
     return
@@ -743,7 +743,7 @@ def Double_Plot(ndim, states_1, states_2, symbols, name):
                 ax.axes.get_yaxis().set_ticklabels([])
 
     #plt.tight_layout()
-    figure.savefig('Plots/' + name + '.png', dpi = 500, bbox_inches="tight")
+    figure.savefig('Plots/' + name + '.png', bbox_inches="tight")
     figure.clf()
 
     return
@@ -925,7 +925,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
         
 
     #plt.tight_layout()
-    figure.savefig('results/' + name + '.png', dpi = 500, bbox_inches="tight")
+    figure.savefig('results/' + name + '.png', bbox_inches="tight")
     figure.clf()
 
     return

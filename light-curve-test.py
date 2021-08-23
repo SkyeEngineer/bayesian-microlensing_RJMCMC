@@ -85,7 +85,7 @@ if True:
 
 
 
-    plt.savefig('Plots/BinaryParamCurve.png', dpi=500)
+    plt.savefig('Plots/BinaryParamCurve.png')
     plt.clf()
 
 if True:
