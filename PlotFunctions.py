@@ -539,8 +539,11 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         if xLower < priors[i].lb and i != 3:
             xLower = priors[i].lb
 
-        if i == 3:
+        if i == 3 and xLower<np.log10(10e-6):
             xLower = np.log10(10e-6)
+
+        if i == 3 and xUpper>np.log10(1):
+            xUpper = np.log10(1)
 
         ax.set_xlim((xLower, xUpper))
 
@@ -565,8 +568,11 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
                 yUpper = priors[yi].rb
             if yLower < priors[yi].lb and yi != 3:
                 yLower = priors[yi].lb
-            if yi == 3:
+            if yi == 3 and yLower<np.log10(10e-6):
                 yLower = np.log10(10e-6)
+
+            if yi == 3 and yUpper>np.log10(1):
+                yUpper = np.log10(1)
 
             xLower = np.min([np.min(states[:, xi]), base[xi]])
             xUpper = np.max([np.max(states[:, xi]), base[xi]])
@@ -580,8 +586,11 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
             if xLower < priors[xi].lb and xi != 3:
                 xLower = priors[xi].lb
 
-            if xi == 3:
+            if xi == 3 and xLower<np.log10(10e-6):
                 xLower = np.log10(10e-6)
+
+            if xi == 3 and xUpper>np.log10(1):
+                xUpper = np.log10(1)
 
             yaxis = np.linspace(yLower, yUpper, n_points)
             xaxis = np.linspace(xLower, xUpper, n_points)

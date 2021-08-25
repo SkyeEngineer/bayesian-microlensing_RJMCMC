@@ -18,10 +18,12 @@ from scipy.stats import truncnorm, loguniform, uniform
 from matplotlib.collections import LineCollection
 import seaborn as sns
 import pandas as pd
-import interfaceing as interf
+#import interfaceing as interf
 from multiprocessing import Pool
 from scipy.optimize import minimize
 from copy import deepcopy
+
+import time
 
 from scipy.stats import chi2
 import scipy
@@ -38,19 +40,19 @@ from pathlib import Path
 ## INPUTS ##
 #-----------
 
-suite_n = 1
+suite_n = 0
 
 adaptive_warmup_iterations = 25 # mcmc steps without adaption
-adaptive_iterations = 175 # mcmc steos with adaption
-warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 500 # rjmcmc steps
+adaptive_iterations = 1975 # mcmc steos with adaption
+warmup_loops = 3 # times to repeat mcmc optimisation of centers to try to get better estimate
+iterations = 20000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = 230#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 2 # density for posterior contour plot
+n_points = 25 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
 uniform_priors = False 
@@ -58,7 +60,7 @@ informative_priors = True
 
 sbi = False # use neural net to get maximum aposteriori estimate for centreing points
 
-truncate = False # automatically truncate burn in period based on autocorrelation of m
+truncate = True # automatically truncate burn in period based on autocorrelation of m
 
 #---------------
 ## END INPUTS ##
@@ -96,14 +98,18 @@ elif uniform_priors == True:
     
     priors = [fs_upi, t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 
+    data_view = f.Synthetic_Light_Curve([36, 0.83, 31.5, 0.025, 1.27, 210.8], 1, n_epochs, 10000)
+    plt.plot(epochs, data_view.flux)
+    plt.savefig('temp')
+    plt.clf()
 
 def Suite(suite_n):
 
     # synthetic event parameters
     model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [36, 0.33, 31.5], # 0 single
-        [36, 0.33, 31.5, 0.00001, 1.27, 210.8], # 1 weak binary
-        [36, 0.33, 31.5, 0.03, 1.10, 180]] # 2 caustic crossing binary
+        [36, 0.83, 31.5], # 0 single
+        [36, 0.83, 31.5, 0.005, 1.27, 210.8], # 1 weak binary
+        [36, 0.1, 36, 0.8, 0.25, 123]] # 2 caustic crossing binary
     model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
 
 
@@ -135,17 +141,17 @@ def Suite(suite_n):
         # use known values for centers 
 
         single_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [36, 0.33, 31.5], # 0 single
-        [36, 0.33, 31.5], # 1 weak binary
-        [36, 0.33, 31.5]]
+        [36, 0.83, 31.5], # 0 single
+        [36, 0.83, 31.5], # 1 weak binary
+        [36, 0.1, 36]]
 
         single_center = single_center_suite[suite_n]
 
 
         binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [36, 0.33, 31.5, 0.00001, 1.27, 210.8], # 0 single
-        [36, 0.33, 31.5, 0.00001, 1.27, 210.8], # 1 weak binary
-        [36, 0.33, 31.5, 0.03, 1.10, 180]] 
+        [36, 0.83, 31.5, 0.00001, 1.27, 210.8], # 0 single
+        [36, 0.83, 31.5, 0.005, 1.27, 210.8], # 1 weak binary
+        [36, 0.1, 36, 0.8, 0.25, 123]] 
 
         binary_center = binary_center_suite[suite_n]
     
@@ -173,6 +179,8 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     binary_covariance = np.zeros((f.D(1), f.D(1)))
     np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.1, 0.01, 10]))
 
+    start_time = (time.time())
+
     # use adaptiveMCMC to calculate initial covariances and optimise centers
     w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
         f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
@@ -191,10 +199,13 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
     initial_covariances = [w_single_covariance, w_binary_covariance]
 
+
+
     # run RJMCMC
     chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
         f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
 
+    print((time.time() - start_time)/60, 'minutes')
 
     #-----------------
     ## PLOT RESULTS ##
@@ -233,15 +244,15 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
             ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 5, quiet = True)
             
             if ac_time_m[i] < N[i]/50: # linearly interpolate truncation point
-                if i == 0:
-                    truncated = N[i]
-                else:
-                    slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
-                    truncated = int(math.ceil((ac_time_m[i] - slope * N[i]) / (1/50 - slope)))
+                #if i == 0:
+                truncated = N[i]
+                #else:
+                #    slope = (ac_time_m[i] - ac_time_m[i-1]) / (N[i] - N[i-1])
+                #    truncated = int(math.ceil((ac_time_m[i] - slope * N[i]) / (1/50 - slope)))
                 break
 
-            truncated = math.nan
-            raise ValueError("Not enough iterations to converge to the limiting distribution")
+            truncated = 0
+            print("Not enough iterations to converge to the limiting distribution")
 
     else: truncated = 0
 
@@ -455,8 +466,10 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     #print(binary_cov_histories[:][:][-1])
 
     #pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_true, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
-    pltf.Contour_Plot(6, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, run_name+'binary-contour', P_B)
-    pltf.Contour_Plot(3, n_points, tr_single_states, single_cov_histories[-1], single_true, centers[0], 0, priors, data, symbols, run_name+'single-contour', P_S)
+    if P_B>P_S:
+        pltf.Contour_Plot(6, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, run_name+'binary-contour', P_B)
+    else:
+        pltf.Contour_Plot(3, n_points, tr_single_states, single_cov_histories[-1], single_true, centers[0], 0, priors, data, symbols, run_name+'single-contour', P_S)
 
     shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
 
@@ -468,9 +481,9 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     return
 
 
-true_theta, binary_true, single_true, data, binary_center, single_center = Suite(0)
-Run('1/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(0)
+#Run('1/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 
 true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
@@ -478,9 +491,9 @@ Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterati
     truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 
-true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
-Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
+#Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 
 
