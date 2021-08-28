@@ -667,6 +667,8 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
     true_signal = model.magnification(epochs) #(model.magnification(epochs) - 1.0) * true_theta[0] + 1.0 # adjust for fs
 
+    np.random.seed(42)
+
     # simulate noise in gaussian errored flux space
     noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 
     noise_sd = np.sqrt(true_signal) / signal_to_noise_baseline

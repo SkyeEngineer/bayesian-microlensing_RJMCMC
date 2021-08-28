@@ -499,7 +499,7 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         #ax.grid()
 
         # distribution plots
-        ax.hist(states[:, i], bins = 50, density = True)
+        ax.hist(states[:, i], bins = 25, density = True)
 
         mu = np.average(states[:, i])
         sd = np.std(states[:, i])

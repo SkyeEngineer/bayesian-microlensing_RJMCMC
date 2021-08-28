@@ -43,9 +43,9 @@ from pathlib import Path
 suite_n = 0
 
 adaptive_warmup_iterations = 25 # mcmc steps without adaption
-adaptive_iterations = 1975 # mcmc steos with adaption
-warmup_loops = 3 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 20000 # rjmcmc steps
+adaptive_iterations = 2475 # mcmc steos with adaption
+warmup_loops = 2 # times to repeat mcmc optimisation of centers to try to get better estimate
+iterations = 10000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
@@ -108,7 +108,7 @@ def Suite(suite_n):
     # synthetic event parameters
     model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5], # 0 single
-        [36, 0.83, 31.5, 0.005, 1.27, 210.8], # 1 weak binary
+        [36, 0.83, 31.5, 0.0032, 1.27, 210.8], # 1 weak binary
         [36, 0.1, 36, 0.8, 0.25, 123]] # 2 caustic crossing binary
     model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
 
@@ -150,7 +150,7 @@ def Suite(suite_n):
 
         binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5, 0.00001, 1.27, 210.8], # 0 single
-        [36, 0.83, 31.5, 0.005, 1.27, 210.8], # 1 weak binary
+        [36, 0.83, 31.5, 0.0032, 1.27, 210.8], # 1 weak binary
         [36, 0.1, 36, 0.8, 0.25, 123]] 
 
         binary_center = binary_center_suite[suite_n]
@@ -446,12 +446,12 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
     # plot of model index trace
     plt.plot(np.linspace(truncated, iterations, num = iterations - truncated ), chain_ms[truncated:] + 1, linewidth = 0.25)
-    plt.title('RJMH Model Trace')
+    #plt.title('RJMH Model Trace')
     plt.xlabel('Iterations')
     plt.ylabel('Model Index')
     plt.locator_params(axis = "y", nbins = 2) # only two ticks
     plt.tight_layout()
-    #plt.savefig('Plots/M-Trace.png')
+    plt.savefig('Plots/M-Trace.png')
     plt.clf()
 
 
