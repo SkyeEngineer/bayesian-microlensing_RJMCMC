@@ -461,10 +461,17 @@ def Log_Likelihood(m, theta, priors, data):
             model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_true_scale)))
             model.set_magnification_methods([0., 'point_source', 72.])
 
-            A = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
-            y = data.flux # signal
+            a = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
+            y = data.flux # flux signal
+            
+            A = np.vstack([a, np.ones(len(a))]).T
+            f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
+            F = f_s*a + f_b # least square signal
+            
+            #print(f_s, f_b)
+
             sd = data.err_flux # error
-            chi2 = np.sum((y - A)**2/sd**2)
+            chi2 = np.sum((y - F)**2/sd**2)
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf
@@ -477,10 +484,17 @@ def Log_Likelihood(m, theta, priors, data):
             model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta_true_scale)))
             model.set_magnification_methods([0., 'point_source', 72.])
 
-            A = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
+            a = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
             y = data.flux # signal
+
+            A = np.vstack([a, np.ones(len(a))]).T
+            f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
+            F = f_s*a + f_b # least square signal
+
+            #print(f_s, f_b)
+
             sd = data.err_flux # error
-            chi2 = np.sum((y - A)**2/sd**2)
+            chi2 = np.sum((y - F)**2/sd**2)
 
         except: # if a point is uncomputable, return true probability zero
             return -Inf

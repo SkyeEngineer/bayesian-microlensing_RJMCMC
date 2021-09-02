@@ -264,7 +264,7 @@ def DistPlot(xi, states, labels, symbols, letters, m, model, center, true, prior
     return
 
 
-def Adaptive_Progression(history, covs, name):
+def Adaptive_Progression(iterations, history, covs, name):
 
     size = int(len(history)/25)#100#50
     
@@ -313,7 +313,7 @@ def Adaptive_Progression(history, covs, name):
     trace_colour = 'blue'
 
     a1 = plt.axes()
-    a1.plot((np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
+    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
 
     a1.set_ylabel('Acceptance rate per bin')
     a1.set_ylim((0.0, 1.0))
@@ -323,9 +323,9 @@ def Adaptive_Progression(history, covs, name):
     a1.set_xlabel(f'Binned iterations over time')
     a2 = a1.twinx()
 
-    a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
+    a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
     if len(covs[0][:]) == f.D(1):
-        a2.plot((np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
+        a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
     a2.set_ylabel(r'Average $Tr(K_{xx})$ per bin')
     
     a2.set_ylim((0.0, 1.0))
@@ -499,11 +499,11 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         #ax.grid()
 
         # distribution plots
-        ax.hist(states[:, i], bins = 25, density = True)
+        ax.hist(states[:, i], bins = 10, density = True)
 
         mu = np.average(states[:, i])
         sd = np.std(states[:, i])
-        ax.axvline(mu, label = r'$\mu$', color = 'black')
+        #ax.axvline(mu, label = r'$\mu$', color = 'black')
         ax.axvspan(mu - sd, mu + sd, alpha = 0.1, color = 'cyan', label = r'$\sigma$')
 
         if isinstance(true, np.ndarray):
@@ -899,7 +899,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
 
         if m == 1:
             model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'rho', 'q', 's', 'alpha'], theta)))
-            model.set_magnification_methods([0., 'VBBL', 72.])
+            model.set_magnification_methods([0., 'point_source', 72.])
 
     #    model.plot_magnification(t_range = [0, 72], color = 'red', alpha = 0.25)
     

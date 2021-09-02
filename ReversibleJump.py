@@ -43,16 +43,16 @@ from pathlib import Path
 suite_n = 0
 
 adaptive_warmup_iterations = 25 # mcmc steps without adaption
-adaptive_iterations = 2475 # mcmc steos with adaption
-warmup_loops = 2 # times to repeat mcmc optimisation of centers to try to get better estimate
+adaptive_iterations = 975 # mcmc steps with adaption
+warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
 iterations = 10000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 230#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 25 # density for posterior contour plot
+n_points = 2 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
 uniform_priors = False 
@@ -108,7 +108,7 @@ def Suite(suite_n):
     # synthetic event parameters
     model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5], # 0 single
-        [36, 0.83, 31.5, 0.0032, 1.27, 210.8], # 1 weak binary
+        [36, 0.83, 31.5, 0.00225, 1.27, 210.8], # 1 weak binary 0.0023
         [36, 0.1, 36, 0.8, 0.25, 123]] # 2 caustic crossing binary
     model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
 
@@ -150,7 +150,7 @@ def Suite(suite_n):
 
         binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5, 0.00001, 1.27, 210.8], # 0 single
-        [36, 0.83, 31.5, 0.0032, 1.27, 210.8], # 1 weak binary
+        [36, 0.83, 31.5, 0.00225, 1.27, 210.8], # 1 weak binary
         [36, 0.1, 36, 0.8, 0.25, 123]] 
 
         binary_center = binary_center_suite[suite_n]
@@ -398,8 +398,8 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
 
 
-    pltf.Adaptive_Progression(np.concatenate((w_s_acceptance_history, intra_j_acc_histories[0])), single_cov_histories, run_name+'-single-')
-    pltf.Adaptive_Progression(np.concatenate((w_b_acceptance_history, intra_j_acc_histories[1])), binary_cov_histories, run_name+'-binary-')
+    pltf.Adaptive_Progression(adaptive_warmup_iterations+adaptive_iterations+iterations, np.concatenate((w_s_acceptance_history, intra_j_acc_histories[0])), single_cov_histories, run_name+'-single-')
+    pltf.Adaptive_Progression(adaptive_warmup_iterations+adaptive_iterations+iterations, np.concatenate((w_b_acceptance_history, intra_j_acc_histories[1])), binary_cov_histories, run_name+'-binary-')
 
     conditioned_cov_histories = []
     n_shared = f.D(0)
@@ -420,7 +420,7 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
     conditioned_cov_histories = np.array(conditioned_cov_histories)
 
-    pltf.Adaptive_Progression(inter_j_acc_histories, conditioned_cov_histories, run_name+'-conditioned-') # progression for between model jump distribution
+    pltf.Adaptive_Progression(iterations, inter_j_acc_histories, conditioned_cov_histories, run_name+'-conditioned-') # progression for between model jump distribution
 
 
 
