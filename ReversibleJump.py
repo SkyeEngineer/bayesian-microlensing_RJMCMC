@@ -43,16 +43,16 @@ from pathlib import Path
 suite_n = 0
 
 adaptive_warmup_iterations = 25 # mcmc steps without adaption
-adaptive_iterations = 975 # mcmc steps with adaption
+adaptive_iterations = 175 # mcmc steps with adaption
 warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 10000 # rjmcmc steps
+iterations = 1000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = 230#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 23#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 2 # density for posterior contour plot
+n_points = 10 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
 uniform_priors = False 
@@ -109,8 +109,9 @@ def Suite(suite_n):
     model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5], # 0 single
         [36, 0.83, 31.5, 0.00225, 1.27, 210.8], # 1 weak binary 0.0023
-        [36, 0.1, 36, 0.8, 0.25, 123]] # 2 caustic crossing binary
-    model_type_suite = [0, 1, 1] # model type associated with synethic event suite above
+        [36, 0.83, 31.5, 0.00325, 1.27, 210.8], # 2 weak binary 0.0023
+        [36, 0.1, 36, 0.8, 0.25, 123]] # 3 caustic crossing binary
+    model_type_suite = [0, 1, 1, 1] # model type associated with synethic event suite above
 
 
     light_curve_type = model_type_suite[suite_n]
@@ -143,6 +144,7 @@ def Suite(suite_n):
         single_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5], # 0 single
         [36, 0.83, 31.5], # 1 weak binary
+        [36, 0.83, 31.5],
         [36, 0.1, 36]]
 
         single_center = single_center_suite[suite_n]
@@ -151,6 +153,7 @@ def Suite(suite_n):
         binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [36, 0.83, 31.5, 0.00001, 1.27, 210.8], # 0 single
         [36, 0.83, 31.5, 0.00225, 1.27, 210.8], # 1 weak binary
+        [36, 0.83, 31.5, 0.00325, 1.27, 210.8], # 2
         [36, 0.1, 36, 0.8, 0.25, 123]] 
 
         binary_center = binary_center_suite[suite_n]
@@ -177,7 +180,7 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     single_covariance = np.zeros((f.D(0), f.D(0)))
     np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
     binary_covariance = np.zeros((f.D(1), f.D(1)))
-    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.1, 0.01, 10]))
+    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.01, 0.01, 1]))
 
     start_time = (time.time())
 
@@ -232,18 +235,23 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
     auxiliary_states = np.array(auxiliary_states)
 
+
+    chain_ps = np.zeros((iterations))
+    for i in range(iterations):
+        chain_ps[i] = np.sum(chain_ms[:i])/(i+1)
+
     # truncate once m below 50 auto correlation times
     if truncate == True:
         n_ac = 25
         N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
 
-        ac_time_m = np.zeros(len(N))
-        y_m = np.array(chain_ms)
+        ac_time_ps = np.zeros(len(N))
+        y_ps = np.array(chain_ps)
 
         for i, n in enumerate(N):
-            ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 5, quiet = True)
+            ac_time_ps[i] = MC.autocorr.integrated_time(y_ps[:n], c = 5, tol = 5, quiet = True)
             
-            if ac_time_m[i] < N[i]/50: # linearly interpolate truncation point
+            if ac_time_ps[i] < N[i]/50: # linearly interpolate truncation point
                 #if i == 0:
                 truncated = N[i]
                 #else:
@@ -274,14 +282,14 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
 
     # again for m
-    ac_time_m = np.zeros(len(N))
-    y_m = np.array(chain_ms)
+    ac_time_ps = np.zeros(len(N))
+    y_ps = np.array(chain_ps)
 
     for i, n in enumerate(N):
 
-        ac_time_m[i] = MC.autocorr.integrated_time(y_m[:n], c = 5, tol = 5, quiet = True, )
+        ac_time_ps[i] = MC.autocorr.integrated_time(y_ps[:n], c = 5, tol = 5, quiet = True, )
 
-    plt.loglog(N, ac_time_m, "o-b", label=r"$M$",  linewidth = 2, markersize = 5)
+    plt.loglog(N, ac_time_ps, "o-b", label=r"$P$",  linewidth = 2, markersize = 5)
 
 
     # plot details
@@ -445,16 +453,24 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
 
     # plot of model index trace
-    plt.plot(np.linspace(truncated, iterations, num = iterations - truncated ), chain_ms[truncated:] + 1, linewidth = 0.25)
+    plt.plot(np.linspace(0, iterations, num = iterations), chain_ms + 1, linewidth = 0.25)
     #plt.title('RJMH Model Trace')
     plt.xlabel('Iterations')
     plt.ylabel('Model Index')
     plt.locator_params(axis = "y", nbins = 2) # only two ticks
     plt.tight_layout()
-    plt.savefig('Plots/M-Trace.png')
+    plt.savefig('results/'+run_name+'M-Trace.png')
     plt.clf()
 
-
+    # plot of model index trace
+    plt.plot(np.linspace(0, iterations, num = iterations), chain_ps, linewidth = 0.25, color='purple')
+    #plt.title('RJMH Model Trace')
+    plt.xlabel('Iterations')
+    plt.ylabel('P')
+    #plt.locator_params(axis = "y", nbins = 2) # only two ticks
+    plt.tight_layout()
+    plt.savefig('results/'+run_name+'P-Trace.png')
+    plt.clf()
 
     # begin corner plots
     # note that these destroy the style environment (plot these last)
@@ -486,13 +502,16 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 #    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 
-true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
-Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
+#Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+
+true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
+Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
     truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
-
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
-#Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(3)
+#Run('4/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
 #    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 

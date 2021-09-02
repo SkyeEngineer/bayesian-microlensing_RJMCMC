@@ -1,0 +1,17 @@
+Inputs:
+Parameters: [3.60e+01 1.00e-01 3.60e+01 8.00e-01 2.50e-01 1.23e+02]
+Number of observations: 720, Signal to noise baseline: 230
+Priors: Informative
+
+Run information:
+Iterations: 10000, Burn in: 0 
+Accepted move fraction; Total: 0.1561,            Inter-model: 0.0,            Intra-model: 0.31870151082074316 
+
+Results:
+Classifications; P(single|y): 0.0, P(binary|y): 1.0 
+t0: mean: 35.99905361114758, sd: 0.0015632455083775091 
+u0: mean: 0.09985852870505924, sd: 0.00041951119816480554 
+tE: mean: 36.041565751078565, sd: 0.13759782806128665 
+log10(q): mean: -0.09647792247611513, sd: 0.0034761436854197436 
+s: mean: 0.2501160749426353, sd: 0.000562375638075205 
+a: mean: 122.96160739363911, sd: 0.07397612853506098 

@@ -2,7 +2,7 @@
 # Part 4 Project, RJMCMC for Microlensing
 # [Lightcurve plotting]
 
-from interfaceing import get_model_centers, get_posteriors
+#from interfaceing import get_model_centers, get_posteriors
 from os import error
 from numpy.core.defchararray import title
 from numpy.core.fromnumeric import size
@@ -51,7 +51,31 @@ theta_r = [36, 0.133, 61.5, 0.009, 1.10, 180]
 pltf.PlotLightcurve(1, theta_r, r"$\uparrow q$", "red", 1, False, ts)
 plt.savefig('temp.png')
 plt.clf()
-throw=throw
+#throw=throw
+
+if True:
+
+    ts = [0, 72]
+
+    pltf.PlotLightcurve(0, [36, 0.83, 31.5], r"$q=0$", "blue", 1, False, ts)
+
+    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.00225, 1.27, 210.8], r"$q=0.0025$", "green", 1, False, ts)
+
+    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.00325, 1.27, 210.8], r"$q=0.0035$", "yellow", 1, False, ts)
+
+    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.1, 1.27, 210.8], r"$q=0.1$", "red", 1, False, ts)
+
+
+
+
+    plt.legend()
+
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    plt.tight_layout()
+    plt.savefig('Plots/qCurves.png')
+    plt.clf()
 
 
 if True:
