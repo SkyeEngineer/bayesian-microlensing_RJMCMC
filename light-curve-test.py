@@ -6,6 +6,7 @@
 from os import error
 from numpy.core.defchararray import title
 from numpy.core.fromnumeric import size
+from numpy.core.function_base import linspace
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -36,24 +37,24 @@ pltf.Style
 #plt.savefig('temp.png')
 #plt.clf()
 
-theta_r = [36, 0.133, 61.5]
-ts = [0, 72]
+#theta_r = [36, 0.133, 61.5]
+#ts = [0, 72]
 
 
-pltf.PlotLightcurve(0, theta_r, r"$\uparrow t_0$", "blue", 1, False, ts)
+#pltf.PlotLightcurve(0, theta_r, r"$\uparrow t_0$", "blue", 1, False, ts)
 
-theta_r = [36, 0.133, 61.5, 0.009, 1.10, 180]
+#theta_r = [36, 0.133, 61.5, 0.009, 1.10, 180]
 
 
 
 #theta_q = copy.deepcopy(theta_r)
 #theta_q[3] = theta_q[3] + 0.0015
-pltf.PlotLightcurve(1, theta_r, r"$\uparrow q$", "red", 1, False, ts)
-plt.savefig('temp.png')
-plt.clf()
+#pltf.PlotLightcurve(1, theta_r, r"$\uparrow q$", "red", 1, False, ts)
+#plt.savefig('temp.png')
+#plt.clf()
 #throw=throw
 
-if True:
+if False:
 
     ts = [0, 72]
 
@@ -76,6 +77,91 @@ if True:
     plt.tight_layout()
     plt.savefig('Plots/qCurves.png')
     plt.clf()
+
+
+if True:
+    #plt.grid()
+
+    #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
+    theta_r = [36, 1.0, 1, 0.07, 1.49, 225]
+    # alpha = 2pi/3
+    #mean of q (1-10e-6)/(ln(1/10e-6)) = 0.07
+    #mean of s (5-0.2)/(ln(5/0.2)) = 1.49
+
+    ts = [0, 72]
+
+    for te in linspace(1, 2, 9):
+        theta_te = copy.deepcopy(theta_r)
+        theta_te[2] = te
+        pltf.PlotLightcurve(1, theta_te, "te="+str(te), 'yellow', 1, False, ts)
+
+    plt.legend()
+
+
+    #plt.title('Binary lens parameterisation')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    plt.tight_layout()
+
+    plt.axes([0.125, 0.55, 0.3, 0.3])
+    
+    #theta_s = copy.deepcopy(theta_r)
+    #theta_s[4] = s
+    pltf.PlotLightcurve(1, theta_r, " ", 'yellow', 1, True, [34, 36])
+    
+#    ax = plt.gca()
+#    ax.axes.xaxis.set_visible(False)
+#    ax.axes.yaxis.set_visible(False)
+    #plt.legend(title = 'caustic', fontsize = 9)
+
+    plt.savefig('Plots/WidthParamCurve.png')
+    plt.clf()
+
+#throw=throw
+
+if True:
+    #plt.grid()
+
+    #theta_r = [36, 0.133, 61.5,  0.001, 0.008, 1.2, 300] # crash
+    theta_r = [36, 1.0, 6, 0.07, 0.2, 120]
+    # alpha = 2pi/3
+    #mean of q (1-10e-6)/(ln(1/10e-6)) = 0.07 max too low 4.69 aligns with 6 is moa data. Accurate since single lens. No binary data 
+    #mean of tE approximately exp(10^1.15 - (10^0.45)^2/2) max approximately 5, E = 0.2
+
+    ts = [0, 72]
+
+    for s in [0.2, 1, 2, 3]:#linspace(0.2, 3.0, 10):
+        theta_s = copy.deepcopy(theta_r)
+        theta_s[4] = s
+        pltf.PlotLightcurve(1, theta_s, "s="+str(s), 'blue', 0.5, False, ts)
+
+
+
+
+    #plt.title('Binary lens parameterisation')
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    plt.tight_layout()
+
+    #plt.axes([0.125, 0.55, 0.3, 0.3])
+    
+    #for s in linspace(0.2, 5, 2):
+    #    theta_s = copy.deepcopy(theta_r)
+    #    theta_s[4] = s
+    #    pltf.PlotLightcurve(1, theta_s, " ", 'blue', 0.1, True, [26, 46])
+    
+    #ax = plt.gca()
+    #ax.axes.xaxis.set_visible(False)
+    #ax.axes.yaxis.set_visible(False)
+    #plt.legend(title = 'caustic', fontsize = 9)
+    plt.legend()
+    plt.savefig('Plots/MeanParamCurve.png')
+    plt.clf()
+
+throw=throw
+
 
 
 if True:

@@ -39,11 +39,13 @@ rho_pi =  mc.logUniDist(10**-4, 10**-2)
 distr = tE_pi
 
 y=[]
-x=np.linspace(1, 100, 100)
+x=np.linspace(1, 100, 1000)
+mu=0
 for i in x:
-    y.append(np.exp(distr.logPDF(i)))
-print(distr.dist.cdf(1))
-
+    mu+=np.exp(distr.log_PDF(i))*i
+    y.append(np.exp(distr.log_PDF(i)))
+print(mu/len(x))
+#print(y)
 
 plt.rcParams["font.family"] = "serif"
 plt.rcParams['font.size'] = 12
