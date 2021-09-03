@@ -57,13 +57,13 @@ if True:
 
     ts = [0, 72]
 
-    pltf.PlotLightcurve(0, [36, 0.83, 31.5], r"$q=0$", "blue", 1, False, ts)
+    pltf.PlotLightcurve(0, [45, 0.2, 20], r"$q=0$", "blue", 1, False, ts)
 
-    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.00225, 1.27, 210.8], r"$q=0.0025$", "green", 1, False, ts)
+    pltf.PlotLightcurve(1, [45, 0.2, 20, 0.00001, 1.0, 300], r"$q=0.0025$", "green", 1, False, ts)
 
-    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.00325, 1.27, 210.8], r"$q=0.0035$", "yellow", 1, False, ts)
+    pltf.PlotLightcurve(1, [45, 0.2, 20, 0.0001, 1.0, 300], r"$q=0.0035$", "yellow", 1, False, ts)
 
-    pltf.PlotLightcurve(1, [36, 0.83, 31.5, 0.1, 1.27, 210.8], r"$q=0.1$", "red", 1, False, ts)
+    pltf.PlotLightcurve(1, [45, 0.2, 20, 0.001, 1.0, 300], r"$q=0.1$", "red", 1, False, ts)
 
 
 
