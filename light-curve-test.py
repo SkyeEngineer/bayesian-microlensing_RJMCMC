@@ -160,6 +160,35 @@ if True:
     plt.savefig('Plots/MeanParamCurve.png')
     plt.clf()
 
+if True:
+    theta_r = [36, -0.1, 61.5, 0.01, 0.2, 25]
+
+    ts = [0, 72]
+
+    for s in linspace(0.2, 3.0, 10):
+        theta_s = copy.deepcopy(theta_r)
+        theta_s[4] = s
+        pltf.PlotLightcurve(1, theta_s, "s="+str(s), 'blue', 0.5, False, ts)
+
+
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    plt.tight_layout()
+
+    plt.legend()
+
+    plt.axes([0.125, 0.55, 0.3, 0.3])
+    theta_s = copy.deepcopy(theta_r)
+    pltf.PlotLightcurve(1, theta_s, " ", 'blue', 0.1, True, [26, 46])
+
+    theta_s = copy.deepcopy(theta_r)
+    theta_s[1] = 0.1
+    pltf.PlotLightcurve(1, theta_s, " ", 'blue', 0.1, True, [26, 46])
+
+    plt.savefig('Plots/MeanParamCurve.png')
+    plt.clf()
+
 throw=throw
 
 
