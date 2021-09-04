@@ -289,24 +289,9 @@ def Adaptive_Progression(iterations, history, covs, name):
         trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
         stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][:3, :3], 0, 2)) / size)
 
-    #covs = np.array(covs)
-    #print(covs[0][:3, :3])
-    #print(covs[0][:3][:3])
-    #print(covs[0])
-    
-    #print(np.trace(covs[0:2][:3, :3]))
-    #print(np.trace(covs[0:2], 0, 2))
-    #print(np.sum(np.trace(covs[0:2], 0, 2)))
-    #print(np.sum(np.sum(np.trace(covs[0:2], 1, 2))))
-    #print(np.trace(covs[1]))
-    #print(covs[-2, -1][:, :])
 
-    #min = np.min([np.min(trace), np.min(stable_trace)])
-    #max = np.max(trace)
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
     normed_stable_trace = (stable_trace - np.min(stable_trace))/(np.max(stable_trace)-np.min(stable_trace))
-    #normed_trace = (trace - min)/(max-min)
-    #normed_stable_trace = (stable_trace - min)/(max-min)
 
 
     rate_colour = 'purple'
@@ -315,18 +300,18 @@ def Adaptive_Progression(iterations, history, covs, name):
     a1 = plt.axes()
     a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
 
-    a1.set_ylabel('Acceptance rate per bin')
+    a1.set_ylabel(r'Average $\alpha(\theta_i, \theta_j)$ per bin')
     a1.set_ylim((0.0, 1.0))
 
 
     #plt.grid()
-    a1.set_xlabel(f'Binned iterations over time')
+    a1.set_xlabel(f'Iterations')
     a2 = a1.twinx()
 
     a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
     if len(covs[0][:]) == f.D(1):
         a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
-    a2.set_ylabel(r'Average $Tr(K_{xx})$ per bin')
+    a2.set_ylabel(r'Average $Tr(C)$ per bin')
     
     a2.set_ylim((0.0, 1.0))
     a2.set_yticks([0.0, 1.0])
@@ -439,8 +424,8 @@ def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
     epochs = np.linspace(ts[0], ts[1], 720)
 
     if caustics:
-        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.012})
-        model.plot_caustics(color = color, s = 2, marker = '.', n_points=10000)
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.006})
+        model.plot_caustics(color = color, s = 1, marker = 'o', n_points=10000)
 
     elif isinstance(label, str):
         
@@ -499,12 +484,12 @@ def Contour_Plot(n_dim, n_points, states, covariance, true, center, m, priors, d
         #ax.grid()
 
         # distribution plots
-        ax.hist(states[:, i], bins = 10, density = True)
+        ax.hist(states[:, i], bins = 10, density = True, color='black', alpha=0.5)
 
         mu = np.average(states[:, i])
         sd = np.std(states[:, i])
         #ax.axvline(mu, label = r'$\mu$', color = 'black')
-        ax.axvspan(mu - sd, mu + sd, alpha = 0.1, color = 'cyan', label = r'$\sigma$')
+        ax.axvspan(mu - sd, mu + sd, alpha = 0.25, color = 'grey', label = r'$\sigma$')
 
         if isinstance(true, np.ndarray):
             ax.axvline(base[i], label = r'$\theta$', color = 'red')
@@ -788,7 +773,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
         ax.cla()
         #ax.grid()
         #ax.plot(np.linspace(1, len(binary_states), len(states)), states[:, i], linewidth = 0.25)
-        ax.plot(np.linspace(1, len(signals[:, i]), len(signals[:, 1])), signals[:, i], linewidth = 0.25, color='black')
+        ax.plot(np.linspace(1, len(signals[:, i]), len(signals[:, 1])), signals[:, i], linewidth = 0.5, color='black')
         
 
 
@@ -819,7 +804,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
             ax = axes[yi, xi]
             ax.cla()
             #ax.grid()
-            ax.scatter(binary_states[:, xi], binary_states[:, yi], c = np.linspace(0.0, 1.0, len(binary_states)), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(binary_states[:, xi], binary_states[:, yi], c = np.linspace(0.0, 1.0, len(binary_states)), cmap = 'spring', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
                 
             if yi == n_dim - 1:
                 ax.set_xlabel(symbols[xi])
@@ -843,7 +828,7 @@ def Walk_Plot(n_dim, single_states, binary_states, signals, data, symbols, name,
             if xi < f.D(0) and yi < f.D(0):
                 axs = figure.get_axes()[4].get_gridspec()
                 axt = figure.add_subplot(axs[xi, yi])
-                axt.scatter(single_states[:, yi], single_states[:, xi], c = np.linspace(0.0, 1.0, len(single_states)), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+                axt.scatter(single_states[:, yi], single_states[:, xi], c = np.linspace(0.0, 1.0, len(single_states)), cmap = 'winter', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
 
                 
 
