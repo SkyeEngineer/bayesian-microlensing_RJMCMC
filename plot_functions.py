@@ -3,8 +3,8 @@ from numpy.core.defchararray import array
 from numpy.core.fromnumeric import mean, ndim
 from numpy.core.function_base import linspace
 import MulensModel as mm
-import Functions as f
-import Autocorrelation as AC
+import main_functions as f
+import autocorrelation_functions as acf
 import emcee as MC
 import random
 import numpy as np

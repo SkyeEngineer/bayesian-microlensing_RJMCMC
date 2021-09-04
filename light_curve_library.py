@@ -4,15 +4,16 @@
 
 #from interfaceing import get_model_centers, get_posteriors
 from os import error
+from types import LambdaType
 from numpy.core.defchararray import title
 from numpy.core.fromnumeric import size
 from numpy.core.function_base import linspace
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
-import Functions as f
+import main_functions as f
 import matplotlib.patches as mpatches
-import PlotFunctions as pltf
+import plot_functions as pltf
 import copy
 
 
@@ -53,6 +54,96 @@ pltf.Style
 #plt.savefig('temp.png')
 #plt.clf()
 #throw=throw
+
+if False:
+    # REPORT QUALITY PLOT
+
+    ts = [0, 72]
+    n_epochs = 7200
+    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+    v = 3450
+    w = 3750
+    t_del = 100
+
+    data_3 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.6, 60], 1, n_epochs, 23)
+    data_2 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.2, 60], 1, n_epochs, 23)
+    data_1 = f.Synthetic_Light_Curve([36, 0.1, 10], 0, n_epochs, 23)
+
+    lower = data_1.flux - 3*data_1.err_flux
+    upper = data_1.flux + 3*data_1.err_flux
+
+    #main
+    plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 0.375, label = r'$\pm3\sigma$', color = 'red')
+    plt.plot(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='black', linewidth=0.75, label=r'$F$')
+    plt.legend(frameon=False, loc='lower right', handlelength=0.7)
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    #inset
+    inset = plt.axes([0.17, 0.455, 0.41, 0.41])
+    inset.scatter(epochs[v:w], data_3.flux[v:w], c='cyan', s=1, label = 's = 0.6')
+    inset.scatter(epochs[v:w], data_1.flux[v:w], c='black', s=1, label = 's = 0')
+    inset.axes.get_yaxis().set_ticklabels([])
+    inset.tick_params(axis="y", direction="in", pad=-0)
+    inset_leg = plt.legend(frameon=False, handletextpad=0.1, columnspacing=0.01, loc='upper right') #, borderpad=0.1, 
+    for handle in inset_leg.legendHandles:
+        handle.set_sizes([6.0])
+
+    #residual
+    frame_resid = plt.axes([0.125, -0.1, 0.775, 0.1])
+    plt.plot(epochs[0:w+t_del], data_1.flux[0:w+t_del]-data_3.flux[0:w+t_del], c="black")
+    frame_resid.set_xticklabels([])
+    frame_resid.xaxis.tick_top()
+    frame_resid.set_ylabel('Residual')
+
+    plt.savefig('Plots/evans-curves.png', bbox_inches="tight", dpi=500, transparent=True)
+    plt.clf()
+
+if True:
+    # REPORT QUALITY PLOT
+
+    ts = [0, 72]
+    n_epochs = 7200
+    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+    v = 3450
+    w = 3750
+    t_del = 100
+
+    data_3 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.6, 60], 1, n_epochs, 23)
+    data_2 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.2, 60], 1, n_epochs, 23)
+    data_1 = f.Synthetic_Light_Curve([36, 0.1, 10], 0, n_epochs, 23)
+
+    lower = data_1.flux - 3*data_1.err_flux
+    upper = data_1.flux + 3*data_1.err_flux
+
+    #main
+    plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 0.375, label = r'$\pm3\sigma$', color = 'red')
+    plt.plot(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='black', linewidth=0.75, label=r'$F$')
+    plt.legend(frameon=False, loc='lower right', handlelength=0.7)
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    #inset
+    inset = plt.axes([0.17, 0.455, 0.41, 0.41])
+    inset.scatter(epochs[v:w], data_3.flux[v:w], c='cyan', s=1, label = 's = 0.6')
+    inset.scatter(epochs[v:w], data_1.flux[v:w], c='black', s=1, label = 's = 0')
+    inset.axes.get_yaxis().set_ticklabels([])
+    inset.tick_params(axis="y", direction="in", pad=-0)
+    inset_leg = plt.legend(frameon=False, handletextpad=0.1, columnspacing=0.01, loc='upper right') #, borderpad=0.1, 
+    for handle in inset_leg.legendHandles:
+        handle.set_sizes([6.0])
+
+    #residual
+    frame_resid = plt.axes([0.125, -0.1, 0.775, 0.1])
+    plt.plot(epochs[0:w+t_del], data_1.flux[0:w+t_del]-data_3.flux[0:w+t_del], c="black")
+    frame_resid.set_xticklabels([])
+    frame_resid.xaxis.tick_top()
+    frame_resid.set_ylabel('Residual')
+
+    plt.savefig('Plots/evans-curves.png', bbox_inches="tight", transparent=True)
+    plt.clf()
+
+close=close
 
 if False:
 

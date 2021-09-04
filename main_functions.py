@@ -280,6 +280,9 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
             u = Gaussian_Proposal(np.zeros((n_shared)), conditioned_covariance)
             theta_prop = theta_prop + u # add randomness to jump
 
+            #u = Gaussian_Proposal(np.zeros(6), covariances[m])
+            #theta_prop = theta[:3]#theta_prop #+ u[:3] # add randomness to jump
+
             g_ratio = 1 # unity as symmetric forward and reverse jumps
 
             return theta_prop, g_ratio
@@ -306,6 +309,9 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
 
             u = Gaussian_Proposal(np.zeros((n_shared)), conditioned_covariance)
             theta_prop[:n_shared] = theta_prop[:n_shared] + u # add randomness to jump on shared parameters
+            #u = Gaussian_Proposal(np.zeros(6), covariances[m_prop])
+            #theta_prop = np.concatenate((theta, v))#theta_prop #+ u[:3] # add randomness to jump
+
 
             g_ratio = 1 # unity as symmetric forward and reverse jumps
 
@@ -572,6 +578,7 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
 
         m_prop = random.randint(0, 1) # since all models are equally likelly, this has no presence in the acceptance step
 
+        #centers = [mean(), ]
 
         theta_prop, g_ratio = Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxiliary_variables)
         log_prior_ratio = Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors)

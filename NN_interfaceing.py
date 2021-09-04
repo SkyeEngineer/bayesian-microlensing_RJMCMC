@@ -22,8 +22,8 @@ from models.resnet_gru import ResnetGRU
 #from models.apt_network import APTNetwork
 from models.yule_net import YuleNet
 
-import MulensModel as mm
-import PlotFunctions as pltf
+#import MulensModel as mm
+#import PlotFunctions as pltf
 #from torch.utils.tensorboard import SummaryWriter
 
 #from single_extract_features import extract_single
@@ -56,7 +56,8 @@ def get_model_centers(posterior, signal_data):
 
     maxp.numpy
     centers = np.float64(maxp)
-    #print(centers)
+    
+    print(centers)
 
     return centers
 

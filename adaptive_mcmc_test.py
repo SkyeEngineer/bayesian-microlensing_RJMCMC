@@ -3,12 +3,12 @@
 # [Adaptive Markov Chain Monte Carlo Testing]
 
 import MulensModel as mm
-import Functions as f
+import main_functions as f
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import truncnorm, loguniform, uniform
-import PlotFunctions as pltf
+import plot_functions as pltf
 from copy import deepcopy
 
 from matplotlib import cm

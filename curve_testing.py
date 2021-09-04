@@ -7,9 +7,9 @@ from pickle import FALSE
 
 from numpy.core.numeric import Inf
 import MulensModel as mm
-import Functions as f
-import Autocorrelation as AC
-import PlotFunctions as pltf
+import main_functions as f
+import autocorrelation_functions as acf
+import plot_functions as pltf
 import emcee as MC
 import random
 import numpy as np
@@ -18,7 +18,7 @@ from scipy.stats import truncnorm, loguniform, uniform
 from matplotlib.collections import LineCollection
 import seaborn as sns
 import pandas as pd
-#import interfaceing as interf
+import NN_interfaceing as interf
 from multiprocessing import Pool
 from scipy.optimize import minimize
 from copy import deepcopy
@@ -28,7 +28,6 @@ import time
 from scipy.stats import chi2
 import scipy
 
-import PlotFunctions as pltf
 
 import os
 import os.path
@@ -42,15 +41,15 @@ from pathlib import Path
 
 suite_n = 0
 
-adaptive_warmup_iterations = 25#25 # mcmc steps without adaption
-adaptive_iterations = 475#475 # mcmc steps with adaption
-warmup_loops = 1#5 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 1000 # rjmcmc steps
+adaptive_warmup_iterations = 25 #25 # mcmc steps without adaption
+adaptive_iterations = 475 #475 # mcmc steps with adaption
+warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
+iterations = 500 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = (230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 23#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
 n_points = 3 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
@@ -60,7 +59,7 @@ informative_priors = True
 
 sbi = False # use neural net to get maximum aposteriori estimate for centreing points
 
-truncate = True # automatically truncate burn in period based on autocorrelation of m
+truncate = False # automatically truncate burn in period based on autocorrelation of m
 
 #---------------
 ## END INPUTS ##
@@ -98,18 +97,23 @@ elif uniform_priors == True:
     
     priors = [fs_upi, t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 
-    data_view = f.Synthetic_Light_Curve([36, 0.83, 31.5, 0.025, 1.27, 210.8], 1, n_epochs, 10000)
-    plt.plot(epochs, data_view.flux)
-    plt.savefig('temp')
-    plt.clf()
+data_vie = f.Synthetic_Light_Curve([36, 0.1, 10, 0.001, 0.2, 60], 1, n_epochs, signal_to_noise_baseline)
+data_view = f.Synthetic_Light_Curve([36, 0.1, 10], 0, n_epochs, signal_to_noise_baseline)
+plt.plot(epochs[300:420], 100*(data_vie.flux[300:420]-data_view.flux[300:420]), 'black')
+plt.plot(epochs[300:420], data_vie.flux[300:420], 'blue')
+plt.plot(epochs[300:420], data_view.flux[300:420], 'red', linestyle = 'dashed')
+plt.savefig('temp')
+plt.clf()
+
+#throw=throw
 
 def Suite(suite_n):
 
     # synthetic event parameters
     model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [45, 0.2, 20], # 0 single
-        [45, 0.2, 20, 0.0001, 1.0, 300], # 1 weak binary 0.0023
-        [45, 0.2, 20, 0.001, 1.0, 300], # 2 weak binary 0.0023
+        [36, 0.1, 10], # 0 single
+        [36, 0.1, 10, 0.01, 0.2, 60], # 1 weak binary 0.0023
+        [36, 0.1, 10, 0.001, 0.5, 60], # 2 weak binary 0.0023
         [36, 0.1, 36, 0.8, 0.25, 123]] # 3 caustic crossing binary
     model_type_suite = [0, 1, 1, 1] # model type associated with synethic event suite above
 
@@ -135,7 +139,8 @@ def Suite(suite_n):
 
         # centreing points for inter-model jumps
         single_center = interf.get_model_centers(single_surrogate_posterior, data.flux)
-        binary_center = interf.get_model_centers(binary_surrogate_posterior, data.flux)
+        binary_center_rho = interf.get_model_centers(binary_surrogate_posterior, data.flux)
+        binary_center = [binary_center_rho[0], binary_center_rho[1], binary_center_rho[2], binary_center_rho[4], binary_center_rho[5], binary_center_rho[6]]
 
     else: 
         
@@ -143,7 +148,7 @@ def Suite(suite_n):
 
         single_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [45, 0.2, 20], # 0 single
-        [45, 0.2, 20], # 1 weak binary
+        [36, 0.1, 10], # 1 weak binary
         [45, 0.2, 20],
         [36, 0.1, 36]]
 
@@ -152,7 +157,7 @@ def Suite(suite_n):
 
         binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
         [45, 0.2, 20, 0.00005, 0.2, 0], # 0 single
-        [45, 0.2, 20, 0.0001, 1.0, 300], # 1 weak binary
+        [36, 0.1, 10, 0.01, 0.2, 60], # 1 weak binary
         [45, 0.2, 20, 0.001, 1.0, 300], # 2
         [36, 0.1, 36, 0.8, 0.25, 123]] 
 
@@ -502,9 +507,9 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 #Run('1/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
 #    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
-#Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
+Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 #true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
 #Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
