@@ -3,7 +3,7 @@
 # [functions]
 
 
-
+## IMPORTS ##
 
 import MulensModel as mm 
 import math
@@ -17,7 +17,10 @@ from copy import deepcopy
 from types import MethodType
 
 
-class uniform(object):
+
+## CLASSES ##
+
+class Uniform(object):
     '''
     Create an instance of a uniform distribution.
     --------------------------------------------
@@ -35,12 +38,12 @@ class uniform(object):
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def ln_pdf(self, x):
+    def log_pdf(self, x):
         return self.dist.logpdf(x)
 
 
 
-class ln_uniform(object):
+class Log_Uniform(object):
     '''
     Create an instance of a log uniform distribution. 
     I.e., the log of the data is uniformly distributed
@@ -59,12 +62,12 @@ class ln_uniform(object):
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def ln_pdf(self, x):
+    def log_pdf(self, x):
         return self.dist.logpdf(x)
 
 
 
-class truncated_ln_normal(object):
+class Truncated_Ln_Normal(object):
     '''
     Create an instance of a truncated log normal distribution. 
     I.e., the log of the data is normally distributed, and the 
@@ -90,12 +93,12 @@ class truncated_ln_normal(object):
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def ln_pdf(self, x):
+    def log_pdf(self, x):
         if self.lb <= x <= self.rb: return np.log(self.dist.pdf(x) + self.truncation)
         else: return -Inf
 
 
-class state(object):
+class State(object):
 
     def __init__(self, true_theta = None, scaled_theta = None):
         
@@ -120,7 +123,7 @@ class state(object):
         else:   raise ValueError('Assigned null state')
 
 
-class chain(object):
+class Chain(object):
 
     def __init__(self, m, state):
         self.n = 1
@@ -140,7 +143,7 @@ class chain(object):
 
 
 
-class model(object):
+class Model(object):
     '''
     Class that stores a model for MH methods.
     -------------------------------------------------------------------------
@@ -168,7 +171,7 @@ class model(object):
         self.center = center
         self.priors = priors
 
-        self.states = chain(m, center)
+        self.sampled = Chain(m, center)
         self.scaled_avg_state = center.scale
 
         self.covariance = covariance
@@ -182,12 +185,11 @@ class model(object):
 
         # assign instance's model's likelihood
         #self.ln_likelihood = MethodType(ln_likelihood_function, self)
-
     
     def add_state(self, theta, adapt = True):
 
         self.n += 1
-        self.states.append(theta)
+        self.sampled.states.append(theta)
 
         if adapt:
             self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.n, self.s, self.I)
@@ -202,11 +204,11 @@ class model(object):
     def state_check(self, theta):
         assert(('Wrong state dimension for model', self.D != len(theta.true)))
 
-    def ln_likelihood(self, theta):
+    def log_likelihood(self, theta):
         '''Empty method for object model dependant assignment with MethodType'''
         raise ValueError('No likelihood method assigned for model')
 
-    def ln_prior_density(self, theta, v = None, v_D = None):
+    def log_prior_density(self, theta, v = None, v_D = None):
         '''
         Calculates the product of the priors for a state in this model. 
         Optionally accounts for auxilliary variables.
@@ -229,7 +231,7 @@ class model(object):
         for p in range(self.D):
 
             # product using log rules
-            ln_prior_product += (self.priors[p].log_PDF(theta.true[p]))
+            ln_prior_product += (self.priors[p].log_pdf(theta.true[p]))
 
         # cycle through auxiliary parameters if v and v_D passed
         if v is not None or v_D is not None:
@@ -237,7 +239,7 @@ class model(object):
                 for p in range(self.D, v_D):
                     
                     # product using log rules
-                    ln_prior_product += (self.priors[p].log_PDF(v.true[p]))
+                    ln_prior_product += (self.priors[p].log_pdf(v.true[p]))
 
             else: raise ValueError('only one of v or v_D passed')
 
@@ -245,17 +247,25 @@ class model(object):
 
 
 
+
+
+
+
+
+## HELPER FUNCTIONS ##
+
 def iterative_mean(x_mu, x, n):
     return (x_mu * n + x)/(n + 1)
 
 def iterative_covariance(cov, x, x_mu, n, s, I, eps = 1e-12):
     return (n-1)/n * cov + s/(n+1) * np.outer(x - x_mu, x - x_mu) + s*eps*I/n
 
+def check_symmetric(A, tol = 1e-16):
+    return np.all(np.abs(A-A.T) < tol)
 
 ## FUNCTIONS ##
 
-
-def binary_ln_likelihood(self, theta):
+def binary_log_likelihood(self, theta):
     '''
     Calculate the ln likelihood that data is binary and produced by theta.
     ---------------------------------------------------------------
@@ -286,13 +296,42 @@ def binary_ln_likelihood(self, theta):
         return -Inf
 
     return -chi2/2 # transform chi2 to ln likelihood
-
-binary_model = model()
-binary_model.ln_likelihood = MethodType(binary_ln_likelihood, binary_model)
-
+#Binary_model = Model()
+#Binary_model.log_likelihood = MethodType(binary_log_likelihood, Binary_model)
 
 
 
+def single_log_likelihood(self, theta):
+    '''
+    Calculate the ln likelihood that data is single and produced by theta.
+    ---------------------------------------------------------------
+    Inputs:
+    theta [state]: values of parameters to calculate prior density for
+
+    Returns:
+    ln_likelihood [scalar]: ln likelihood state produced data with model
+    '''
+    self.state_check(theta) # check state dimension
+
+    try:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true())))
+        model.set_magnification_methods([0., 'point_source', 72.])
+
+        a = model.magnification(self.data.time) #proposed magnification signal
+        y = self.data.flux # observed flux signal
+        
+        # fit proposed flux as least squares solution
+        A = np.vstack([a, np.ones(len(a))]).T
+        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
+        F = f_s*a + f_b # least square signal
+
+        sd = self.data.err_flux # error
+        chi2 = np.sum((y - F)**2/sd**2)
+
+    except: # if MulensModel crashes, return true probability zero
+        return -Inf
+
+    return -chi2/2 # transform chi2 to ln likelihood
 
 
 
@@ -305,10 +344,27 @@ binary_model.ln_likelihood = MethodType(binary_ln_likelihood, binary_model)
 
 
 
+def gaussian_proposal(theta, covariance):
+    '''
+    Takes a single step in a guassian walk process
+    ----------------------------------------------
+    theta [array like]: the scaled parameter values to step from
+    covariance [array like]: the covariance with which to center the multivariate 
+                guassian to propose from. Can be the diagonal entries only or a complete matrix
+
+    Returns: [array like]: a new point in scaled parameter space
+    '''
+    return multivariate_normal.rvs(mean = theta, cov = covariance)
 
 
 
-def Adapt_MH(m, data, theta, priors, covariance, burns, iterations):
+
+
+
+
+
+
+def adapt_MH(Model, warm_up, iterations, user_feedback = False):
     '''
     Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”,
     in the context of microlensing events.
@@ -334,129 +390,90 @@ def Adapt_MH(m, data, theta, priors, covariance, burns, iterations):
     best_theta [array like]: array of scaled state that produced best_posterior
     '''
 
-    if burns < 25:
+    if warm_up < 25:
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix")
     
     # initialise
-    d = len(theta)
+    acc = np.zeros((iterations + warm_up))
+    acc[0] = 1 # first state (move) already accepted
 
-    I = np.identity(d)
-    s = 2.4**2 / d # Arbitrary(ish), good value from Haario et al
-    eps = 1e-12 # Needs to be smaller than the scale of parameter values
-
-
-    acceptance_history = np.zeros((iterations + burns))
-    acceptance_history[0] = 1 # first state (move) accepted
-
-    chain_states = np.zeros((d, iterations + burns))
-    chain_states[:, 0] = theta
-
-    chain_means = np.zeros((d, iterations + burns))
-    chain_means[:, 0] = theta
-    
-    covariance_history = [covariance]
-
-
-    # initial values
-    log_likelihood = Log_Likelihood(m, theta, priors, data)
-
-    best_posterior = np.exp(log_likelihood + Log_Prior_Product(m, theta, priors))
+    theta = Model.center
     best_theta = theta
 
+    # initial propbability values
+    log_likelihood = Model.log_likelihood(theta)
+    log_prior = Model.log_prior_density(theta)
+    log_best_posterior = log_likelihood + log_prior
 
-    for i in range(1, burns): # warm up walk to establish an empirical covariance
-        # propose a new state and calculate the resulting likelihood and prior ratio
-        proposed = Gaussian_Proposal(theta, covariance)
-        log_likelihood_proposed = Log_Likelihood(m, proposed, priors, data)
-        log_prior_ratio = Log_Prior_Ratio(m, m, theta, proposed, False, priors)
+    # warm up walk to establish an empirical covariance
+    for i in range(1, warm_up):
 
-        if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
+        # propose a new state and calculate the resulting density
+        proposed = State(scaled_theta = gaussian_proposal(theta.scaled, Model.covariance))
+        log_likelihood_proposed = Model.log_likelihood(proposed)
+        log_prior_proposed = Model.log_prior_density(proposed)
+
+        # metropolis acceptance
+        if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acceptance_history[i] = 1 # accept proposal
+            acc[i] = 1 # accept proposal
 
             # store best state
-            posterior_density = np.exp(log_likelihood_proposed + Log_Prior_Product(m, theta, priors))
-            if best_posterior < posterior_density: 
-                best_posterior = posterior_density
+            log_posterior = log_likelihood_proposed + log_prior_proposed
+            if log_best_posterior < log_posterior:
+                log_best_posterior = log_posterior
                 best_theta = theta
 
-        else: acceptance_history[i] = 0 # reject proposal
+        else: acc[i] = 0 # reject proposal
         
         # update storage
-        chain_states[:, i] = theta
-        chain_means[:, i] = (chain_means[:, i-1]*i + theta) / (i+1) # recursive mean
-        covariance_history.append(covariance)
+        Model.add_state(theta, adapt = False)
 
-    # initilial empirical covaraince
-    covariance = s * np.cov(chain_states[:, 0:burns]) + s*eps*I
-    covariance_history.append(covariance)
 
-    t = burns # global index
+    # adaptive walk
+    for i in range(warm_up, iterations):
 
-    for i in range(iterations): # adaptive walk
+        # print progress to screen
+        if user_feedback:
+            cf = i / (iterations - 1)
+            print(f'log score: {log_best_posterior:.4f}, progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
-        # user feedback
-        cf = i / (iterations-1);
-        print(f'Best Score Function: {best_posterior:.4f}, Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        # propose a new state and calculate the resulting density
+        proposed = State(scaled_theta = gaussian_proposal(theta.scaled, Model.covariance))
+        log_likelihood_proposed = Model.log_likelihood(proposed)
+        log_prior_proposed = Model.log_prior_density(proposed)
 
-        # propose a new state and calculate the resulting likelihood and prior ratio
-        proposed = Gaussian_Proposal(theta, covariance)
-        log_likelihood_proposed = Log_Likelihood(m, proposed, priors, data)
-        log_prior_ratio = np.exp(Log_Prior_Ratio(m, m, theta, proposed, False, priors))
-
-        if random.random() < np.exp(log_prior_ratio + log_likelihood_proposed - log_likelihood): # metropolis acceptance
+        # metropolis acceptance
+        if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acceptance_history[t] = 1 # accept proposal
+            acc[i] = 1 # accept proposal
 
             # store best state
-            posterior_density = np.exp(log_likelihood_proposed + Log_Prior_Product(m, theta, priors))
-            if best_posterior < posterior_density:
-                best_posterior = posterior_density
+            log_posterior = log_likelihood_proposed + log_prior_proposed
+            if log_best_posterior < log_posterior:
+                log_best_posterior = log_posterior
                 best_theta = theta
 
-        else: acceptance_history[t] = 0 # reject proposal
- 
-        chain_states[:, t] = theta
-        chain_means[:, t] = (chain_means[:, t-1]*t + theta)/(t + 1) # recursive mean
+        else: acc[i] = 0 # reject proposal
         
-        # adapt covraince iteratively
-        covariance = (t-1)/t * covariance + s/(t+1) * np.outer(chain_states[:, t] - chain_means[:, t-1], chain_states[:, t] - chain_means[:, t-1]) + s*eps*I/t
-        covariance_history.append(covariance)
-
-        #if not check_symmetric(covariance, tol=1e-8):
-        #    print('non symm cov')
-
-        t += 1
+        # update model chain
+        Model.add_state(theta, adapt = True)
 
     # performance
-    print(f"\n Model: {m}, Accepted Move Fraction: {(np.sum(acceptance_history) / (iterations+burns)):4f}, Best Score Function: {best_posterior:.4f}")
+    if user_feedback:
+        print(f"\n model: {Model.m}, average acc: {(np.sum(acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}")
 
-    return covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta
-
-
-
-def check_symmetric(A, tol = 1e-16):
-    return np.all(np.abs(A-A.T) < tol)
+    return acc, best_theta, log_best_posterior,
 
 
 
-def Gaussian_Proposal(theta, covariance):
-    '''
-    Takes a single step in a guassian walk process
-    ----------------------------------------------
-    theta [array like]: the scaled parameter values to step from
-    covariance [array like]: the covariance with which to center the multivariate 
-                guassian to propose from. Can be the diagonal entries only or a complete matrix
-
-    Returns: [array like]: a new point in scaled parameter space
-    '''
-    return multivariate_normal.rvs(mean = theta, cov = covariance)
 
 
 
-def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxiliary_variables):
+
+def adapt_RJMH_proposal(m, m_prop, covariances, centers, theta, auxiliary_variables):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -473,7 +490,7 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
     g_ratio [scalar]: ratio of proposal distribution densities
     '''
     
-    if m == m_prop: return Gaussian_Proposal(theta, covariances[m_prop]), 1 # intra-model move
+    if m == m_prop: return gaussian_proposal(theta, covariances[m_prop]), 1 # intra-model move
 
     else: # inter-model move
 
@@ -537,65 +554,6 @@ def Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, th
 
     
 
-
-
-def D(m):
-    '''
-    Helper function. Maps the model index to the associated 
-    dimensionality in the context of microlensing.
-
-    m == 0 -> single
-    m == 1 -> binary 
-    '''
-
-    D = [3, 6]
-    return D[m]
-
-
-
-def unscale(theta):
-    '''
-    Helper function. Unscales the scaled parameter values for 
-    input to muLensModel
-    '''
-
-    theta_unscaled = deepcopy(theta)
-    #print(theta)
-    if len(theta) == D(0): # no single parameters are scaled
-        return theta_unscaled
-    
-    if len(theta) == D(1):
-        theta_unscaled[3] = 10**theta_unscaled[3]
-        #theta_unscaled[6] = theta_unscaled[6] * 180 / math.pi
-
-        return theta_unscaled
-
-    return
-
-
-
-def scale(theta):
-    '''
-    Helper function. Scales the unscaled parameter values for 
-    jumps through paramter space
-    '''
-
-    theta_scaled = deepcopy(theta)
-    #print(theta)
-    if len(theta) == D(0): # no single parameters are scaled
-        return theta_scaled
-    
-    if len(theta) == D(1):
-        theta_scaled[3] = np.log10(theta_scaled[3])
-        #theta_scaled[6] = theta_scaled[6] * math.pi /180
-
-        return theta_scaled
-
-    return
-
-
-
-def Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors):
     '''
     Calculates the ratio of the product of the priors of the proposed point to the
     initial point, in log units. Accounts for auxilliary variables.
@@ -611,31 +569,7 @@ def Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors):
     Returns
     log_prior_ratio [scalar]: log ratio of prior product of poposed and initial states
     '''
-    
-    log_product_numerator = Log_Prior_Product(m_prop, theta_prop, priors)
-    log_product_denomenator = Log_Prior_Product(m, theta, priors)
 
-
-
-    if m_prop != m: # adjust ratio with auxiliary variable product density for inter-model jumps
-        aux_true_scale = unscale(auxiliary_variables)
-
-        if m_prop < m:
-            for parameter in range(D(m_prop), D(m)): # cycle through each auxiliary parameter and associated prior
-                log_product_numerator += (priors[parameter].log_PDF(aux_true_scale[parameter])) # product using log rules
-
-        if m < m_prop:
-            for parameter in range(D(m), D(m_prop)): # cycle through each auxiliary parameter and associated prior
-                log_product_denomenator += (priors[parameter].log_PDF(aux_true_scale[parameter])) # product using log rules
-
-
-    log_prior_ratio = log_product_numerator - log_product_denomenator # ratio using log rules
-
-    return log_prior_ratio
-
-
-
-def Log_Prior_Product(m, theta, priors):
     '''
     Calculates the product of the priors for a model and state. 
     Does not accounts for auxilliary variables.
@@ -649,18 +583,6 @@ def Log_Prior_Product(m, theta, priors):
     log_prior_ratio [scalar]: log ratio of prior product of poposed and initial states
     '''
 
-    log_prior_product = 0.
-
-    theta_true_scale = unscale(theta)
-
-    for parameter in range(D(m)):
-        log_prior_product += (priors[parameter].log_PDF(theta_true_scale[parameter])) # product using log rules
-
-    return log_prior_product
-
-
-
-def Log_Likelihood(m, theta, priors, data):
     '''
     Calculate the log likelihood that a lightcurve represents observed lightcurve data
     --------------------------------------------
@@ -674,61 +596,55 @@ def Log_Likelihood(m, theta, priors, data):
     log_likelihood [scalar]: log likelihood parameters represent lightcuvre with model
     '''
 
-    theta_true_scale = unscale(theta)
+def initialise_RJMH_model(initial_Model, warm_up, iterations, n_repeat, user_feedback = False):
+    '''
+    Repeat the adaptive mcmc warmup process used for each model in Adpt-RJMH
+    and store the best run for use in Adpt-RJMH
+    --------------------------------------------
+    n [int]: number of repeats
+    m [int]: the index of the microlensing model to use (0 or 1, single or binary)
+    data [muLens data]: the data of the microlensing event to analyse
+    theta [array like]: the unscaled parameter values in the associated model space to start from
+    priors [array like]: an array of prior distribution objects for the lensing parameters, in same order as theta
+    covariance [array like]: the covariance to initialise with when proposing a move. 
+                             Can be the diagonal entries only or a complete matrix.
+                             In the order of theta
+    adaptive_warmup_iterations [int]: number of MCMC steps without adapting cov
+    adaptive_iterations [int]: remaining number of MCMC steps
 
-    # check if parameter is not in prior bounds, and ensure it is not accepted if so
-    for parameter in range(D(m)):
-        if not priors[parameter].in_Bounds(theta_true_scale[parameter]): return -Inf
+    Returns:
+    inc_covariance [array like] : final adaptive covariance matrix reached 
+    inc_chain_states [array like]: array of scaled states visited
+    inc_chain_means [array like]: array of mean scaled states of the chain
+    inc_acceptance_history [array like]: array of accepted moves. 1 if the proposal was accepted, 0 otherwise.
+    inc_covariance_history [array like]: list of scaled states visited
+    inc_best_posterior [scalar]: best posterior density visited
+    inc_best_theta [array like]: array of scaled state that produced best_posterior
+    '''
 
-    if m == 0:
-        try: # for when moves are out of bounds of model valididty
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta_true_scale)))
-            model.set_magnification_methods([0., 'point_source', 72.])
+    inc_log_best_posterior = -Inf # initialise incumbent value to always lose
 
-            a = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0 # compute parameter lightcurve with fs
-            y = data.flux # flux signal
-            
-            A = np.vstack([a, np.ones(len(a))]).T
-            f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-            F = f_s*a + f_b # least square signal
-            
-            #print(f_s, f_b)
-
-            sd = data.err_flux # error
-            chi2 = np.sum((y - F)**2/sd**2)
-
-        except: # if a point is uncomputable, return true probability zero
-            return -Inf
-
-        return -chi2/2 # transform chi2 to log likelihood
-
-
-    if m == 1:
-        try: # check if parameter is not in prior bounds, and ensure it is not accepted if so
-            model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta_true_scale)))
-            model.set_magnification_methods([0., 'point_source', 72.])
-
-            a = model.magnification(data.time) #(model.magnification(data.time) - 1.0) * theta_true_scale[0] + 1.0  # compute parameter lightcurve with fs
-            y = data.flux # signal
-
-            A = np.vstack([a, np.ones(len(a))]).T
-            f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-            F = f_s*a + f_b # least square signal
-
-            #print(f_s, f_b)
-
-            sd = data.err_flux # error
-            chi2 = np.sum((y - F)**2/sd**2)
-
-        except: # if a point is uncomputable, return true probability zero
-            return -Inf
+    for i in range(n_repeat):
         
-        return -chi2/2 # transform chi2 to log likelihood
+        if user_feedback:
+            print(str(i)+'/'+str(n_repeat)+' initialisations per model\n')
+
+        Model = deepcopy(initial_Model) # fresh model
+
+        # run adaptive MH
+        acc, best_theta, log_best_posterior = adapt_MH(Model, warm_up, iterations, user_feedback = False)
+
+        # keep best posterior
+        if inc_log_best_posterior < log_best_posterior:
+            inc_Model = deepcopy(Model)
+            inc_Model.center = best_theta
+            #inc_acc = acc
+
+    return inc_Model#, inc_acc
 
 
 
-def Run_Adaptive_RJ_Metropolis_Hastings\
-(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations,  data):
+def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations): #initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations,  data):
     '''
     Performs Adaptive RJMCMC as described in thesis, in the context of microlensing events.
     --------------------------------------------
@@ -750,16 +666,15 @@ def Run_Adaptive_RJ_Metropolis_Hastings\
     acceptance_history [array like]: list of accepted moves (0 if rejected, 1 if accepted)
     '''
 
-    # initialise values
-    ts = [n_warmup_iterations, n_warmup_iterations]
-    I = [np.identity(D(0)), np.identity(D(1))] 
-    s = [2.4**2 / D(0), 2.4**2 / D(1)] # Arbitrary(ish), good value from Haario et al
-    eps = 1e-12 # Needs to be smaller than the scale of parameter values
+    # initialise model chains
+    for Model in Models:
+        Model = initialise_RJMH_model(Model, adapt_MH_warm_up, adapt_MH, initial_n)
 
-    m = random.randint(0, 1) # choose initial model
+    Model = random.choice(Models)
 
-    theta = initial_states[m] # final state in model's warmup chain
-    auxiliary_variables = initial_states[1]
+    theta = Model.sampled.states[-1] # final state in model's warmup chain
+    auxiliary_variables = Models[-1].sampled.states[-1] # final state in super set model
+
     log_likelihood = Log_Likelihood(m, theta, priors, data)
 
     # initialse storages
@@ -920,42 +835,4 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
 
 
 
-def Loop_Adaptive_Warmup(n, m, data, theta, priors, covariance, adaptive_warmup_iterations, adaptive_iterations):
-    '''
-    Repeat the adaptive mcmc warmup process used for each model in Adpt-RJMH
-    and store the best run for use in Adpt-RJMH
-    --------------------------------------------
-    n [int]: number of repeats
-    m [int]: the index of the microlensing model to use (0 or 1, single or binary)
-    data [muLens data]: the data of the microlensing event to analyse
-    theta [array like]: the unscaled parameter values in the associated model space to start from
-    priors [array like]: an array of prior distribution objects for the lensing parameters, in same order as theta
-    covariance [array like]: the covariance to initialise with when proposing a move. 
-                             Can be the diagonal entries only or a complete matrix.
-                             In the order of theta
-    adaptive_warmup_iterations [int]: number of MCMC steps without adapting cov
-    adaptive_iterations [int]: remaining number of MCMC steps
 
-    Returns:
-    inc_covariance [array like] : final adaptive covariance matrix reached 
-    inc_chain_states [array like]: array of scaled states visited
-    inc_chain_means [array like]: array of mean scaled states of the chain
-    inc_acceptance_history [array like]: array of accepted moves. 1 if the proposal was accepted, 0 otherwise.
-    inc_covariance_history [array like]: list of scaled states visited
-    inc_best_posterior [scalar]: best posterior density visited
-    inc_best_theta [array like]: array of scaled state that produced best_posterior
-    '''
-
-    inc_best_posterior = -Inf # initialise incumbent value to always get beaten
-
-    for i in range(n):
-        # run MCMC
-        covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta = \
-        Adaptive_Metropolis_Hastings(m, data, scale(theta), priors, covariance, adaptive_warmup_iterations, adaptive_iterations)
-
-        # if best posterior density state is better than incumbent, update store
-        if inc_best_posterior < best_posterior:
-            inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta = \
-                covariance, chain_states, chain_means, acceptance_history, covariance_history, best_posterior, best_theta
-
-    return inc_covariance, inc_chain_states, inc_chain_means, inc_acceptance_history, inc_covariance_history, inc_best_posterior, inc_best_theta
