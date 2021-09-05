@@ -89,8 +89,112 @@ class truncatedLogNormDist(object):
         else: return -Inf
 
 
+class state(object):
 
-def Adaptive_Metropolis_Hastings(m, data, theta, priors, covariance, burns, iterations):
+    def __init__():
+
+    def value(self):
+        return self.scaled
+
+    def true(self):
+        return self.unscaled
+
+
+class chain(object):
+
+    def __init__(self):
+        self.n_states = 0
+        self.states = []
+        self.model_indices = []
+
+    def add_state(self, state, m):
+        self.n_states += 1
+        self.states.append(state)
+        self.average_state
+        self.model_indices.append(m)
+        return
+
+
+method ln_():
+
+
+
+class model(object):
+    '''
+    Class that implements explicit RK methods.
+
+    Attributes:
+        alpha (numpy array): vector of weights in the Butcher tableau
+        beta  (numpy array): vector of nodes in the Butcher tableau
+        gamma (numpy array): RK matrix in the Butcher tableau
+        n (int): number of derivatives used in explicit RK method
+    '''
+
+    def __init__(self, m, D, theta, priors, covariance, ln_likelihood_method):
+        self.m = m
+        self.D = D
+        self.center = theta
+        self.priors = priors
+        self.model_states = chain()
+        self.ln_likelihood_fnc = ln_likelihood_fnc
+
+    def 
+
+    def ln_likelihood(self, theta):
+        return self.ln_likelihood_fnc(theta.true())
+
+    def ln_prior_density(self, theta, **kwargs):
+        '''
+        Calculates the product of the priors for a model and state. Optionally accounts for auxilliary variables.
+        ------------------------------------------------------------------------------------------------------
+        Inputs:
+        theta [array like]: the scaled parameter values in the associated model space to jump from
+        
+        Optional args:
+        v [array like]: the values of the auxiliary variables, stored from the largest model
+        max_D [int]: dimensionality of the largest model
+
+
+        Returns:
+        log_prior_product [scalar]: log prior probability density of the state
+        '''
+        if self.D != len(theta.true()):
+            raise ValueError
+    
+        log_prior_product = 0.
+
+        #cycle through parameters
+        for p in range(self.D):
+
+            # product using log rules
+            log_prior_product += (self.priors[p].log_PDF(theta.true()[p]))
+
+        if 
+            #cycle through auxiliary parameters
+            for p in range(self.D, max_D):
+                
+                # product using log rules
+                log_prior_product += (self.priors[p].log_PDF(v.true()[p])) 
+
+        return log_prior_product
+
+
+
+
+
+
+
+## FUNCTIONS ##
+
+
+
+
+
+
+
+
+
+def Adapt_MH(m, data, theta, priors, covariance, burns, iterations):
     '''
     Performs Adaptive MCMC as described in Haario et al “An adaptive Metropolis algorithm”,
     in the context of microlensing events.

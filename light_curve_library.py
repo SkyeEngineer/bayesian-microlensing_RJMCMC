@@ -79,7 +79,7 @@ if False:
     theta_a = copy.deepcopy(theta_r)
     theta_a[5] = theta_a[5] + 135
     #theta_a[6] = theta_a[6] - 60
-    pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "blue", 1, False, [33, 72-10])
+    pltf.PlotLightcurve(1, theta_a, r"$\updownarrow \alpha$", "cyan", 1, False, [33, 72-10])
 
     pltf.PlotLightcurve(1, theta_r, "base", "black", 1, False, ts)
     plt.legend(frameon=False, handlelength=0.7)
@@ -93,7 +93,7 @@ if False:
     plt.axes([0.125, 0.5, 0.4, 0.4])
     pltf.PlotLightcurve(1, theta_q, " ", "red", 1, True, [5+10, 45-10])
     pltf.PlotLightcurve(1, theta_s, " ", "orange", 1, True, [5+10, 45-10])
-    pltf.PlotLightcurve(1, theta_a, " ", "blue", 1, True, [25+10, 65-10])
+    pltf.PlotLightcurve(1, theta_a, " ", "cyan", 1, True, [25+10, 65-10])
     pltf.PlotLightcurve(1, theta_r, " ", "black", 1, True, [5+10, 45-10])
     
     ax = plt.gca()
@@ -123,7 +123,7 @@ if True:
 
     theta_t0 = copy.deepcopy(theta_r)
     theta_t0[0] = theta_t0[0] + 15
-    pltf.PlotLightcurve(0, theta_t0, r"$\uparrow t_0$", "blue", 1, False, ts)
+    pltf.PlotLightcurve(0, theta_t0, r"$\uparrow t_0$", "cyan", 1, False, ts)
     
     theta_u0 = copy.deepcopy(theta_r)
     theta_u0[1] = theta_u0[1] - 0.02
