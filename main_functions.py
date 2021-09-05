@@ -14,177 +14,291 @@ from numpy.core.numeric import Inf
 from scipy.stats import lognorm, loguniform, uniform, multivariate_normal
 from copy import deepcopy
 
+from types import MethodType
 
 
-
-class uniDist(object):
+class uniform(object):
     '''
     Create an instance of a uniform distribution.
     --------------------------------------------
-    left [scalar]: the lower bound for values
-    right [scalar]: the upper bound for values 
+    Attributes:
+        left [scalar]: the lower bound for values
+        right [scalar]: the upper bound for values 
     '''
     def __init__(self, left, right):
         self.lb = left
         self.rb = right
         self.dist = uniform(left, right)
 
-    def in_Bounds(self, x):
+    def in_bound(self, x):
+        '''check if true value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def log_PDF(self, x):
+    def ln_pdf(self, x):
         return self.dist.logpdf(x)
 
 
 
-class logUniDist(object):
+class ln_uniform(object):
     '''
     Create an instance of a log uniform distribution. 
     I.e., the log of the data is uniformly distributed
     --------------------------------------------
-    left [scalar]: the lower bound for values in true units
-    right [scalar]: the upper bound for values in true units
+    Attributes:
+        left [scalar]: the lower bound for values in true units
+        right [scalar]: the upper bound for values in true units
     '''
     def __init__(self, left, right):
         self.lb = left
         self.rb = right
         self.dist = loguniform(left, right)
 
-    def in_Bounds(self, x):
+    def in_bound(self, x):
+        '''check if true value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def log_PDF(self, x):
+    def ln_pdf(self, x):
         return self.dist.logpdf(x)
 
 
 
-class truncatedLogNormDist(object):
+class truncated_ln_normal(object):
     '''
     Create an instance of a truncated log normal distribution. 
     I.e., the log of the data is normally distributed, and the 
     distribution is restricted to a certain range
     --------------------------------------------
-    left [scalar]: the lower bound for values in true units
-    right [scalar]: the upper bound for values in true units
-    mu [scalar]: the mean of the underlying normal distriubtion in true units
-    sd [scalar]: the standard deviation of the underlying normal distribution in true units
+    Attributes:
+        left [scalar]: the lower bound for values in true units
+        right [scalar]: the upper bound for values in true units
+        mu [scalar]: the mean of the underlying normal distriubtion in true units
+        sd [scalar]: the standard deviation of the underlying normal distribution in true units
     '''
     def __init__(self, left, right, mu, sd):
         self.lb = left
         self.rb = right
-        self.dist = lognorm(scale = np.exp(np.log(mu)), s = (np.log(sd))) # (Scipy takes specefic shape parameters)
+        self.dist = lognorm(scale = np.exp(np.log(mu)), s = (np.log(sd))) # (Scipy shape parameters)
 
         # Probability that is otherwise truncated to zero, 
-        # distributed uniformly into the valid range (not quite correct but a good aprroximation)
+        # distributed uniformly into the valid range (aprroximation)
         self.truncation = (self.dist.cdf(left) + 1 - self.dist.cdf(right)) / (right - left)
 
-    def in_Bounds(self, x):
+    def in_bound(self, x):
+        '''check if true value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
-    def log_PDF(self, x):
+    def ln_pdf(self, x):
         if self.lb <= x <= self.rb: return np.log(self.dist.pdf(x) + self.truncation)
         else: return -Inf
 
 
 class state(object):
 
-    def __init__():
+    def __init__(self, true_theta = None, scaled_theta = None):
+        
+        if true_theta is not None:
+            self.true = true_theta
+            self.D = len(true_theta)
 
-    def value(self):
-        return self.scaled
+            self.scaled = self.true
+            for p in range(D):
+                if p == 3:
+                    self.scaled[p] = np.log(self.true[p])
+        
+        elif scaled_theta is not None:
+            self.scaled = scaled_theta
+            self.D = len(scaled_theta)
 
-    def true(self):
-        return self.unscaled
+            self.true = self.scaled
+            for p in range(D):
+                if p == 3:
+                    self.true[p] = np.exp(self.scaled[p])
+
+        else:   raise ValueError('Assigned null state')
 
 
 class chain(object):
 
-    def __init__(self):
-        self.n_states = 0
-        self.states = []
-        self.model_indices = []
+    def __init__(self, m, state):
+        self.n = 1
+        self.model_indices = [m]
+        self.states = [state]
+        #self.D = D
 
-    def add_state(self, state, m):
-        self.n_states += 1
-        self.states.append(state)
-        self.average_state
+
+    def add_general_state(self, m, state):
+
         self.model_indices.append(m)
+        self.states.append(state)
+
+        self.n += 1
+
         return
-
-
-method ln_():
 
 
 
 class model(object):
     '''
-    Class that implements explicit RK methods.
-
+    Class that stores a model for MH methods.
+    -------------------------------------------------------------------------
     Attributes:
-        alpha (numpy array): vector of weights in the Butcher tableau
-        beta  (numpy array): vector of nodes in the Butcher tableau
-        gamma (numpy array): RK matrix in the Butcher tableau
-        n (int): number of derivatives used in explicit RK method
+        m [int]: model index
+        D [int]: dimensionality of a state in the model
+        center [state]: best guess at maximum posterior state of model
+        priors [array]: array of priors for variables in model
+        covariances [chain]: covariance matrices used for proposal dists of model
+        data [MulensData]: photometry readings for microlensing event
     '''
 
-    def __init__(self, m, D, theta, priors, covariance, ln_likelihood_method):
+    def __init__(self, m, D, center, priors, covariance, data):#, ln_likelihood_function):
+        '''
+        Attributes:
+            covariance [array]: initial covariance matrix for proposal dist of model
+            ln_likelihood_function [function]: likelihood function to assign to instance
+        '''
         self.m = m
         self.D = D
-        self.center = theta
-        self.priors = priors
-        self.model_states = chain()
-        self.ln_likelihood_fnc = ln_likelihood_fnc
+        self.n = 1
 
-    def 
+
+
+        self.center = center
+        self.priors = priors
+
+        self.states = chain(m, center)
+        self.scaled_avg_state = center.scale
+
+        self.covariance = covariance
+        self.covariances = [covariance]
+
+        self.I = np.identity(D)
+        self.s = 2.4**2 / D # Arbitrary(ish), good value from Haario et al
+        
+        # data to represent by instances's model
+        self.data = data
+
+        # assign instance's model's likelihood
+        #self.ln_likelihood = MethodType(ln_likelihood_function, self)
+
+    
+    def add_state(self, theta, adapt = True):
+
+        self.n += 1
+        self.states.append(theta)
+
+        if adapt:
+            self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.n, self.s, self.I)
+            assert(('Non symmetric covariance', check_symmetric(self.covariance)))
+
+        self.covariances.append(self.covariance)
+        self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.n)
+
+        return
+
+
+    def state_check(self, theta):
+        assert(('Wrong state dimension for model', self.D != len(theta.true)))
 
     def ln_likelihood(self, theta):
-        return self.ln_likelihood_fnc(theta.true())
+        '''Empty method for object model dependant assignment with MethodType'''
+        raise ValueError('No likelihood method assigned for model')
 
-    def ln_prior_density(self, theta, **kwargs):
+    def ln_prior_density(self, theta, v = None, v_D = None):
         '''
-        Calculates the product of the priors for a model and state. Optionally accounts for auxilliary variables.
-        ------------------------------------------------------------------------------------------------------
+        Calculates the product of the priors for a state in this model. 
+        Optionally accounts for auxilliary variables.
+        ---------------------------------------------------------------
         Inputs:
-        theta [array like]: the scaled parameter values in the associated model space to jump from
+        theta [state]: values of parameters to calculate prior density for
         
-        Optional args:
-        v [array like]: the values of the auxiliary variables, stored from the largest model
-        max_D [int]: dimensionality of the largest model
-
+        Optional Args:
+        v [state]: values of auxiliary variables, stored from greatest model
+        v_D [int]: dimensionality of the larger model
 
         Returns:
-        log_prior_product [scalar]: log prior probability density of the state
+        ln_prior_product [scalar]: log prior probability density of the state
         '''
-        if self.D != len(theta.true()):
-            raise ValueError
+        self.state_check(theta) # check state dimension
     
-        log_prior_product = 0.
+        ln_prior_product = 0.
 
-        #cycle through parameters
+        # cycle through parameters
         for p in range(self.D):
 
             # product using log rules
-            log_prior_product += (self.priors[p].log_PDF(theta.true()[p]))
+            ln_prior_product += (self.priors[p].log_PDF(theta.true[p]))
 
-        if 
-            #cycle through auxiliary parameters
-            for p in range(self.D, max_D):
-                
-                # product using log rules
-                log_prior_product += (self.priors[p].log_PDF(v.true()[p])) 
+        # cycle through auxiliary parameters if v and v_D passed
+        if v is not None or v_D is not None:
+            if v is not None and v_D is not None:
+                for p in range(self.D, v_D):
+                    
+                    # product using log rules
+                    ln_prior_product += (self.priors[p].log_PDF(v.true[p]))
 
-        return log_prior_product
+            else: raise ValueError('only one of v or v_D passed')
+
+        return ln_prior_product
 
 
 
+def iterative_mean(x_mu, x, n):
+    return (x_mu * n + x)/(n + 1)
 
-
+def iterative_covariance(cov, x, x_mu, n, s, I, eps = 1e-12):
+    return (n-1)/n * cov + s/(n+1) * np.outer(x - x_mu, x - x_mu) + s*eps*I/n
 
 
 ## FUNCTIONS ##
+
+
+def binary_ln_likelihood(self, theta):
+    '''
+    Calculate the ln likelihood that data is binary and produced by theta.
+    ---------------------------------------------------------------
+    Inputs:
+    theta [state]: values of parameters to calculate prior density for
+
+    Returns:
+    ln_likelihood [scalar]: ln likelihood state produced data with model
+    '''
+    self.state_check(theta) # check state dimension
+
+    try:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.true())))
+        model.set_magnification_methods([0., 'point_source', 72.])
+
+        a = model.magnification(self.data.time) #proposed magnification signal
+        y = self.data.flux # observed flux signal
+        
+        # fit proposed flux as least squares solution
+        A = np.vstack([a, np.ones(len(a))]).T
+        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
+        F = f_s*a + f_b # least square signal
+
+        sd = self.data.err_flux # error
+        chi2 = np.sum((y - F)**2/sd**2)
+
+    except: # if MulensModel crashes, return true probability zero
+        return -Inf
+
+    return -chi2/2 # transform chi2 to ln likelihood
+
+binary_model = model()
+binary_model.ln_likelihood = MethodType(binary_ln_likelihood, binary_model)
+
+
+
+
+
+
+
+
+
+
 
 
 
