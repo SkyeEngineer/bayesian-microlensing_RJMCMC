@@ -67,7 +67,7 @@ class Log_Uniform(object):
 
 
 
-class Truncated_Ln_Normal(object):
+class Truncated_Log_Normal(object):
     '''
     Create an instance of a truncated log normal distribution. 
     I.e., the log of the data is normally distributed, and the 
@@ -100,23 +100,23 @@ class Truncated_Ln_Normal(object):
 
 class State(object):
 
-    def __init__(self, true_theta = None, scaled_theta = None):
+    def __init__(self, true = None, scaled = None):
         
-        if true_theta is not None:
-            self.true = true_theta
-            self.D = len(true_theta)
+        if true is not None:
+            self.true = true
+            self.D = len(true)
 
             self.scaled = self.true
-            for p in range(D):
+            for p in range(self.D):
                 if p == 3:
                     self.scaled[p] = np.log(self.true[p])
         
-        elif scaled_theta is not None:
-            self.scaled = scaled_theta
-            self.D = len(scaled_theta)
+        elif scaled is not None:
+            self.scaled = scaled
+            self.D = len(scaled)
 
             self.true = self.scaled
-            for p in range(D):
+            for p in range(self.D):
                 if p == 3:
                     self.true[p] = np.exp(self.scaled[p])
 
@@ -131,7 +131,6 @@ class Chain(object):
         self.states = [state]
         #self.D = D
 
-
     def add_general_state(self, m, state):
 
         self.model_indices.append(m)
@@ -140,6 +139,23 @@ class Chain(object):
         self.n += 1
 
         return
+
+    def states_array(self, scaled = True):
+        n_states = len(self.states)
+        D_state = len(self.states[-1].scaled)
+        
+        chain_array = np.zeros((D_state, n_states))
+
+        if scaled:
+            for i in range(n_states):
+                chain_array[:, i] = self.states[i].scaled
+
+        else:
+            for i in range(n_states):
+                chain_array[:, i] = self.states[i].true
+
+        return chain_array
+
 
 
 
@@ -156,7 +172,7 @@ class Model(object):
         data [MulensData]: photometry readings for microlensing event
     '''
 
-    def __init__(self, m, D, center, priors, covariance, data):#, ln_likelihood_function):
+    def __init__(self, m, D, center, priors, covariance, data, log_likelihood_fnc):
         '''
         Attributes:
             covariance [array]: initial covariance matrix for proposal dist of model
@@ -166,13 +182,13 @@ class Model(object):
         self.D = D
         self.n = 1
 
-
+        self.acc = [1]
 
         self.center = center
         self.priors = priors
 
         self.sampled = Chain(m, center)
-        self.scaled_avg_state = center.scale
+        self.scaled_avg_state = center.scaled
 
         self.covariance = covariance
         self.covariances = [covariance]
@@ -184,7 +200,7 @@ class Model(object):
         self.data = data
 
         # assign instance's model's likelihood
-        #self.ln_likelihood = MethodType(ln_likelihood_function, self)
+        self.log_likelihood = MethodType(log_likelihood_fnc, self)
     
     def add_state(self, theta, adapt = True):
 
@@ -199,7 +215,6 @@ class Model(object):
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.n)
 
         return
-
 
     def state_check(self, theta):
         assert(('Wrong state dimension for model', self.D != len(theta.true)))
@@ -278,7 +293,7 @@ def binary_log_likelihood(self, theta):
     self.state_check(theta) # check state dimension
 
     try:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.true())))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.true)))
         model.set_magnification_methods([0., 'point_source', 72.])
 
         a = model.magnification(self.data.time) #proposed magnification signal
@@ -314,7 +329,7 @@ def single_log_likelihood(self, theta):
     self.state_check(theta) # check state dimension
 
     try:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true())))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true)))
         model.set_magnification_methods([0., 'point_source', 72.])
 
         a = model.magnification(self.data.time) #proposed magnification signal
@@ -394,8 +409,8 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix")
     
     # initialise
-    acc = np.zeros((iterations + warm_up))
-    acc[0] = 1 # first state (move) already accepted
+    #acc = np.zeros((iterations + warm_up))
+    #acc[0] = 1 # first state (move) already accepted
 
     theta = Model.center
     best_theta = theta
@@ -409,15 +424,18 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
     for i in range(1, warm_up):
 
         # propose a new state and calculate the resulting density
-        proposed = State(scaled_theta = gaussian_proposal(theta.scaled, Model.covariance))
+        proposed = State(scaled = gaussian_proposal(theta.scaled, Model.covariance))
         log_likelihood_proposed = Model.log_likelihood(proposed)
         log_prior_proposed = Model.log_prior_density(proposed)
+
+        #print(log_likelihood_proposed)
+        #print('prior', log_prior_proposed)
 
         # metropolis acceptance
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acc[i] = 1 # accept proposal
+            Model.acc.append(1) # accept proposal
 
             # store best state
             log_posterior = log_likelihood_proposed + log_prior_proposed
@@ -425,11 +443,14 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
                 log_best_posterior = log_posterior
                 best_theta = theta
 
-        else: acc[i] = 0 # reject proposal
+        else: Model.acc.append(0) # reject proposal
         
         # update storage
         Model.add_state(theta, adapt = False)
 
+    Model.covariance = np.cov(Model.sampled.states_array(scaled = True))
+    Model.covariances.pop()
+    Model.covariances.append(Model.covariance)
 
     # adaptive walk
     for i in range(warm_up, iterations):
@@ -440,7 +461,7 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
             print(f'log score: {log_best_posterior:.4f}, progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         # propose a new state and calculate the resulting density
-        proposed = State(scaled_theta = gaussian_proposal(theta.scaled, Model.covariance))
+        proposed = State(scaled = gaussian_proposal(theta.scaled, Model.covariance))
         log_likelihood_proposed = Model.log_likelihood(proposed)
         log_prior_proposed = Model.log_prior_density(proposed)
 
@@ -448,7 +469,7 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             theta = proposed
             log_likelihood = log_likelihood_proposed
-            acc[i] = 1 # accept proposal
+            Model.acc.append(1) # accept proposal
 
             # store best state
             log_posterior = log_likelihood_proposed + log_prior_proposed
@@ -456,24 +477,24 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
                 log_best_posterior = log_posterior
                 best_theta = theta
 
-        else: acc[i] = 0 # reject proposal
+        else: Model.acc.append(0) # reject proposal
         
         # update model chain
         Model.add_state(theta, adapt = True)
 
     # performance
     if user_feedback:
-        print(f"\n model: {Model.m}, average acc: {(np.sum(acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}")
+        print(f"\n model: {Model.m}, average acc: {(np.sum(Model.acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}")
 
-    return acc, best_theta, log_best_posterior,
-
-
+    return best_theta, log_best_posterior
 
 
 
 
 
-def adapt_RJMH_proposal(m, m_prop, covariances, centers, theta, auxiliary_variables):
+
+
+def adapt_RJMH_proposal(Model, proposed_Model, theta, lv):#m, m_prop, covariances, centers, theta, auxiliary_variables):
     '''
     Proposes a new point to jump to when doing RJMCMC using centreing points,
     in the context of single and binary microlensing events.
@@ -484,75 +505,63 @@ def adapt_RJMH_proposal(m, m_prop, covariances, centers, theta, auxiliary_variab
     centers [array like]: a list of the parameter values of the centreing point for each model [single , binary]
     theta [array like]: the scaled parameter values in the associated model space to jump from
     auxilliary_variables [array like]: the stored values of the most recent binary state
+    lv []: auxilliary variable divergence from old center 
 
     Returns: 
     theta_prop [array like]: a new point in the scaled parameter space a jump was proposed too
     g_ratio [scalar]: ratio of proposal distribution densities
     '''
     
-    if m == m_prop: return gaussian_proposal(theta, covariances[m_prop]), 1 # intra-model move
+    l = theta.scaled - Model.center.scaled # offset from initial model centre
+
+
+    if Model.m == proposed_Model.m: # intra-model move
+
+        u = gaussian_proposal(np.zeros((proposed_Model.D)), proposed_Model.covariance)
+        proposed_theta = u + l + proposed_Model.center.scaled
+        
+        return proposed_theta
+
 
     else: # inter-model move
+        
+        s = abs(Model.D - proposed_Model.D) # subset size
 
-        l = theta - centers[m] # offset from initial model's centre
+        # use superset model covariance
+        if proposed_Model.D > Model.D:
+            cov = proposed_Model.covariance
 
-        if m_prop == 0: # jump to single. Exclude non shared parameters.
+        else:
+            cov = Model.covariance
 
-            n_shared = D(m_prop)
+        c_11 = cov[:s, :s] # covariance matrix of shared parameters
+        c_12 = cov[:s, s:] # covariances, not variances
+        c_21 = cov[s:, :s] # same as above
+        c_22 = cov[s:, s:] # covariance matrix of non-shared
+        c_22_inv = np.linalg.inv(c_22)
 
-            theta_prop = centers[m_prop] + l[:n_shared]  # map shared parameters without randomness
-
-
-            covariance = covariances[m]  
-            c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
-            c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
-            c_21 = covariance[n_shared:, :n_shared] # same as above
-            c_22 = covariance[n_shared:, n_shared:] # covariance matrix of independent variables
-            c_22_inv = np.linalg.inv(c_22)
-            conditioned_covariance = c_11 - c_12.dot(c_22_inv).dot(c_21)
-            
-
-            u = Gaussian_Proposal(np.zeros((n_shared)), conditioned_covariance)
-            theta_prop = theta_prop + u # add randomness to jump
-
-            #u = Gaussian_Proposal(np.zeros(6), covariances[m])
-            #theta_prop = theta[:3]#theta_prop #+ u[:3] # add randomness to jump
-
-            g_ratio = 1 # unity as symmetric forward and reverse jumps
-
-            return theta_prop, g_ratio
+        conditioned_cov = c_11 - c_12.dot(c_22_inv).dot(c_21)
 
 
-        if m_prop == 1: # jump to binary. Include non shared parameters.
+        if proposed_Model.D < Model.D: # jump to smaller model. Fix non shared parameters
 
-            n_shared = D(m)
+            u = gaussian_proposal(np.zeros((s)), conditioned_cov)
+            proposed_theta = u + l[:s] + proposed_Model.center.scaled
 
-            v = auxiliary_variables[n_shared:]
-            h = l + centers[m_prop][:n_shared]
-
-            theta_prop = np.concatenate((h, v)) # map without randomness
+            return proposed_theta
 
 
-            covariance = covariances[m_prop]  
-            c_11 = covariance[:n_shared, :n_shared] # covariance matrix of (shared) dependent variables
-            c_12 = covariance[:n_shared, n_shared:] # covariances, not variances
-            c_21 = covariance[n_shared:, :n_shared] # same as above
-            c_22 = covariance[n_shared:, n_shared:] # covariance matrix of independent variables
-            c_22_inv = np.linalg.inv(c_22)
-            conditioned_covariance = c_11 - c_12.dot(c_22_inv).dot(c_21)
+        if proposed_Model.D > Model.D: # jump to larger model. Append v
+
+            u = gaussian_proposal(np.zeros((s)), conditioned_cov)
+            shared_map = u + l[:s] + proposed_Model.center.scaled[:s]
+            non_shared_map = lv[s:] + proposed_Model.center.scaled[s:]
+            map = np.concatenate((shared_map, non_shared_map))
+            proposed_theta = map
+
+            return proposed_theta
 
 
-            u = Gaussian_Proposal(np.zeros((n_shared)), conditioned_covariance)
-            theta_prop[:n_shared] = theta_prop[:n_shared] + u # add randomness to jump on shared parameters
-            #u = Gaussian_Proposal(np.zeros(6), covariances[m_prop])
-            #theta_prop = np.concatenate((theta, v))#theta_prop #+ u[:3] # add randomness to jump
-
-
-            g_ratio = 1 # unity as symmetric forward and reverse jumps
-
-            return theta_prop, g_ratio
-
-    
 
     '''
     Calculates the ratio of the product of the priors of the proposed point to the
@@ -627,12 +636,14 @@ def initialise_RJMH_model(initial_Model, warm_up, iterations, n_repeat, user_fee
     for i in range(n_repeat):
         
         if user_feedback:
-            print(str(i)+'/'+str(n_repeat)+' initialisations per model\n')
+            print(str(i+1)+'/'+str(n_repeat)+' initialisations per model\n')
 
         Model = deepcopy(initial_Model) # fresh model
 
         # run adaptive MH
-        acc, best_theta, log_best_posterior = adapt_MH(Model, warm_up, iterations, user_feedback = False)
+        best_theta, log_best_posterior = adapt_MH(Model, warm_up, iterations, user_feedback = user_feedback)
+
+        print(log_best_posterior)
 
         # keep best posterior
         if inc_log_best_posterior < log_best_posterior:
@@ -644,7 +655,7 @@ def initialise_RJMH_model(initial_Model, warm_up, iterations, n_repeat, user_fee
 
 
 
-def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations): #initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations,  data):
+def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = False): #initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations,  data):
     '''
     Performs Adaptive RJMCMC as described in thesis, in the context of microlensing events.
     --------------------------------------------
@@ -668,116 +679,87 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations): #init
 
     # initialise model chains
     for Model in Models:
-        Model = initialise_RJMH_model(Model, adapt_MH_warm_up, adapt_MH, initial_n)
+        Model = initialise_RJMH_model(Model, adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
 
+    # choose a random model to start in
     Model = random.choice(Models)
-
     theta = Model.sampled.states[-1] # final state in model's warmup chain
-    auxiliary_variables = Models[-1].sampled.states[-1] # final state in super set model
 
-    log_likelihood = Log_Likelihood(m, theta, priors, data)
+    v = Models[-1].sampled.states[-1] # auxiliary variables final state in super set model
+    lv = Models[-1].sampled.states[-1].scaled - Models[-1].center.scaled # auxiliary variables offset from center
 
-    # initialse storages
-    best_posteriors = [-Inf, -Inf]
-    best_posteriors[m] = np.exp(log_likelihood + Log_Prior_Product(m, theta, priors))
-    best_thetas = [[], []]
-    best_thetas[m] = theta
+    # create joint model as initial theta appended to auxiliary variables
+    initial_superset = Models[-1].D - Model.D
+    if initial_superset > 0:
+        theta_v = np.concatenate((theta.scaled, Models[-1].sampled.states[-1].scaled[Model.D:]))
+        joint_model_chain = Chain(Model.m, State(scaled = theta_v))
+    
+    else:
+        joint_model_chain = Chain(Model.m, theta)
 
-    chain_ms = np.zeros((iterations))
-    chain_ms[0] = m
-    chain_states = []
-    chain_states.append(theta)
-    chain_model_means = [initial_means[0], initial_means[1]] 
+    total_acc = np.zeros((iterations))
+    total_acc[0] = 1
 
-    intra_jump_acceptance_histories = [[], []]
-    intra_jump_acceptance_histories[m].append(1) # first state counts as jump
-    inter_jump_acceptance_histories = []
+    v_D = Models[-1].D
 
-    acceptance_history = np.zeros((iterations))
-    acceptance_history[0] = 1
-
-    covariances = initial_covariances
-    covariances_history = [[initial_covariances[0]], [initial_covariances[1]]]
-    inter_cov_history = [initial_covariances[1]]
+    # initial propbability values
+    log_likelihood = Model.log_likelihood(theta)
+    log_prior = Model.log_prior_density(theta, v = v, v_D = v_D)
 
 
 
-    print('Running Adpt-RJMH')
-    for i in range(1, iterations): # loop through Adpt-RJMH steps
+    print('running adapt-RJMH')
+    for i in range(1, iterations): # loop through adapt-RJMH steps
         
-        #diagnostics
-        cf = i / (iterations-1);
-        print(f'Current: M {m+1} | Progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+        # print progress to screen
+        if user_feedback:
+            cf = i / (iterations - 1)
+            print(f'progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
-        m_prop = random.randint(0, 1) # since all models are equally likelly, this has no presence in the acceptance step
+        # propose a new model and state and calculate the resulting density
+        proposed_Model = random.choice(Models)
+        proposed = State(scaled = adapt_RJMH_proposal(Model, proposed_Model, theta, lv))
+        log_likelihood_proposed = proposed_Model.log_likelihood(proposed)
+        log_prior_proposed = proposed_Model.log_prior_density(proposed, v = v, v_D = v_D)
 
-        #centers = [mean(), ]
-
-        theta_prop, g_ratio = Adaptive_RJ_Metropolis_Hastings_Proposal(m, m_prop, covariances, centers, theta, auxiliary_variables)
-        log_prior_ratio = Log_Prior_Ratio(m, m_prop, theta, theta_prop, auxiliary_variables, priors)
-        log_likelihood_prop = Log_Likelihood(m_prop, theta_prop, priors, data)
-
-
-        J = 1 # Jacobian of sampler
-        acc_pi = np.exp(log_likelihood_prop - log_likelihood + log_prior_ratio) * g_ratio * J
-
-
-        if random.random() <= acc_pi: # metropolis acceptance
-            acceptance_history[i] = 1 # accept proposal
+        # metropolis acceptance
+        if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
+            total_acc[i] = 1 # accept proposal
             
-            if m == m_prop: 
-                intra_jump_acceptance_histories[m_prop].append(1)
-            else:
-                inter_jump_acceptance_histories.append(1)
-                inter_cov_history.append(covariances[1])
+            if Model == proposed_Model:
+                Model.acc.append(1)
 
-            theta = theta_prop
-            m = m_prop
+            Model = proposed_Model
+            theta = proposed
+
+            log_likelihood = log_likelihood_proposed
+            log_prior = log_prior_proposed
             
-            log_likelihood = log_likelihood_prop
-
-            if m_prop == 1: auxiliary_variables = theta_prop
-
-            posterior_density = np.exp(log_likelihood_prop + Log_Prior_Product(m, theta, priors))
-            if best_posteriors[m_prop] < posterior_density: # store best states
-                best_posteriors[m_prop] = posterior_density
-                best_thetas[m_prop] = theta_prop
-
-        elif m == m_prop: 
-            intra_jump_acceptance_histories[m_prop].append(0)
-            acceptance_history[i] = 0 # reject move
+        else: 
+            total_acc[i] = 0 # reject proposal
+                        
+            if Model == proposed_Model:
+                Model.acc.append(0)
         
-        else:
-            inter_jump_acceptance_histories.append(0)
-            acceptance_history[i] = 0 # reject jump
-            inter_cov_history.append(covariances[1])
+        # update model chain
+        Model.add_state(theta, adapt = True)
+        v = State(scaled = np.concatenate((theta.scaled, v.scaled[Model.D:])))
+        joint_model_chain.add_general_state(Model.m, v)
 
-        chain_states.append(theta)
-        chain_ms[i] = m
+        lv[:Model.D] = theta.scaled - Model.center.scaled
 
+    # performance
+    if user_feedback:
+        print(f"\n average acc: {(np.sum(total_acc) / (iterations)):4f}")
+        print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
+        print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-        t = ts[m]
-        
-        covariances_history[m].append(covariances[m])
-        covariances[m] = (t-1)/t*covariances[m] + s[m]/(t+1) * np.outer(theta-chain_model_means[m], theta-chain_model_means[m]) + s[m]*eps*I[m]/t
-
-        # print('Is Symmetric?', check_symmetric(covariances[m], tol=1e-8))
-        
-        chain_model_means[m] = (chain_model_means[m]*t + theta) / (t+1)
-
-        ts[m] += 1
-
-    # performance:
-    print("\nIterations: "+str(iterations))
-    print("Accepted Move Fraction: " + str(np.sum(acceptance_history) / iterations))
-    print("P(Singular|y): " + str(1-np.sum(chain_ms) / iterations))
-    print("P(Binary|y): " + str(np.sum(chain_ms) / iterations))
-
-    return chain_states, chain_ms, best_thetas, best_posteriors, covariances_history, acceptance_history, inter_jump_acceptance_histories, intra_jump_acceptance_histories, inter_cov_history
+    return total_acc
 
 
 
-def Read_Light_Curve(file_name):
+
+def read_light_curve(file_name):
     '''
     Read in an existing lightcurve. Must be between 0 and 72 days, with 720 observations
     --------------------------------------------
@@ -796,7 +778,7 @@ def Read_Light_Curve(file_name):
 
 
 
-def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_noise_baseline):
+def synthetic_single(theta, n_epochs, signal_to_noise_baseline, seed=42):
     '''
     Generate a synthetic lightcurve for some parameters and signal to noise ratio
     --------------------------------------------
@@ -809,21 +791,16 @@ def Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_nois
     data [muLens data]: data for synthetic light curve
     '''
 
-    if light_curve_type == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], true_theta)))
-        model.set_magnification_methods([0., 'point_source', 72.])
+    # create MulensModel
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true)))
+    model.set_magnification_methods([0., 'point_source', 72.])
 
-    elif light_curve_type == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], true_theta)))
-        model.set_magnification_methods([0., 'point_source', 72.])
-
-    # exact signal
+    # exact signal (fs=1, fb=0)
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    true_signal = model.magnification(epochs) #(model.magnification(epochs) - 1.0) * true_theta[0] + 1.0 # adjust for fs
-
-    np.random.seed(42)
+    true_signal = model.magnification(epochs)
 
     # simulate noise in gaussian errored flux space
+    np.random.seed(seed)
     noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 
     noise_sd = np.sqrt(true_signal) / signal_to_noise_baseline
     

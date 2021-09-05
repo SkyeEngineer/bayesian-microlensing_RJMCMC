@@ -7,7 +7,7 @@ from pickle import FALSE
 
 from numpy.core.numeric import Inf
 import MulensModel as mm
-import main_functions as f
+import source
 import autocorrelation_functions as acf
 import plot_functions as pltf
 import emcee as MC
@@ -42,14 +42,14 @@ from pathlib import Path
 suite_n = 0
 
 adaptive_warmup_iterations = 25 #25 # mcmc steps without adaption
-adaptive_iterations = 475 #475 # mcmc steps with adaption
+adaptive_iterations = 975 #475 # mcmc steps with adaption
 warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 500 # rjmcmc steps
+iterations = 1000 # rjmcmc steps
 
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-signal_to_noise_baseline = 23#(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+signal_to_noise_baseline = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
 n_points = 3 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
@@ -61,76 +61,52 @@ sbi = False # use neural net to get maximum aposteriori estimate for centreing p
 
 truncate = False # automatically truncate burn in period based on autocorrelation of m
 
+adapt_MH_warm_up = 25 
+adapt_MH = 475 
+initial_n = 2
+user_feedback = True
+
 #---------------
 ## END INPUTS ##
 #---------------
 
 ## INITIALISATION ##
 
-# priors in true space
-if informative_priors == True:
 
-    # informative priors (Zhang et al)
-    s_pi = f.logUniDist(0.2, 5)
-    q_pi = f.logUniDist(10e-6, 1)
-    #log_q_pi = f.uniDist(np.log10(10e-6), np.log10(1))
-    alpha_pi = f.uniDist(0, 360)
-    u0_pi = f.uniDist(0, 2)
-    t0_pi = f.uniDist(0, 72)
-    tE_pi = f.truncatedLogNormDist(1, 100, 10**1.15, 10**0.45)
-    #rho_pi =  f.logUniDist(10**-4, 10**-2)
-    #fs_pi = f.logUniDist(0.1, 1)
 
+def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback, sbi, truncate, signal_to_noise_baseline):
+
+
+    # GENERATE DATA
+    # synthetic event parameters
+    model_parameters = [
+        [36, 0.1, 10],                  # 0
+        [36, 0.1, 10, 0.01, 0.2, 60],   # 1
+        [36, 0.1, 10, 0.001, 0.5, 60],  # 2
+        [36, 0.1, 36, 0.8, 0.25, 123]]  # 3
+    true = source.State(true = model_parameters[n_suite])
+    
+    model_types = [0, 1, 1, 1] # model type associated with synethic event suite above
+    model_type = model_types[n_suite]
+    # store a synthetic lightcurve. Could otherwise use f.Read_Light_Curve(file_name)
+    if model_type == 0:
+        data = source.synthetic_single(true, n_epochs, signal_to_noise_baseline)
+    else: 
+        data = source.synthetic_binary(true, n_epochs, signal_to_noise_baseline)
+
+
+    # SET PRIORS
+    # priors in true space informative priors (Zhang et al)
+    t0_pi = source.Uniform(0, 72)
+    u0_pi = source.Uniform(0, 2)
+    tE_pi = source.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
+    q_pi = source.Log_Uniform(10e-6, 1)
+    s_pi = source.Log_Uniform(0.2, 5)
+    alpha_pi = source.Uniform(0, 360)
     priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 
-elif uniform_priors == True:
-    
-    # uninformative priors
-    s_upi = f.uniDist(0.2, 3)
-    q_upi = f.uniDist(10e-6, 0.1)
-    alpha_upi = f.uniDist(0, 360)
-    u0_upi = f.uniDist(0, 2)
-    t0_upi = f.uniDist(0, 72)
-    tE_upi = f.uniDist(1, 100)
-    rho_upi =  f.uniDist(10**-4, 10**-2)
-    fs_upi = f.uniDist(0.1, 1)
-    
-    priors = [fs_upi, t0_upi, u0_upi,  tE_upi, rho_upi,  q_upi, s_upi, alpha_upi]
 
-data_vie = f.Synthetic_Light_Curve([36, 0.1, 10, 0.001, 0.2, 60], 1, n_epochs, signal_to_noise_baseline)
-data_view = f.Synthetic_Light_Curve([36, 0.1, 10], 0, n_epochs, signal_to_noise_baseline)
-plt.plot(epochs[300:420], 100*(data_vie.flux[300:420]-data_view.flux[300:420]), 'black')
-plt.plot(epochs[300:420], data_vie.flux[300:420], 'blue')
-plt.plot(epochs[300:420], data_view.flux[300:420], 'red', linestyle = 'dashed')
-plt.savefig('temp')
-plt.clf()
-
-#throw=throw
-
-def Suite(suite_n):
-
-    # synthetic event parameters
-    model_parameter_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [36, 0.1, 10], # 0 single
-        [36, 0.1, 10, 0.01, 0.2, 60], # 1 weak binary 0.0023
-        [36, 0.1, 10, 0.001, 0.5, 60], # 2 weak binary 0.0023
-        [36, 0.1, 36, 0.8, 0.25, 123]] # 3 caustic crossing binary
-    model_type_suite = [0, 1, 1, 1] # model type associated with synethic event suite above
-
-
-    light_curve_type = model_type_suite[suite_n]
-    true_theta = np.array(model_parameter_suite[suite_n])
-
-
-    if light_curve_type == 0: single_true = f.scale(true_theta)
-    else: single_true = False
-
-    if light_curve_type == 1: binary_true = f.scale(true_theta)
-    else: binary_true = False
-
-    # store a synthetic lightcurve. Could otherwise use f.Read_Light_Curve(file_name)
-    data = f.Synthetic_Light_Curve(true_theta, light_curve_type, n_epochs, signal_to_noise_baseline)
-
+    # GET CENTERS
     if sbi == True:
 
         # get nueral network posteriors for each model
@@ -142,58 +118,47 @@ def Suite(suite_n):
         binary_center_rho = interf.get_model_centers(binary_surrogate_posterior, data.flux)
         binary_center = [binary_center_rho[0], binary_center_rho[1], binary_center_rho[2], binary_center_rho[4], binary_center_rho[5], binary_center_rho[6]]
 
-    else: 
-        
-        # use known values for centers 
+    else: # use known values for centers 
+        single_centers = [
+        [36, 0.1, 10], # 0
+        [36, 0.1, 10], # 1
+        [45, 0.2, 20], # 2
+        [36, 0.1, 36]] # 4
+        single_center = source.State(true = np.array(single_centers[n_suite]))
 
-        single_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [45, 0.2, 20], # 0 single
-        [36, 0.1, 10], # 1 weak binary
-        [45, 0.2, 20],
-        [36, 0.1, 36]]
-
-        single_center = single_center_suite[suite_n]
-
-
-        binary_center_suite = [ # in the order fs, t0, u0, tE, rho, q, s, alpha
-        [45, 0.2, 20, 0.00005, 0.2, 0], # 0 single
-        [36, 0.1, 10, 0.01, 0.2, 60], # 1 weak binary
-        [45, 0.2, 20, 0.001, 1.0, 300], # 2
-        [36, 0.1, 36, 0.8, 0.25, 123]] 
-
-        binary_center = binary_center_suite[suite_n]
-    
-
-    return true_theta, binary_true, single_true, data, binary_center, single_center
-
-# plot unoptimised centers
-#pltf.Light_Curve_Fit_Error(0, single_center, priors, data, True, "SingleCenterSurr")
-#pltf.Light_Curve_Fit_Error(1, binary_center, priors, data, True, "BinaryCenterSurr")
+        binary_centers = [
+        [36, 0.1, 10, 0.0005, 0.2, 60], # 0
+        [36, 0.1, 10, 0.01, 0.2, 60],    # 1
+        [45, 0.2, 20, 0.001, 1.0, 300],  # 2
+        [36, 0.1, 36, 0.8, 0.25, 123]]   # 3
+        binary_center = source.State(true = np.array(binary_centers[n_suite]))
 
 
-
-
-
-
-
-
-def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center):
-
+    # MODEL COVARIANCES
     # initial covariances (diagonal)
     covariance_scale = 0.001 # reduce diagonals by a multiple
-    single_covariance = np.zeros((f.D(0), f.D(0)))
+    single_covariance = np.zeros((3, 3))
     np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
-    binary_covariance = np.zeros((f.D(1), f.D(1)))
+    binary_covariance = np.zeros((6, 6))
     np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.01, 0.01, 1]))
+
+
+    # MODELS
+    single_Model = source.Model(0, 3, single_center, priors, single_covariance, data, source.single_log_likelihood)
+    #single_Model.log_likelihood = source.MethodType(source.single_log_likelihood, single_Model)
+    binary_Model = source.Model(1, 6, binary_center, priors, binary_covariance, data, source.binary_log_likelihood)
+    #single_Model.log_likelihood = source.MethodType(source.single_log_likelihood, single_Model)
+    Models = [single_Model, binary_Model]
 
     start_time = (time.time())
 
+    total_acc = source.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = user_feedback)
+
     # use adaptiveMCMC to calculate initial covariances and optimise centers
-    w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
-        f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
-    w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, w_b_covariance_history, w_b_best_posterior, w_b_best_theta =\
-        f.Loop_Adaptive_Warmup(warmup_loops, 1, data, binary_center, priors, binary_covariance, adaptive_warmup_iterations, adaptive_iterations)
+    #w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
+    #    f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
+    #w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, w_b_covariance_history, w_b_best_posterior, w_b_best_theta =\
+    #    f.Loop_Adaptive_Warmup(warmup_loops, 1, data, binary_center, priors, binary_covariance, adaptive_warmup_iterations, adaptive_iterations)
 
     # plot optimised centers
     #pltf.LightcurveFitError(2, f.unscale(2, bestt_2), priors, Data, Model, epochs, error, True, "BinaryCenterMCMC")
@@ -201,17 +166,17 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
 
 
     # Load resources for RJMCMC
-    centers = [w_s_best_theta, w_b_best_theta]
-    initial_states = [w_s_chain_states[:, -1], w_b_chain_states[:, -1]]
-    initial_means = [w_s_chain_means[:, -1], w_b_chain_means[:, -1]]
-    n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
-    initial_covariances = [w_single_covariance, w_binary_covariance]
+    #centers = [w_s_best_theta, w_b_best_theta]
+    #initial_states = [w_s_chain_states[:, -1], w_b_chain_states[:, -1]]
+    ##initial_means = [w_s_chain_means[:, -1], w_b_chain_means[:, -1]]
+    #n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
+    #initial_covariances = [w_single_covariance, w_binary_covariance]
 
 
 
     # run RJMCMC
-    chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
-        f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
+    #chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
+    #    f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
 
     print((time.time() - start_time)/60, 'minutes')
 
@@ -501,15 +466,13 @@ def Run(run_name, adaptive_warmup_iterations, adaptive_iterations, warmup_loops,
     
     return
 
-#QUALITATIVE RESULTS
+# RESULTS
 
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(0)
-#Run('1/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
+test(0, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback, sbi, truncate, signal_to_noise_baseline)
+
+#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
+#Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
 #    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
-
-true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
-Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
 
 #true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
 #Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
