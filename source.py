@@ -219,7 +219,11 @@ class Model(object):
         assert(('Wrong state dimension for model', self.D != len(theta.truth)))
 
     def log_likelihood(self, theta):
-        '''Empty method for object model dependant assignment with MethodType'''
+        '''
+        Empty method for object model dependant assignment with MethodType.
+        e.g.:
+        "binary_Model = source.Model(1, 6, binary_center, priors, binary_covariance, data, source.binary_log_likelihood)"
+        '''
         raise ValueError('No likelihood method assigned for model')
 
     def log_prior_density(self, theta, v = None, v_D = None):
@@ -682,6 +686,8 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
     for Model in Models:
         Model = initialise_RJMH_model(Model, adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
 
+    random.seed(42)
+
     # choose a random model to start in
     Model = random.choice(Models)
     theta = Model.sampled.states[-1] # final state in model's warmup chain
@@ -850,5 +856,47 @@ def synthetic_binary(theta, n_epochs, signal_to_noise_baseline, seed=42):
     return data
 
 
+def output_file(Models, joint_model_chain, n_epochs, sn_base, letters, name = '', event_params = None):
+    
+    # output File:
+    with open('results/'+name+'-run.txt', 'w') as file:
 
+        file.write('Run '+name+'\n')
+        
+        # inputs
+        file.write('Inputs:\n')
+        if event_params is not None:
+            file.write('Parameters: '+str(event_params.truth)+'\n')
+        file.write('Number of observations: '+str(n_epochs)+', Signal to noise baseline: '+str(sn_base)+'\n')
+        
+        # priors
+        #for Model in Models:
+        #    file.write(str(Model.priors)+'\n')
+
+        # run info
+        file.write('\n')
+        file.write('Run information:\n')
+        file.write('Iterations: '+str(joint_model_chain.n)+'\n')
+        total_acc = 0
+        for Model in Models:
+            total_acc += np.sum(Model.acc)
+        total_acc /= joint_model_chain.n
+        file.write('Average acc; Total: '+str(total_acc))
+
+        # results
+        file.write('\n\nResults:\n')
+        for Model in Models:
+            # models
+            P_Model = Model.sampled.n/joint_model_chain.n
+            sd_Model = ((Model.sampled.n*(1-P_Model)**2 + (joint_model_chain.n-Model.sampled.n)*(0-P_Model)**2) / (joint_model_chain.n-1))**0.5
+            file.write('\n'+str(Model.m)+'\nP(m|y): '+str(P_Model)+'\n')
+
+            # parameters
+            Model_states = Model.sampled.states_array(scaled = True)
+            for i in range(len(Model.sampled.states[-1].scaled)):
+                mu = np.average(Model_states[i, :])
+                sd = np.std(Model_states[i, :], ddof = 1)
+                file.write(letters[i]+': mean: '+str(mu)+', sd: '+str(sd)+' \n')
+    
+    return
 

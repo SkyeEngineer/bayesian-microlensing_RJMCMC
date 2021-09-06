@@ -17,61 +17,54 @@ import matplotlib as mpl
 
 
 
-def adaption_contraction(iterations, history, covs, name):
+def adaption_contraction(Model, iterations, name = '', dpi = 100):
 
-    size = int(len(history)/25)#100#50
+    acc = Model.acc
+    covs = np.array(Model.covariances)
+    N = Model.sampled.n
+
+    size = int(N/25)
     
-    if len(history) <= size or size == 0:
+    if N <= size or size == 0:
         plt.scatter(0, 0)
-        plt.savefig('Plots/ARJMH-acc-prog-'+name+'.png')
+        plt.savefig('results/'+name+'-acc-trace-prog.png')
         plt.clf()
         return
 
-    #print(covs[:][:][1:5])
-
-    acc = []
+    acc_rate = []
     trace = []
     stable_trace = []
-    covs = np.array(covs)
-    bins = int(np.ceil(len(history) / size))
-    for bin in range(bins - 1): # record the ratio of acceptance for each bin
-        acc.append(np.sum(history[size*bin:size*(bin+1)]) / size)
+    bins = int(np.ceil(N/size))
 
+    for bin in range(bins - 1): # record the average rate and trace for each bin
 
-
+        acc_rate.append(np.sum(acc[size*bin:size*(bin+1)]) / size)
         trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
         stable_trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)][:3, :3], 0, 2)) / size)
 
-
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
     normed_stable_trace = (stable_trace - np.min(stable_trace))/(np.max(stable_trace)-np.min(stable_trace))
-
 
     rate_colour = 'purple'
     trace_colour = 'blue'
 
     a1 = plt.axes()
-    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc, c = rate_colour)
+    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, c = rate_colour)
 
-    a1.set_ylabel(r'Average $\alpha(\theta_i, \theta_j)$ per bin')
+    a1.set_ylabel(r'Average $\alpha(\theta_i, \theta_j)$')
     a1.set_ylim((0.0, 1.0))
 
-
-    #plt.grid()
     a1.set_xlabel(f'Iterations')
     a2 = a1.twinx()
 
     a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
-    if len(covs[0][:]) == f.D(1):
+    if len(covs[0][:]) == 6:
         a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
-    a2.set_ylabel(r'Average $Tr(C)$ per bin')
+    a2.set_ylabel(r'Average $Tr(C)$')
     
     a2.set_ylim((0.0, 1.0))
     a2.set_yticks([0.0, 1.0])
-    a2.set_yticklabels(['min', 'max'])
-
-    
-
+    a2.set_yticklabels(['Min', 'Max'])
 
     a1.spines['left'].set_color(rate_colour)
     a2.spines['left'].set_color(rate_colour)
@@ -85,127 +78,45 @@ def adaption_contraction(iterations, history, covs, name):
     a2.yaxis.label.set_color(trace_colour)
     a2.tick_params(axis = 'y', colors = trace_colour)
 
-
-    #plt.title('Adpt-RJMCMC '+name+' \nintra-model move timeline')
-
-    plt.tight_layout()
-    plt.savefig('results/'+name+'ARJMH-acc-prog.png', bbox_inches="tight")
+    plt.savefig('results/'+name+'-acc-trace-prog.png', bbox_inches="tight", dpi=dpi)
     plt.clf()
 
     return
 
 
-def Light_Curve_Fit_Error(m, FitTheta, priors, Data, TrueModel, t, error, details, name):
-
-    if m == 1:
-        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], FitTheta)))
-        FitModel.set_magnification_methods([0., 'point_source', 72.])
-
-    if m == 2:
-        FitModel = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], FitTheta)))
-        FitModel.set_magnification_methods([0., 'point_source', 72.])
 
 
-    
-    if details == True:
-        t_inb = np.where(np.logical_and(0 <= t, t <= 72))
-        error_inb = error[t_inb]
-        plt.title('Best model ' + str(m) + r'$\chi^2$: ' + str(-2*(f.logLikelihood(m, Data, FitTheta, priors))))
-        lower = TrueModel.magnification(t[t_inb]) - error_inb
-        upper = TrueModel.magnification(t[t_inb]) + error_inb
-        plt.fill_between(t[t_inb], lower, upper, alpha = 0.25, label = r'error $\sigma$')
-        plt.scatter(t[t_inb], Data.flux, label = 'signal', color = 'grey', s=1)
-
-
-    plt.xlabel('Time [days]')
-    plt.ylabel('Magnification')
-
-    #err = mpatches.Patch(label='Error', alpha=0.5)
-    #plt.legend(handles=[err])
-
-
-    TrueModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='black', label = 'True', alpha = 1)
-
-    FitModel.plot_magnification(t_range=[0, 72], subtract_2450000=False, color='red', label = 'Fit', linestyle = 'dashed', alpha=0.75)
-    print('add flux to plot')
-
-    plt.legend()
-    #plt.grid()
-    plt.tight_layout()
-    plt.savefig('Plots/' + name + '-Fit.png', bbox_inches="tight")
-    plt.clf()
-
-    return
-
-
-def Draw_Light_Curve_Noise_Error(data, ax):
-
-    ax.axis('on')
-    
-    error = data.err_flux
-    lower = data.flux - error
-    upper = data.flux + error
-    ax.scatter(data.time, data.flux, label = r'$\gamma$', color = 'black', s = 2)
-    ax.fill_between(data.time, lower, upper, alpha = 0.5, label = r'$\pm\sigma$')
-    
-
-
-    ax.set_xlabel('Time [days]')
-    ax.set_ylabel('Magnification')
-    #ax.xticks(ax.xticks())
-    #ax.yticks(ax.yticks())
-
-
-
-    ax.legend(fontsize = 14, handlelength=0.7)
-    #plt.grid()
-    #ax.tight_layout()
-
-    return
-
-
-def PlotLightcurve(m, theta, label, color, alpha, caustics, ts):
+def amplification(m, theta, ts, label = None, color = None, alpha = None, caustic = None):
 
     if m == 0:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta)))
-        model.set_magnification_methods([0., 'point_source', 72.])
-
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.truth)))
     if m == 1:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta)))
-        model.set_magnification_methods([0., 'point_source', 72.])
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.truth)))
+    model.set_magnification_methods([ts[0], 'point_source', ts[1]])
 
     epochs = np.linspace(ts[0], ts[1], 720)
 
-    if caustics:
+    if caustic is not None:
         model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.006})
-        model.plot_caustics(color = color, s = 1, marker = 'o', n_points=10000)
-
-    elif isinstance(label, str):
-        
-        A = model.magnification(epochs)#(model.magnification(epochs) - 1.0) * theta[0] + 1.0
-        plt.plot(epochs, A, color = color, label = label, alpha = alpha)
+        model.plot_caustics(color = color, s = 1, marker = 'o', n_points = 10000)
 
     else:
-
-        A = model.magnification(epochs)#(model.magnification(epochs) - 1.0) * theta[0] + 1.0
-        plt.plot(epochs, A, color = color, alpha = alpha)
+        A = model.magnification(epochs)
+        plt.plot(epochs, A, color = color, label = label, alpha = alpha)
 
     return
+
 
 def style():
     plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams['font.size'] = 12
-
     plt.style.use('seaborn-bright')
-
     plt.rcParams["legend.edgecolor"] = '0'
     plt.rcParams["legend.framealpha"] = 1
     plt.rcParams["legend.title_fontsize"] = 10
     plt.rcParams["legend.fontsize"] = 9
-
     plt.rcParams["grid.linestyle"] = 'dashed' 
     plt.rcParams["grid.alpha"] = 0.25
-
     plt.rc('axes.formatter', useoffset=False)
     return
 
@@ -247,9 +158,9 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
     n_dim = Model.D
 
     states = Model.sampled.states_array(scaled=True)
-    print(states)
 
     # build off corners spacing and other styling
+    style()
     figure = corner.corner(states.T)
 
     # font visible
@@ -275,7 +186,7 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
 
         # distribution plots
         mu = np.average(states[i, :])
-        sd = np.std(states[i, :])
+        sd = np.std(states[i, :], ddof = 1)
         ax.axvspan(mu - sd, mu + sd, alpha = 0.2, color = 'red', label = r'$\bar{\mu}\pm\bar{\sigma}$')
 
         ax.hist(states[i, :], bins = 10, density = False, color = 'black', alpha = 0.8)
@@ -396,6 +307,7 @@ def center_offsets_pointilism(supset_Model, subset_Model, symbols, name = '', dp
     subset_offsets = (subset_Model.sampled.states_array(scaled = True) - subset_Model.center.scaled[:, np.newaxis])
     n_dim = subset_Model.D
 
+    style()
     # construct shape with corner
     figure = corner.corner(subset_offsets.T)
 
@@ -469,6 +381,7 @@ def joint_samples_pointilism(supset_Model, subset_Model, joint_model_chain, symb
     supset_states = supset_Model.sampled.states_array(scaled = True)
     subset_states = subset_Model.sampled.states_array(scaled = True)
 
+    style()
     figure = corner.corner(supset_states.T) # use corner for layout/sizing
 
     #     # fonts/visibility

@@ -80,70 +80,7 @@ priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 def P_B(adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
     truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center):
 
-    # initial covariances (diagonal)
-    covariance_scale = 0.001 # reduce diagonals by a multiple
-    single_covariance = np.zeros((f.D(0), f.D(0)))
-    np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
-    binary_covariance = np.zeros((f.D(1), f.D(1)))
-    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.01, 0.01, 1]))
 
-    start_time = (time.time())
-
-    # use adaptiveMCMC to calculate initial covariances and optimise centers
-    w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
-        f.Loop_Adaptive_Warmup(warmup_loops, 0, data, single_center, priors, single_covariance, adaptive_warmup_iterations, adaptive_iterations)
-    w_binary_covariance, w_b_chain_states, w_b_chain_means, w_b_acceptance_history, w_b_covariance_history, w_b_best_posterior, w_b_best_theta =\
-        f.Loop_Adaptive_Warmup(warmup_loops, 1, data, binary_center, priors, binary_covariance, adaptive_warmup_iterations, adaptive_iterations)
-
-    # Load resources for RJMCMC
-
-    centers = [w_s_best_theta, w_b_best_theta]
-    initial_states = [w_s_chain_states[:, -1], w_b_chain_states[:, -1]]
-    initial_means = [w_s_chain_means[:, -1], w_b_chain_means[:, -1]]
-    n_warmup_iterations = adaptive_warmup_iterations + adaptive_iterations
-    initial_covariances = [w_single_covariance, w_binary_covariance]
-
-    print(centers)
-
-    # run RJMCMC
-    chain_states, chain_ms, best_thetas, best_pi, cov_histories, acc_history, inter_j_acc_histories, intra_j_acc_histories, inter_cov_history =\
-        f.Run_Adaptive_RJ_Metropolis_Hastings(initial_states, initial_means, n_warmup_iterations, initial_covariances, centers, priors, iterations, data)
-
-    print((time.time() - start_time)/60, 'minutes')
-
-    #-----------------
-    ## PLOT RESULTS ##
-    #-----------------
-
-    # plotting resources
-    pltf.Style()
-
-    # truncate once m below 50 auto correlation times
-    if truncate == True:
-        n_ac = 25
-        N = np.exp(np.linspace(np.log(int(iterations/n_ac)), np.log(iterations), n_ac)).astype(int)
-
-        ac_time_ms = np.zeros(len(N))
-        y_ps = np.array(chain_ms)
-
-        for i, n in enumerate(N):
-            ac_time_ms[i] = MC.autocorr.integrated_time(y_ps[:n], c = 5, tol = 5, quiet = True)
-            
-            if ac_time_ms[i] < N[i]/50: # linearly interpolate truncation point
-                truncated = N[i]
-
-                break
-
-            truncated = 0
-            #print("Not enough iterations to converge to the limiting distribution")
-
-    else: truncated = 0
-
-    truncated = 0
-
-    # results
-    # P_S = 1-np.sum(chain_ms[truncated:]) / (iterations-truncated)
-    P_B = np.sum(chain_ms[truncated:]) / (iterations-truncated)
 
     return P_B
 
