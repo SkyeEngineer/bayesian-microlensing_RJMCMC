@@ -1,61 +1,67 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-def scalarPolyProjection(RJchain):
-    scalar = []
-    for i in range(len(RJchain)):
-        #scalar.append(1+np.sum(np.multiply(RJchain[i], [4**p for p in range(7, 7-len(RJchain[i]), -1)]))) #3
-        scalar.append(np.sum(([RJchain[i][7-p]**p for p in range(7, 7-len(RJchain[i]), -1)]))) #3
-    return scalar
-
-#print(scalarPolyProjection([[3, 1, 2], [1]]))
+import emcee as mc
 
 # https://emcee.readthedocs.io/en/stable/tutorials/autocorr/
-def next_pow_two(n):
-    i = 1
-    while i < n:
-        i = i << 1
-    return i
 
-def autocorr_func_1d(x, norm=True):
-    x = np.atleast_1d(x)
-    if len(x.shape) != 1:
-        raise ValueError("invalid dimensions for 1D autocorrelation function")
-    n = next_pow_two(len(x))
+def truncate_burn_in(Models, joint_model_chain, warm_up = 0):
+    samples = joint_model_chain.n
+    
+    # points to compute act
+    n_act = 50
+    N = np.exp(np.linspace(np.log(int(samples/n_act)), np.log(samples), n_act)).astype(int)
 
-    # Compute the FFT and then (from that) the auto-correlation function
-    f = np.fft.fft(x - np.mean(x), n=2 * n)
-    acf = np.fft.ifft(f * np.conjugate(f))[: len(x)].real
-    acf /= 4 * n
+    act_m_indices = np.zeros(len(N))
+    m_indices_signal = np.array(joint_model_chain.model_indices)
 
-    # Optionally normalize
-    if norm:
-        acf /= acf[0]
+    for i, n in enumerate(N):
+        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
+        
+        if act_m_indices[i] < N[i]/50: # stepwise interpolate truncation point
+            truncated = N[i]
 
-    return acf
+            for Model in Models: # drop warm_up and joint burn in
+                Model.sampled.states = Model.sampled.states[warm_up + truncated:]
+                Model.sampled.n = Model.sampled.n - warm_up - truncated
 
-    # Automated windowing procedure following Sokal (1989)
-def auto_window(taus, c):
-    m = np.arange(len(taus)) < c * taus
-    if np.any(m):
-        return np.argmin(m)
-    return len(taus) - 1
+            # general chain doesn't have adapt_MH warm up
+            joint_model_chain.model_indices = joint_model_chain.model_indices[truncated:]
+            joint_model_chain.sampled.states = joint_model_chain.sampled.states[truncated:]
+            joint_model_chain.sampled.n = joint_model_chain.sampled.n - truncated
 
+            return truncated
 
-# Following the suggestion from Goodman & Weare (2010)
-def autocorr_gw2010(y, c=5.0):
-    f = autocorr_func_1d(np.mean(y, axis=0))
-    taus = 2.0 * np.cumsum(f) - 1.0
-    window = auto_window(taus, c)
-    return taus[window]
+    print("Did not have a low enough autocorrelation time")
+    return 0
 
 
-def autocorr_new(y, c=5.0):
-    f = np.zeros(y.shape[0])#[1]
-    for yy in y:
-        f += autocorr_func_1d(yy, False) #True]
-    f /= len(y)
-    taus = 2.0 * np.cumsum(f) - 1.0
-    window = auto_window(taus, c)
-    return taus[window]
+
+def plot_act(Models, joint_model_chain, warm_up = 0):
+    samples = joint_model_chain.n
+    
+    # points to compute act
+    n_act = 50
+    N = np.exp(np.linspace(np.log(int(samples/n_act)), np.log(samples), n_act)).astype(int)
+
+    act_m_indices = np.zeros(len(N))
+    m_indices_signal = np.array(joint_model_chain.model_indices)
+
+    for i, n in enumerate(N):
+        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
+        
+        if act_m_indices[i] < N[i]/50: # stepwise interpolate truncation point
+            truncated = N[i]
+
+            for Model in Models: # drop warm_up and joint burn in
+                Model.sampled.states = Model.sampled.states[warm_up + truncated:]
+                Model.sampled.n = Model.sampled.n - warm_up - truncated
+
+            # general chain doesn't have adapt_MH warm up
+            joint_model_chain.model_indices = joint_model_chain.model_indices[truncated:]
+            joint_model_chain.sampled.states = joint_model_chain.sampled.states[truncated:]
+            joint_model_chain.sampled.n = joint_model_chain.sampled.n - truncated
+
+            return truncated
+
+    print("Did not have a low enough autocorrelation time")
+    return 0

@@ -9,11 +9,10 @@ import MulensModel as mm
 import math
 import random
 import numpy as np
-from numpy.lib.function_base import append, cov
-from numpy.core.numeric import Inf
+import emcee
+#from numpy.lib.function_base import append, cov
 from scipy.stats import lognorm, loguniform, uniform, multivariate_normal
 from copy import deepcopy
-
 from types import MethodType
 
 
@@ -34,7 +33,7 @@ class Uniform(object):
         self.dist = uniform(left, right)
 
     def in_bound(self, x):
-        '''check if true value is in prior'''
+        '''check if truth value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
@@ -49,8 +48,8 @@ class Log_Uniform(object):
     I.e., the log of the data is uniformly distributed
     --------------------------------------------
     Attributes:
-        left [scalar]: the lower bound for values in true units
-        right [scalar]: the upper bound for values in true units
+        left [scalar]: the lower bound for values in truth units
+        right [scalar]: the upper bound for values in truth units
     '''
     def __init__(self, left, right):
         self.lb = left
@@ -58,7 +57,7 @@ class Log_Uniform(object):
         self.dist = loguniform(left, right)
 
     def in_bound(self, x):
-        '''check if true value is in prior'''
+        '''check if truth value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
@@ -74,10 +73,10 @@ class Truncated_Log_Normal(object):
     distribution is restricted to a certain range
     --------------------------------------------
     Attributes:
-        left [scalar]: the lower bound for values in true units
-        right [scalar]: the upper bound for values in true units
-        mu [scalar]: the mean of the underlying normal distriubtion in true units
-        sd [scalar]: the standard deviation of the underlying normal distribution in true units
+        left [scalar]: the lower bound for values in truth units
+        right [scalar]: the upper bound for values in truth units
+        mu [scalar]: the mean of the underlying normal distriubtion in truth units
+        sd [scalar]: the standard deviation of the underlying normal distribution in truth units
     '''
     def __init__(self, left, right, mu, sd):
         self.lb = left
@@ -89,36 +88,36 @@ class Truncated_Log_Normal(object):
         self.truncation = (self.dist.cdf(left) + 1 - self.dist.cdf(right)) / (right - left)
 
     def in_bound(self, x):
-        '''check if true value is in prior'''
+        '''check if truth value is in prior'''
         if self.lb <= x <= self.rb: return 1
         else: return 0
 
     def log_pdf(self, x):
         if self.lb <= x <= self.rb: return np.log(self.dist.pdf(x) + self.truncation)
-        else: return -Inf
+        else: return -math.inf
 
 
 class State(object):
 
-    def __init__(self, true = None, scaled = None):
+    def __init__(self, truth = None, scaled = None):
         
-        if true is not None:
-            self.true = true
-            self.D = len(true)
+        if truth is not None:
+            self.truth = truth
+            self.D = len(truth)
 
-            self.scaled = self.true
+            self.scaled = deepcopy(self.truth)
             for p in range(self.D):
                 if p == 3:
-                    self.scaled[p] = np.log(self.true[p])
+                    self.scaled[p] = np.log10(self.truth[p])
         
         elif scaled is not None:
             self.scaled = scaled
             self.D = len(scaled)
 
-            self.true = self.scaled
+            self.truth = deepcopy(self.scaled)
             for p in range(self.D):
                 if p == 3:
-                    self.true[p] = np.exp(self.scaled[p])
+                    self.truth[p] = 10**(self.scaled[p])
 
         else:   raise ValueError('Assigned null state')
 
@@ -152,7 +151,7 @@ class Chain(object):
 
         else:
             for i in range(n_states):
-                chain_array[:, i] = self.states[i].true
+                chain_array[:, i] = self.states[i].truth
 
         return chain_array
 
@@ -180,7 +179,7 @@ class Model(object):
         '''
         self.m = m
         self.D = D
-        self.n = 1
+#        self.n = 1
 
         self.acc = [1]
 
@@ -204,20 +203,20 @@ class Model(object):
     
     def add_state(self, theta, adapt = True):
 
-        self.n += 1
+        self.sampled.n += 1
         self.sampled.states.append(theta)
 
         if adapt:
-            self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.n, self.s, self.I)
+            self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
             assert(('Non symmetric covariance', check_symmetric(self.covariance)))
 
         self.covariances.append(self.covariance)
-        self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.n)
+        self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
 
         return
 
     def state_check(self, theta):
-        assert(('Wrong state dimension for model', self.D != len(theta.true)))
+        assert(('Wrong state dimension for model', self.D != len(theta.truth)))
 
     def log_likelihood(self, theta):
         '''Empty method for object model dependant assignment with MethodType'''
@@ -246,7 +245,7 @@ class Model(object):
         for p in range(self.D):
 
             # product using log rules
-            ln_prior_product += (self.priors[p].log_pdf(theta.true[p]))
+            ln_prior_product += (self.priors[p].log_pdf(theta.truth[p]))
 
         # cycle through auxiliary parameters if v and v_D passed
         if v is not None or v_D is not None:
@@ -254,7 +253,7 @@ class Model(object):
                 for p in range(self.D, v_D):
                     
                     # product using log rules
-                    ln_prior_product += (self.priors[p].log_pdf(v.true[p]))
+                    ln_prior_product += (self.priors[p].log_pdf(v.truth[p]))
 
             else: raise ValueError('only one of v or v_D passed')
 
@@ -293,7 +292,7 @@ def binary_log_likelihood(self, theta):
     self.state_check(theta) # check state dimension
 
     try:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.true)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.truth)))
         model.set_magnification_methods([0., 'point_source', 72.])
 
         a = model.magnification(self.data.time) #proposed magnification signal
@@ -307,8 +306,8 @@ def binary_log_likelihood(self, theta):
         sd = self.data.err_flux # error
         chi2 = np.sum((y - F)**2/sd**2)
 
-    except: # if MulensModel crashes, return true probability zero
-        return -Inf
+    except: # if MulensModel crashes, return truth probability zero
+        return -math.inf
 
     return -chi2/2 # transform chi2 to ln likelihood
 #Binary_model = Model()
@@ -329,7 +328,7 @@ def single_log_likelihood(self, theta):
     self.state_check(theta) # check state dimension
 
     try:
-        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true)))
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.truth)))
         model.set_magnification_methods([0., 'point_source', 72.])
 
         a = model.magnification(self.data.time) #proposed magnification signal
@@ -343,8 +342,8 @@ def single_log_likelihood(self, theta):
         sd = self.data.err_flux # error
         chi2 = np.sum((y - F)**2/sd**2)
 
-    except: # if MulensModel crashes, return true probability zero
-        return -Inf
+    except: # if MulensModel crashes, return truth probability zero
+        return -math.inf
 
     return -chi2/2 # transform chi2 to ln likelihood
 
@@ -481,6 +480,8 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
         
         # update model chain
         Model.add_state(theta, adapt = True)
+
+        #print(theta.truth)
 
     # performance
     if user_feedback:
@@ -631,7 +632,7 @@ def initialise_RJMH_model(initial_Model, warm_up, iterations, n_repeat, user_fee
     inc_best_theta [array like]: array of scaled state that produced best_posterior
     '''
 
-    inc_log_best_posterior = -Inf # initialise incumbent value to always lose
+    inc_log_best_posterior = -math.inf # initialise incumbent value to always lose
 
     for i in range(n_repeat):
         
@@ -647,7 +648,7 @@ def initialise_RJMH_model(initial_Model, warm_up, iterations, n_repeat, user_fee
 
         # keep best posterior
         if inc_log_best_posterior < log_best_posterior:
-            inc_Model = deepcopy(Model)
+            inc_Model = Model
             inc_Model.center = best_theta
             #inc_acc = acc
 
@@ -714,13 +715,17 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         # print progress to screen
         if user_feedback:
             cf = i / (iterations - 1)
-            print(f'progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
+            print(f'model: {Model.m} progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end='')
 
         # propose a new model and state and calculate the resulting density
         proposed_Model = random.choice(Models)
         proposed = State(scaled = adapt_RJMH_proposal(Model, proposed_Model, theta, lv))
         log_likelihood_proposed = proposed_Model.log_likelihood(proposed)
         log_prior_proposed = proposed_Model.log_prior_density(proposed, v = v, v_D = v_D)
+
+        #print(proposed.truth)
+        #print(np.exp(log_likelihood_proposed + log_prior_proposed))
+        #print(np.exp(log_likelihood + log_prior))
 
         # metropolis acceptance
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
@@ -754,7 +759,8 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
         print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-    return total_acc
+    return total_acc, joint_model_chain
+
 
 
 
@@ -766,7 +772,7 @@ def read_light_curve(file_name):
     file_name [string]: csv file in three columns in same directory for light curve
 
     Returns:
-    data [muLens data]: data for true light curve
+    data [muLens data]: data for truth light curve
     '''
 
     with open(file_name) as file:
@@ -782,7 +788,7 @@ def synthetic_single(theta, n_epochs, signal_to_noise_baseline, seed=42):
     '''
     Generate a synthetic lightcurve for some parameters and signal to noise ratio
     --------------------------------------------
-    true_theta [array like]: parameters to generate curve from in unscaled space
+    truth_theta [array like]: parameters to generate curve from in unscaled space
     light_curve_type [int]: 0 (single) 1 (binary)
     n_epochs [int]: number of data points in curve
     signal_to_noise_baseline [scalar]: 
@@ -792,19 +798,52 @@ def synthetic_single(theta, n_epochs, signal_to_noise_baseline, seed=42):
     '''
 
     # create MulensModel
-    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.true)))
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.truth)))
     model.set_magnification_methods([0., 'point_source', 72.])
 
     # exact signal (fs=1, fb=0)
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    true_signal = model.magnification(epochs)
+    truth_signal = model.magnification(epochs)
 
     # simulate noise in gaussian errored flux space
     np.random.seed(seed)
-    noise = np.random.normal(0.0, np.sqrt(true_signal) / signal_to_noise_baseline, n_epochs) 
-    noise_sd = np.sqrt(true_signal) / signal_to_noise_baseline
+    noise = np.random.normal(0.0, np.sqrt(truth_signal) / signal_to_noise_baseline, n_epochs) 
+    noise_sd = np.sqrt(truth_signal) / signal_to_noise_baseline
     
-    signal = true_signal + noise
+    signal = truth_signal + noise
+
+    data = mm.MulensData(data_list = [epochs, signal, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
+
+    return data
+
+
+def synthetic_binary(theta, n_epochs, signal_to_noise_baseline, seed=42):
+    '''
+    Generate a synthetic lightcurve for some parameters and signal to noise ratio
+    --------------------------------------------
+    truth_theta [array like]: parameters to generate curve from in unscaled space
+    light_curve_type [int]: 0 (single) 1 (binary)
+    n_epochs [int]: number of data points in curve
+    signal_to_noise_baseline [scalar]: 
+
+    Returns:
+    data [muLens data]: data for synthetic light curve
+    '''
+
+    # create MulensModel
+    model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.truth)))
+    model.set_magnification_methods([0., 'point_source', 72.])
+
+    # exact signal (fs=1, fb=0)
+    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+    truth_signal = model.magnification(epochs)
+
+    # simulate noise in gaussian errored flux space
+    np.random.seed(seed)
+    noise = np.random.normal(0.0, np.sqrt(truth_signal) / signal_to_noise_baseline, n_epochs) 
+    noise_sd = np.sqrt(truth_signal) / signal_to_noise_baseline
+    
+    signal = truth_signal + noise
 
     data = mm.MulensData(data_list = [epochs, signal, noise_sd], phot_fmt = 'flux', chi2_fmt = 'flux')
 

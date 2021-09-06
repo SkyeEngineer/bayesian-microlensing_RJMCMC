@@ -39,11 +39,11 @@ from pathlib import Path
 ## INPUTS ##
 #-----------
 
-suite_n = 0
+suite_n = 1
 
-adaptive_warmup_iterations = 25 #25 # mcmc steps without adaption
-adaptive_iterations = 975 #475 # mcmc steps with adaption
-warmup_loops = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
+adapt_MH_warm_up = 25 #25 # mcmc steps without adaption
+adapt_MH = 975  #475 # mcmc steps with adaption
+initial_n = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
 iterations = 1000 # rjmcmc steps
 
 n_epochs = 720
@@ -51,7 +51,7 @@ epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
 signal_to_noise_baseline = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
-n_points = 3 # density for posterior contour plot
+n_pixels = 3 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 
 uniform_priors = False 
@@ -61,9 +61,7 @@ sbi = False # use neural net to get maximum aposteriori estimate for centreing p
 
 truncate = False # automatically truncate burn in period based on autocorrelation of m
 
-adapt_MH_warm_up = 25 
-adapt_MH = 475 
-initial_n = 2
+
 user_feedback = True
 
 #---------------
@@ -84,19 +82,19 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
         [36, 0.1, 10, 0.01, 0.2, 60],   # 1
         [36, 0.1, 10, 0.001, 0.5, 60],  # 2
         [36, 0.1, 36, 0.8, 0.25, 123]]  # 3
-    true = source.State(true = model_parameters[n_suite])
+    event_params = source.State(truth = model_parameters[n_suite])
     
     model_types = [0, 1, 1, 1] # model type associated with synethic event suite above
     model_type = model_types[n_suite]
     # store a synthetic lightcurve. Could otherwise use f.Read_Light_Curve(file_name)
     if model_type == 0:
-        data = source.synthetic_single(true, n_epochs, signal_to_noise_baseline)
+        data = source.synthetic_single(event_params, n_epochs, signal_to_noise_baseline)
     else: 
-        data = source.synthetic_binary(true, n_epochs, signal_to_noise_baseline)
+        data = source.synthetic_binary(event_params, n_epochs, signal_to_noise_baseline)
 
 
     # SET PRIORS
-    # priors in true space informative priors (Zhang et al)
+    # priors in truth space informative priors (Zhang et al)
     t0_pi = source.Uniform(0, 72)
     u0_pi = source.Uniform(0, 2)
     tE_pi = source.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
@@ -124,35 +122,33 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
         [36, 0.1, 10], # 1
         [45, 0.2, 20], # 2
         [36, 0.1, 36]] # 4
-        single_center = source.State(true = np.array(single_centers[n_suite]))
+        single_center = source.State(truth = np.array(single_centers[n_suite]))
 
         binary_centers = [
-        [36, 0.1, 10, 0.0005, 0.2, 60], # 0
+        [36, 0.1, 10, 0.0001, 0.2, 60], # 0
         [36, 0.1, 10, 0.01, 0.2, 60],    # 1
         [45, 0.2, 20, 0.001, 1.0, 300],  # 2
         [36, 0.1, 36, 0.8, 0.25, 123]]   # 3
-        binary_center = source.State(true = np.array(binary_centers[n_suite]))
+        binary_center = source.State(truth = np.array(binary_centers[n_suite]))
 
 
     # MODEL COVARIANCES
     # initial covariances (diagonal)
-    covariance_scale = 0.001 # reduce diagonals by a multiple
+    covariance_scale = 0.0001 # reduce diagonals by a multiple
     single_covariance = np.zeros((3, 3))
-    np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1]))
+    np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [1, 0.1, 1]))
     binary_covariance = np.zeros((6, 6))
-    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [0.1, 0.01, 0.1, 0.01, 0.01, 1]))
+    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [1, 0.1, 1, 0.1, 0.1, 10]))
 
 
     # MODELS
     single_Model = source.Model(0, 3, single_center, priors, single_covariance, data, source.single_log_likelihood)
-    #single_Model.log_likelihood = source.MethodType(source.single_log_likelihood, single_Model)
     binary_Model = source.Model(1, 6, binary_center, priors, binary_covariance, data, source.binary_log_likelihood)
-    #single_Model.log_likelihood = source.MethodType(source.single_log_likelihood, single_Model)
     Models = [single_Model, binary_Model]
 
     start_time = (time.time())
 
-    total_acc = source.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = user_feedback)
+    total_acc, joint_model_chain = source.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = user_feedback)
 
     # use adaptiveMCMC to calculate initial covariances and optimise centers
     #w_single_covariance, w_s_chain_states, w_s_chain_means, w_s_acceptance_history, w_s_covariance_history, w_s_best_posterior, w_s_best_theta =\
@@ -180,16 +176,21 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
 
     print((time.time() - start_time)/60, 'minutes')
 
+
     #-----------------
     ## PLOT RESULTS ##
     #-----------------
 
     # plotting resources
-    pltf.Style()
+    pltf.style()
     labels = ['Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
     symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
     letters = ['t0', 'u0', 'tE', 'log10(q)', 's', 'a']
     marker_size = 75
+
+    pltf.density_heatmaps(binary_Model, 3, event_params, symbols)
+    pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols)
+    pltf.center_offsets_pointilism(binary_Model, single_Model, symbols)
 
     # construct the generalised state signal to analyse
     auxiliary_states = []
@@ -315,7 +316,7 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
     with open('results/'+run_name+'-run.txt', 'w') as file:
         # inputs
         file.write('Inputs:\n')
-        file.write('Parameters: ' + str(true_theta)+'\n')
+        file.write('Parameters: ' + str(truth_theta)+'\n')
         file.write('Number of observations: ' + str(n_epochs)+', Signal to noise baseline: '+str(signal_to_noise_baseline)+'\n')
         
         if informative_priors == True:
@@ -451,11 +452,11 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
 
     #print(binary_cov_histories[:][:][-1])
 
-    #pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_true, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
+    #pltf.Contour_Plot(6, n_points, np.delete(tr_binary_states, 3, 1), np.delete(np.delete(binary_cov_histories[-1], 3, 1), 3, 0), binary_truth, np.delete(centers[1], 3), 1, np.delete(np.array(priors), 3), data, np.delete(np.array(symbols), 3), 'binary-contour', P_B)
     if P_B>P_S:
-        pltf.Contour_Plot(6, n_points, tr_binary_states, binary_cov_histories[-1], binary_true, centers[1], 1, priors, data, symbols, run_name+'binary-contour', P_B)
+        pltf.Contour_Plot(6, n_points, tr_binary_states, binary_cov_histories[-1], binary_truth, centers[1], 1, priors, data, symbols, run_name+'binary-contour', P_B)
     else:
-        pltf.Contour_Plot(3, n_points, tr_single_states, single_cov_histories[-1], single_true, centers[0], 0, priors, data, symbols, run_name+'single-contour', P_S)
+        pltf.Contour_Plot(3, n_points, tr_single_states, single_cov_histories[-1], single_truth, centers[0], 0, priors, data, symbols, run_name+'single-contour', P_S)
 
     shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
 
@@ -468,16 +469,18 @@ def test(n_suite, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedba
 
 # RESULTS
 
-test(0, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback, sbi, truncate, signal_to_noise_baseline)
+#test(0, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback, sbi, truncate, signal_to_noise_baseline)
 
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(1)
+test(suite_n, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback, sbi, truncate, signal_to_noise_baseline)
+
+#truth_theta, binary_truth, single_truth, data, binary_center, single_center = Suite(1)
 #Run('2/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+#    truncate, truth_theta, binary_truth, single_truth, data, priors, binary_center, single_center)
 
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(2)
+#truth_theta, binary_truth, single_truth, data, binary_center, single_center = Suite(2)
 #Run('3/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+#    truncate, truth_theta, binary_truth, single_truth, data, priors, binary_center, single_center)
 
-#true_theta, binary_true, single_true, data, binary_center, single_center = Suite(3)
+#truth_theta, binary_truth, single_truth, data, binary_center, single_center = Suite(3)
 #Run('4/', adaptive_warmup_iterations, adaptive_iterations, warmup_loops, iterations,\
-#    truncate, true_theta, binary_true, single_true, data, priors, binary_center, single_center)
+#    truncate, truth_theta, binary_truth, single_truth, data, priors, binary_center, single_center)
