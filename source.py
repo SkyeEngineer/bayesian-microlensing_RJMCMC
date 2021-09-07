@@ -208,7 +208,7 @@ class Model(object):
 
         if adapt:
             self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
-            assert(('Non symmetric covariance', check_symmetric(self.covariance)))
+            #assert(('Non symmetric covariance', check_symmetric(self.covariance)))
 
         self.covariances.append(self.covariance)
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
@@ -216,13 +216,14 @@ class Model(object):
         return
 
     def state_check(self, theta):
-        assert(('Wrong state dimension for model', self.D != len(theta.truth)))
+        #assert(('Wrong state dimension for model', self.D != len(theta.truth)))
+        pass
 
     def log_likelihood(self, theta):
         '''
         Empty method for object model dependant assignment with MethodType.
         e.g.:
-        "binary_Model = source.Model(1, 6, binary_center, priors, binary_covariance, data, source.binary_log_likelihood)"
+        "binary_Model = Model(1, 6, binary_center, priors, binary_covariance, data, binary_log_likelihood)"
         '''
         raise ValueError('No likelihood method assigned for model')
 
@@ -408,7 +409,7 @@ def adapt_MH(Model, warm_up, iterations, user_feedback = False):
     best_theta [array like]: array of scaled state that produced best_posterior
     '''
 
-    if warm_up < 25:
+    if warm_up < 5:
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix")
     
     # initialise
@@ -704,7 +705,7 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
     else:
         joint_model_chain = Chain(Model.m, theta)
 
-    total_acc = np.zeros((iterations))
+    total_acc = np.zeros(iterations)
     total_acc[0] = 1
 
     v_D = Models[-1].D
@@ -730,14 +731,16 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         log_prior_proposed = proposed_Model.log_prior_density(proposed, v = v, v_D = v_D)
 
         #print(proposed.truth)
-        #print(np.exp(log_likelihood_proposed + log_prior_proposed))
-        #print(np.exp(log_likelihood + log_prior))
+        #print(theta.truth)
+        #print(np.exp([log_likelihood_proposed, log_prior_proposed]))
+        #print(np.exp([log_likelihood, log_prior]))
 
         # metropolis acceptance
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
-            total_acc[i] = 1 # accept proposal
-            
-            if Model == proposed_Model:
+            # accept proposal
+            total_acc[i] = 1
+
+            if Model == proposed_Model: # intra model
                 Model.acc.append(1)
 
             Model = proposed_Model
@@ -746,10 +749,10 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
             
-        else: 
-            total_acc[i] = 0 # reject proposal
-                        
-            if Model == proposed_Model:
+        else: # reject proposal
+            total_acc[i] = 0
+            
+            if Model == proposed_Model: # intra model
                 Model.acc.append(0)
         
         # update model chain
@@ -761,11 +764,12 @@ def adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
     # performance
     if user_feedback:
-        print(f"\n average acc: {(np.sum(total_acc) / (iterations)):4f}")
+
+        print(f"\n average acc: {np.average(total_acc):4f}")
         print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
         print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-    return total_acc, joint_model_chain
+    return joint_model_chain
 
 
 

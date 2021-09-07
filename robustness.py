@@ -1,6 +1,7 @@
 # Author: Dominic Keehan
 # Part 4 Project, RJMCMC for Microlensing
 
+from pickle import FALSE
 import MulensModel as mm
 import source
 import autocorrelation_functions as acf
@@ -39,7 +40,7 @@ def P_m2(event_params):
 
     ## INITIALISATION ##
 
-    data = source.synthetic_binary(event_params, n_epochs, sn_base)
+    data = source.synthetic_single(event_params, n_epochs, sn_base)
 
     # SET PRIORS
     # priors in truth space informative priors (Zhang et al)
@@ -54,16 +55,16 @@ def P_m2(event_params):
 
     # GET CENTERS
     if use_NN == True:
-
+        NN_data = source.synthetic_single(event_params, 720, sn_base)
         # centreing points for inter-model jumps
-        single_center = source.State(truth = NN.get_model_centers(NN.get_posteriors(0), data.flux))
-        fin_rho = NN.get_model_centers(NN.get_posteriors(1), data.flux)
+        single_center = source.State(truth = NN.get_model_centers(NN.get_posteriors(0), NN_data.flux))
+        fin_rho = NN.get_model_centers(NN.get_posteriors(1), NN_data.flux)
         binary_center = source.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
 
     else: # use known values for centers 
 
-        binary_center = source.State(truth = np.array(event_params.truth))
-        single_center = source.State(truth = np.array(event_params.truth[:3]))
+        binary_center = source.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 0.2, 0])))
+        single_center = source.State(truth = np.array(event_params.truth))
 
     #single_center = source.State(truth = NN.get_model_centers(NN.get_posteriors(0), data.flux))
 
@@ -90,38 +91,38 @@ def P_m2(event_params):
 
 
 
-theta = [36, 0.1, 61.5, 0.01, 0.2, 25]
-n = 1
-s_pi = source.Log_Uniform(0.2, 5)
-s_range = np.linspace(0.5, 3.0, n)
-density_s = []
-P_m2_s =[]
+theta = [36, 1.0, 6]
+n = 2
+tE_pi = source.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
+tE_range = np.linspace(5, 55, n)
+density_tE = []
+P_m2_tE =[]
 
 for i in range(n):
-    s = s_range[i]
-    theta_s = deepcopy(theta)
-    theta_s[4] = s
-    event_params = source.State(truth = theta_s)
+    tE = tE_range[i]
+    theta_tE = deepcopy(theta)
+    theta_tE[2] = tE
+    event_params = source.State(truth = theta_tE)
 
-    P_m2_s.append(P_m2(event_params))
+    P_m2_tE.append(P_m2(event_params))
 
-    density_s.append(np.exp(s_pi.log_pdf(s)))
+    density_tE.append(np.exp(tE_pi.log_pdf(tE)))
 
-    pltf.amplification(1, event_params, [0, 72], label = 's='+str(s), color = plt.cm.autumn(i/n))
+    pltf.amplification(1, event_params, [0, 72], label = 'tE='+str(tE), color = plt.cm.autumn(i/n))
     single_projection = source.State(truth = event_params.truth[:3])
-    pltf.amplification(0, single_projection, [0, 72], label = 'single, s='+str(s), color = plt.cm.winter(i/n))
+    pltf.amplification(0, single_projection, [0, 72], label = 'single, tE='+str(tE), color = plt.cm.winter(i/n))
 
 plt.legend()
 plt.xlabel('Time [days]')
 plt.ylabel('Magnification')
 plt.tight_layout()
-plt.savefig('Plots/EPm2.png')
+plt.savefig('Plots/EPm2tE.png')
 plt.clf()
 
-print(P_m2_s)
-print(density_s)
-EPM2 = sum([a*b for a,b in zip(P_m2_s, density_s)])/sum(density_s)
-sdEPM2 = sum([(a-EPM2)**2*b for a,b in zip(P_m2_s, density_s)])/sum(density_s)**0.5
+print(P_m2_tE)
+print(density_tE)
+EPM2 = sum([a*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE)
+sdEPM2 = sum([(a-EPM2)**2*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE)**0.5
 print(EPM2)
 print(sdEPM2)
 

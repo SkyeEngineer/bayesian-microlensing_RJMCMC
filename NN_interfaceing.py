@@ -59,7 +59,7 @@ def get_model_centers(posterior, signal_data):
     
     print(centers)
 
-    return centers
+    return np.array(centers)
 
 
 
