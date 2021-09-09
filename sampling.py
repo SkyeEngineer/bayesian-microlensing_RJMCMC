@@ -4,7 +4,7 @@ Implements algorithms for bayesian sampling. Uses the main
 classes: State, Chain, and model.
 """
 
-import Mulensmodel as mm 
+import MulensModel as mm 
 import math
 import random
 import numpy as np
@@ -115,7 +115,7 @@ class Chain(object):
         return chain_array
 
 
-class model(object):
+class Model(object):
     """A model to describe a probability distribution.
 
     Contains a chain of states from this model, as well as information
@@ -249,7 +249,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix.")
     
     theta = model.center
-    Besttheta = theta
+    best_theta = deepcopy(theta)
 
     # Initial propbability values.
     log_likelihood = model.log_likelihood(theta)
@@ -267,19 +267,19 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         # Metropolis acceptance criterion.
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
-            # store best state
+            # Store best state.
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior < log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
-        else: model.acc.append(0) # reject proposal
+        else: model.acc.append(0) # Reject proposal.
         
-        # update storage
+        # Update storage.
         model.add_state(theta, adapt = False)
 
     # Calculate intial empirical covariance matrix.
@@ -288,10 +288,10 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
     model.covariances.append(model.covariance)
 
     # Perform adaptive walk.
-    for i in range(warm_up, iterations):
+    for i in range(warm_up, iterations + warm_up):
 
         if user_feedback:
-            cf = i / (iterations - 1)
+            cf = i / (iterations + warm_up - 1)
             print(f'log score: {log_best_posterior:.4f}, progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new state and calculate the resulting density.
@@ -302,7 +302,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         # Metropolis acceptance criterion.
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
@@ -310,7 +310,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior < log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
         else: model.acc.append(0) # Reject proposal.
         
@@ -320,7 +320,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
     if user_feedback:
         print(f"\n model: {model.m}, average acc: {(np.sum(model.acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}")
 
-    return Besttheta, log_best_posterior
+    return best_theta, log_best_posterior
 
 
 def adapt_RJMH_proposal(model, proposed_model, theta, lv):
@@ -337,7 +337,7 @@ def adapt_RJMH_proposal(model, proposed_model, theta, lv):
     """
     l = theta.scaled - model.center.scaled # Offset from initial model's centre.
 
-    if model.m == proposed_model.m: # Intra-model move.
+    if model is proposed_model: # Intra-model move.
 
         # Use the covariance at the proposed model's center for local shape.
         u = gaussian_proposal(np.zeros((proposed_model.D)), proposed_model.covariance)
@@ -409,11 +409,13 @@ def initialise_RJMH_model(empty_model, warm_up, iterations, n_repeat, user_feedb
         # Run adaptive MH.
         best_theta, log_best_posterior = adapt_MH(model, warm_up, iterations, user_feedback = user_feedback)
 
+
         # Keep the best posterior density run.
         if inc_log_best_posterior < log_best_posterior:
-            incumbent_model = model
-            incumbent_model.center = best_theta
+            incumbent_model = deepcopy(model)
+            incumbent_model.center = deepcopy(best_theta)
 
+    #print(incumbent_model.acc, 'hi')
     return incumbent_model
 
 
@@ -439,16 +441,19 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
     """
 
     # Initialise model chains.
-    for model in models:
-        model = initialise_RJMH_model(model, adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
-
+    for m_i in range(len(models)):
+        models[m_i] = initialise_RJMH_model(models[m_i], adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
+        #print(model.acc, len(model.acc), 'hi')
     random.seed(42)
 
     # Choose a random model to start in.
     model = random.choice(models)
-    theta = model.sampled.states[-1] # Final state in model's warmup chain.
+    #print(models[0].acc, len(models[0].acc))
+    #print(models[1].acc, len(models[1].acc))
+    #print(model.acc, len(model.acc))
+    theta = deepcopy(model.sampled.states[-1]) # Final state in model's warmup chain.
 
-    v = models[-1].sampled.states[-1] # Auxiliary variables final state in super set model
+    v = deepcopy(models[-1].sampled.states[-1]) # Auxiliary variables final state in super set model
     lv = models[-1].sampled.states[-1].scaled - models[-1].center.scaled # auxiliary variables offset from center
 
     # Create joint model as initial theta appended to auxiliary variables.
@@ -487,11 +492,11 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
             # Accept proposal.
             total_acc[i] = 1
 
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(1)
 
             model = proposed_model
-            theta = proposed
+            theta = deepcopy(proposed)
 
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
@@ -499,7 +504,7 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         else: # Reject proposal.
             total_acc[i] = 0
             
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(0)
         
         # Update model chain.

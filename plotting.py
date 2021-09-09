@@ -7,7 +7,7 @@ from numpy.core.fromnumeric import mean, ndim
 from numpy.core.function_base import linspace
 from copy import deepcopy
 import MulensModel as mm
-import source
+import sampling
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -241,7 +241,7 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
                     temp[xi] = j
                     temp[yi] = i
 
-                    theta = source.State(scaled=temp)
+                    theta = sampling.State(scaled=temp)
 
                     density[x][y] = np.exp(model.log_likelihood(theta) + model.log_prior_density(theta))
 
