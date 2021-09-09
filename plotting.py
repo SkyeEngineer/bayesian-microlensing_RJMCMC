@@ -1,3 +1,6 @@
+"""Plotting tools for microlensing distribution sampling."""
+
+
 import math
 from numpy.core.defchararray import array
 from numpy.core.fromnumeric import mean, ndim
@@ -5,8 +8,6 @@ from numpy.core.function_base import linspace
 from copy import deepcopy
 import MulensModel as mm
 import source
-import autocorrelation_functions as acf
-import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -17,11 +18,11 @@ import matplotlib as mpl
 
 
 
-def adaption_contraction(Model, iterations, name = '', dpi = 100):
+def adaption_contraction(model, iterations, name = '', dpi = 100):
 
-    acc = Model.acc
-    covs = np.array(Model.covariances)
-    N = Model.sampled.n
+    acc = model.acc
+    covs = np.array(model.covariances)
+    N = model.sampled.n
 
     size = int(N/25)
     
@@ -153,11 +154,11 @@ def adjust_viewing_axis(axis, ax, states, density_base, bounds, size):
     return Upper, Lower
 
 
-def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name = '', dpi = 100):
+def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name = '', dpi = 100):
 
-    n_dim = Model.D
+    n_dim = model.D
 
-    states = Model.sampled.states_array(scaled=True)
+    states = model.sampled.states_array(scaled=True)
 
     # build off corners spacing and other styling
     style()
@@ -176,7 +177,7 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
         density_base = event_params
 
     else:
-        density_base = Model.center
+        density_base = model.center
 
 
     # Loop over the diagonal
@@ -210,7 +211,7 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
             ax.axes.get_xaxis().set_ticklabels([])
             ax.axes.get_yaxis().set_ticklabels([])
 
-        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], density_base.scaled[i], Model.priors[i], view_size)
+        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], density_base.scaled[i], model.priors[i], view_size)
 
 
     # loop over lower triangular 
@@ -220,8 +221,8 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
             ax.cla()
             
             # posterior heat map sizing
-            xUpper, xLower = adjust_viewing_axis('x', ax, states[xi, :], density_base.scaled[xi], Model.priors[xi], view_size)
-            yUpper, yLower = adjust_viewing_axis('y', ax, states[yi, :], density_base.scaled[yi], Model.priors[yi], view_size)
+            xUpper, xLower = adjust_viewing_axis('x', ax, states[xi, :], density_base.scaled[xi], model.priors[xi], view_size)
+            yUpper, yLower = adjust_viewing_axis('y', ax, states[yi, :], density_base.scaled[yi], model.priors[yi], view_size)
 
             yaxis = np.linspace(yLower, yUpper, n_pixels)
             xaxis = np.linspace(xLower, xUpper, n_pixels)
@@ -242,7 +243,7 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
 
                     theta = source.State(scaled=temp)
 
-                    density[x][y] = np.exp(Model.log_likelihood(theta) + Model.log_prior_density(theta))
+                    density[x][y] = np.exp(model.log_likelihood(theta) + model.log_prior_density(theta))
 
             density = np.sqrt(np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
             ax.imshow(density, interpolation = 'none', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower))
@@ -253,7 +254,7 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
             mu = [np.mean(states[xi, :]), np.mean(states[yi, :])]
             row = np.array([xi, yi])
             col = np.array([xi, yi])
-            K = Model.covariance[row[:, np.newaxis], col] 
+            K = model.covariance[row[:, np.newaxis], col] 
             angles = np.linspace(0, 2*math.pi, 720)
             R = [np.cos(angles), np.sin(angles)]
             R = np.transpose(np.array(R))
@@ -301,11 +302,11 @@ def density_heatmaps(Model, n_pixels, event_params, symbols, view_size = 1, name
 
 
 
-def center_offsets_pointilism(supset_Model, subset_Model, symbols, name = '', dpi = 100):
+def center_offsets_pointilism(supset_model, subset_model, symbols, name = '', dpi = 100):
 
-    supset_offsets = (supset_Model.sampled.states_array(scaled = True) - supset_Model.center.scaled[:, np.newaxis])
-    subset_offsets = (subset_Model.sampled.states_array(scaled = True) - subset_Model.center.scaled[:, np.newaxis])
-    n_dim = subset_Model.D
+    supset_offsets = (supset_model.sampled.states_array(scaled = True) - supset_model.center.scaled[:, np.newaxis])
+    subset_offsets = (subset_model.sampled.states_array(scaled = True) - subset_model.center.scaled[:, np.newaxis])
+    n_dim = subset_model.D
 
     style()
     # construct shape with corner
@@ -337,8 +338,8 @@ def center_offsets_pointilism(supset_Model, subset_Model, symbols, name = '', dp
             ax.cla()
             
             # overlay points
-            ax.scatter(subset_offsets[xi, :], subset_offsets[yi, :], c = np.linspace(0.0, 1.0, subset_Model.sampled.n), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
-            ax.scatter(supset_offsets[xi, :], supset_offsets[yi, :], c = np.linspace(0.0, 1.0, supset_Model.sampled.n), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(subset_offsets[xi, :], subset_offsets[yi, :], c = np.linspace(0.0, 1.0, subset_model.sampled.n), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(supset_offsets[xi, :], supset_offsets[yi, :], c = np.linspace(0.0, 1.0, supset_model.sampled.n), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
 
             if yi == n_dim - 1: # last row
                 ax.set_xlabel(symbols[xi])
@@ -366,7 +367,7 @@ def center_offsets_pointilism(supset_Model, subset_Model, symbols, name = '', dp
 
 
 
-def joint_samples_pointilism(supset_Model, subset_Model, joint_model_chain, symbols, name = '', dpi = 100):
+def joint_samples_pointilism(supset_model, subset_model, joint_model_chain, symbols, name = '', dpi = 100):
 
     # fonts/visibility
     ls = 20 # label size
@@ -374,12 +375,12 @@ def joint_samples_pointilism(supset_Model, subset_Model, joint_model_chain, symb
     n_lb = 3 # tick labels
 
     # sizing
-    N_dim = supset_Model.D
-    n_dim = subset_Model.D
+    N_dim = supset_model.D
+    n_dim = subset_model.D
 
     # extract points
-    supset_states = supset_Model.sampled.states_array(scaled = True)
-    subset_states = subset_Model.sampled.states_array(scaled = True)
+    supset_states = supset_model.sampled.states_array(scaled = True)
+    subset_states = subset_model.sampled.states_array(scaled = True)
 
     style()
     figure = corner.corner(supset_states.T) # use corner for layout/sizing
@@ -427,7 +428,7 @@ def joint_samples_pointilism(supset_Model, subset_Model, joint_model_chain, symb
         for xi in range(yi):
             ax = axes[yi, xi]
             ax.cla()
-            ax.scatter(supset_states[xi, :], supset_states[yi, :], c = np.linspace(0.0, 1.0, supset_Model.sampled.n), cmap = 'spring', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
+            ax.scatter(supset_states[xi, :], supset_states[yi, :], c = np.linspace(0.0, 1.0, supset_model.sampled.n), cmap = 'spring', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
                 
             if yi == N_dim - 1: # bottom row
                 ax.set_xlabel(symbols[xi])
@@ -454,7 +455,7 @@ def joint_samples_pointilism(supset_Model, subset_Model, joint_model_chain, symb
                 # acquire axes and plot
                 axs = figure.get_axes()[4].get_gridspec()
                 axt = figure.add_subplot(axs[xi, yi])
-                axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, subset_Model.sampled.n), cmap = 'winter', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
+                axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, subset_model.sampled.n), cmap = 'winter', alpha = 0.25, marker = ".", s = 25, linewidth = 0.0)
                 
                 if yi == n_dim - 1: # last column
                     axt.set_ylabel(symbols[xi])

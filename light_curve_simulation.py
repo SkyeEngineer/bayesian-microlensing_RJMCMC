@@ -1,25 +1,24 @@
 """Light curve simulation for microlensing.
 
-Functions to generate simple synthetic light curves,accurate in the context
+Functions to generate simple synthetic light curves, accurate in the context
 of ROMAN. Functions to calculate likelihood given a lensing model.
 """
 
 import MulensModel as mm 
 import math
-import random
 import numpy as np
 
 def read_light_curve(file_name):
     """Read in lightcurve data.
     
-    Must be between 0 and 72 days, with 720 observations. 
-    Photometry data with three columns: time, flux, and error.
+    Observations must be between 0 and 72 days. Expects 
+    photometry data with three columns: time, flux, and error.
     
     Args:
-        file_name: String csv file name, in same directory.
+        file_name [str]: CSV file name.
 
     Returns:
-        data: MulensData for light curve.
+        data [mulensdata]: Object for light curve.
     """
     with open(file_name) as file:
         array = np.loadtxt(file, delimiter = ",")
@@ -29,23 +28,25 @@ def read_light_curve(file_name):
     return data
 
 
-def synthetic_single(Theta, n_epochs, sn, seed=42):
+def synthetic_single(theta, n_epochs, sn, seed = 42):
     """Generate a synthetic single lens lightcurve.
     
     Simulates noise based on guassian flux process.
-    In this case, amplification = flux.
+    Produces equispaced observations from 0 to 72 days.
+    In this simplified case, amplification = flux.
     Otherwise based on ROMAN photometric specifications.
 
     Args:
-        Theta: The single model state.
-        n_epochs: The number of flux observations.
-        sn: The signal to noise baseline.
-        seed: (Optional) the integer random seed.
+        theta [state]: Single lens model parameters.
+        n_epochs [int]: The number of flux observations.
+        sn [float]: The signal to noise baseline.
+        seed [optional, int]: A random seed.
+
     Returns:
-        Data: MulensData for a synthetic lightcurve
+        data [mulensdata]: Object for a synthetic lightcurve.
     """
     # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], Theta.truth)))
+    model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
     model.set_magnification_methods([0., "point_source", 72.])
 
     # Exact signal (fs=1, fb=0).
@@ -64,23 +65,25 @@ def synthetic_single(Theta, n_epochs, sn, seed=42):
     return data
 
 
-def synthetic_binary(Theta, n_epochs, sn, seed=42):
+def synthetic_binary(theta, n_epochs, sn, seed = 42):
     """Generate a synthetic single lens lightcurve.
     
     Simulates noise based on guassian flux process.
-    In this case, amplification = flux.
+    In this simplified case, amplification = flux.
+    Produces equispaced observations from 0 to 72 days.
     Otherwise based on ROMAN photometric specifications.
 
     Args:
-        Theta: The single model state.
-        n_epochs: The number of flux observations.
-        sn: The signal to noise baseline.
-        seed: (Optional) the integer random seed.
+        theta [state]: Binary lens model parameters.
+        n_epochs [int]: The number of flux observations.
+        sn [float]: The signal to noise baseline.
+        seed [optional, int]: A random seed.
+
     Returns:
-        Data: MulensData for a synthetic lightcurve
+        data [mulensdata]: Object for a synthetic lightcurve.
     """
     # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], Theta.truth)))
+    model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
     model.set_magnification_methods([0., "point_source", 72.])
 
     # Exact signal (fs=1, fb=0).
@@ -108,10 +111,10 @@ def binary_log_likelihood(self, theta):
     Data must be over the range 0 to 72 days.
 
     Args:
-        theta: The binary model state.
+        theta [state]: Binary model parameters.
 
     Returns:
-        log_likelihood: The resulting log likelihood.
+        log_likelihood [float]: The resulting log likelihood.
     """
     try: # MulensModel may throw errors
         model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
@@ -141,10 +144,10 @@ def single_log_likelihood(self, theta):
     Data must be over the range 0 to 72 days.
 
     Args:
-        theta: The single model state.
+        theta [state]: Single model parameters.
 
     Returns:
-        log_likelihood: The resulting log likelihood.
+        log_likelihood [float]: The resulting log likelihood.
     """
     try: # MulensModel may throw errors
         model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
