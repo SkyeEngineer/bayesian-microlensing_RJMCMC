@@ -60,12 +60,3 @@ def get_model_centers(posterior, signal_data):
     print(centers)
 
     return np.array(centers)
-
-
-
-def get_model_ensemble(posterior, signal_data, n):
-
-    samples = posterior.sample((n, ), x = signal_data)
-    log_prob_samples = np.array(posterior.log_prob(theta = samples, x = signal_data))
-
-    return samples, log_prob_samples

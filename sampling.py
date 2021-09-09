@@ -2,14 +2,11 @@
 
 Implements algorithms for bayesian sampling. Uses the main 
 classes: State, Chain, and Model to ensure generality and possible
-extension to different RJMH algorithms. Includes code for the
-realstic simulation and likelihood calculation of microlensing
-events.
+extension to different RJMH algorithms.
 
   Typical usage example:
 
   See modules: expected_binary and expected_robustness 
-
 """
 
 import MulensModel as mm 
@@ -321,73 +318,7 @@ def iterative_covariance(cov, x, x_mu, n, s, I, eps = 1e-12):
 def check_symmetric(A, tol = 1e-16):
     return np.all(np.abs(A-A.T) < tol)
 
-## FUNCTIONS ##
 
-def binary_log_likelihood(self, theta):
-    """Calculates the log likelihood of a state in a model.
-    
-    Uses the point source approximation from MulensModel to calculate
-    the log likelihood that a binary state produced the model's data.
-    Data must be over the range 0 to 72 days.
-
-    Args:
-        theta: The binary model state.
-
-    Returns:
-        log_likelihood: The resulting log likelihood.
-    """
-    try: # MulensModel may throw errors
-        model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
-        model.set_magnification_methods([0., "point_source", 72.])
-
-        a = model.magnification(self.data.time) # The proposed magnification signal.
-        y = self.data.flux # The observed flux signal.
-        
-        # Fit proposed flux as least squares solution.
-        A = np.vstack([a, np.ones(len(a))]).T
-        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-        F = f_s*a + f_b # The least squares signal.
-
-        sd = self.data.err_flux
-        chi2 = np.sum((y - F)**2/sd**2)
-
-    except: # If MulensModel crashes, return true likelihood zero.
-        return -math.inf
-
-    return -chi2/2 # Transform chi2 to log likelihood.
-
-def single_log_likelihood(self, theta):
-    """Calculates the log likelihood of a state in a model.
-    
-    Uses the point source approximation from MulensModel to calculate
-    the log likelihood that a single state produced the model's data.
-    Data must be over the range 0 to 72 days.
-
-    Args:
-        theta: The single model state.
-
-    Returns:
-        log_likelihood: The resulting log likelihood.
-    """
-    try: # MulensModel may throw errors
-        model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
-        model.set_magnification_methods([0., "point_source", 72.])
-
-        a = model.magnification(self.data.time) # The proposed magnification signal.
-        y = self.data.flux # The observed flux signal.
-        
-        # Fit proposed flux as least squares solution.
-        A = np.vstack([a, np.ones(len(a))]).T
-        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-        F = f_s*a + f_b # The least squares signal.
-
-        sd = self.data.err_flux
-        chi2 = np.sum((y - F)**2/sd**2)
-
-    except: # If MulensModel crashes, return true likelihood zero.
-        return -math.inf
-
-    return -chi2/2 # Transform chi2 to log likelihood.
 
 def gaussian_proposal(theta, covariance):
     """Samples a gaussian move."""
@@ -683,97 +614,8 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
     return JointModelChain
 
 
-def read_light_curve(file_name):
-    """Read in lightcurve data.
-    
-    Must be between 0 and 72 days, with 720 observations. 
-    Photometry data with three columns: time, flux, and error.
-    
-    Args:
-        file_name: String csv file name, in same directory.
 
-    Returns:
-        data: MulensData for light curve.
-    """
-    with open(file_name) as file:
-        array = np.loadtxt(file, delimiter = ",")
-
-    data = mm.MulensData(data_list = [array[:, 0], array[:, 1], array[:, 2]], phot_fmt = "flux", chi2_fmt = "flux")
-
-    return data
-
-
-def synthetic_single(Theta, n_epochs, sn, seed=42):
-    """Generate a synthetic single lens lightcurve.
-    
-    Simulates noise based on guassian flux process.
-    In this case, amplification = flux.
-    Otherwise based on ROMAN photometric specifications.
-
-    Args:
-        Theta: The single model state.
-        n_epochs: The number of flux observations.
-        sn: The signal to noise baseline.
-        seed: (Optional) the integer random seed.
-    Returns:
-        Data: MulensData for a synthetic lightcurve
-    """
-    # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], Theta.truth)))
-    model.set_magnification_methods([0., "point_source", 72.])
-
-    # Exact signal (fs=1, fb=0).
-    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    truth_signal = model.magnification(epochs)
-
-    # Simulate noise in gaussian errored flux space.
-    np.random.seed(seed)
-    noise = np.random.normal(0.0, np.sqrt(truth_signal) / sn, n_epochs) 
-    noise_sd = np.sqrt(truth_signal) / sn
-    
-    signal = truth_signal + noise
-
-    data = mm.MulensData(data_list = [epochs, signal, noise_sd], phot_fmt = "flux", chi2_fmt = "flux")
-
-    return data
-
-
-def synthetic_binary(Theta, n_epochs, sn, seed=42):
-    """Generate a synthetic single lens lightcurve.
-    
-    Simulates noise based on guassian flux process.
-    In this case, amplification = flux.
-    Otherwise based on ROMAN photometric specifications.
-
-    Args:
-        Theta: The single model state.
-        n_epochs: The number of flux observations.
-        sn: The signal to noise baseline.
-        seed: (Optional) the integer random seed.
-    Returns:
-        Data: MulensData for a synthetic lightcurve
-    """
-    # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], Theta.truth)))
-    model.set_magnification_methods([0., "point_source", 72.])
-
-    # Exact signal (fs=1, fb=0).
-    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    truth_signal = model.magnification(epochs)
-
-    # Simulate noise in gaussian errored flux space.
-    np.random.seed(seed)
-    noise = np.random.normal(0.0, np.sqrt(truth_signal) / sn, n_epochs) 
-    noise_sd = np.sqrt(truth_signal) / sn
-    
-    signal = truth_signal + noise
-
-    data = mm.MulensData(data_list = [epochs, signal, noise_sd], phot_fmt = "flux", chi2_fmt = "flux")
-
-    return data
-
-
-def output_file(models, JointModelChain, n_epochs, sn_base, letters, name = "", event_params = None):
+def output_file(Models, JointModelChain, n_epochs, sn, letters, name = "", event_params = None):
     
     # output File:
     with open("results/"+name+"-run.txt", "w") as file:
@@ -784,33 +626,28 @@ def output_file(models, JointModelChain, n_epochs, sn_base, letters, name = "", 
         file.write("Inputs:\n")
         if event_params is not None:
             file.write("Parameters: "+str(event_params.truth)+"\n")
-        file.write("Number of observations: "+str(n_epochs)+", Signal to noise baseline: "+str(sn_base)+"\n")
+        file.write("Number of observations: "+str(n_epochs)+", Signal to noise baseline: "+str(sn)+"\n")
         
-        # priors
-        #for Model in Models:
-        #    file.write(str(Model.priors)+"\n")
-
-        # run info
         file.write("\n")
         file.write("Run information:\n")
-        file.write("Iterations: "+str(joint_model_chain.n)+"\n")
+        file.write("Iterations: "+str(JointModelChain.n)+"\n")
         total_acc = 0
         for Model in Models:
             total_acc += np.sum(Model.acc)
-        total_acc /= joint_model_chain.n
+        total_acc /= JointModelChain.n
         file.write("Average acc; Total: "+str(total_acc))
 
         # results
         file.write("\n\nResults:\n")
         for Model in Models:
             # models
-            P_Model = Model.sampled.n/joint_model_chain.n
-            sd_Model = ((Model.sampled.n*(1-P_Model)**2 + (joint_model_chain.n-Model.sampled.n)*(0-P_Model)**2) / (joint_model_chain.n-1))**0.5
+            P_Model = Model.Sampled.n/JointModelChain.n
+            sd_Model = ((Model.Sampled.n*(1-P_Model)**2 + (JointModelChain.n-Model.Sampled.n)*(0-P_Model)**2) / (JointModelChain.n-1))**0.5
             file.write("\n"+str(Model.m)+"\nP(m|y): "+str(P_Model)+"\n")
 
             # parameters
-            Model_states = Model.sampled.states_array(scaled = True)
-            for i in range(len(Model.sampled.states[-1].scaled)):
+            Model_states = Model.Sampled.states_array(scaled = True)
+            for i in range(len(Model.Sampled.states[-1].scaled)):
                 mu = np.average(Model_states[i, :])
                 sd = np.std(Model_states[i, :], ddof = 1)
                 file.write(letters[i]+": mean: "+str(mu)+", sd: "+str(sd)+" \n")
