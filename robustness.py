@@ -18,7 +18,7 @@ import time
 
 
 
-def P_m2(event_params):
+def P_m2(event_params, sn_base, n_epochs):
 
     #-----------
     ## INPUTS ##
@@ -31,10 +31,10 @@ def P_m2(event_params):
 
     truncate = False # automatically truncate burn in period based on autocorrelation of m
 
-    n_epochs = 720
+    #n_epochs = 720
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
     use_neural_net = False
-    sn_base = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
+    # = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
 
     #---------------
     ## END INPUTS ##
@@ -84,47 +84,59 @@ def P_m2(event_params):
     Models = [single_Model, binary_Model]
 
     start_time = (time.time())
-    joint_model_chain = sampling.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback=True)
-
-    P_m2 = binary_Model.sampled.n/joint_model_chain.n
+    joint_model_chain, total_acc, inter_info = sampling.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback=True)
+    single_Model, binary_Model = Models
+    P_m2 = np.sum(joint_model_chain.model_indices)/joint_model_chain.n
 
     return P_m2
 
 
 
 
-theta = [36, 1.0, 6]
-n = 1
+theta = [36, 1.0, 5.5]
+n = 2
 tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
-tE_range = np.linspace(5, 55, n)
+tE_range = np.linspace(5.5, 55, n)
 density_tE = []
 P_m2_tE =[]
 
-for i in range(n):
-    tE = tE_range[i]
-    theta_tE = deepcopy(theta)
-    theta_tE[2] = tE
-    event_params = sampling.State(truth = theta_tE)
+with open("results/robustness-run.txt", "w") as file:
 
-    P_m2_tE.append(P_m2(event_params))
+    for n_epochs in [72, 360]:
+        for sn_base in [23, 126.5]:
 
-    density_tE.append(np.exp(tE_pi.log_pdf(tE)))
 
-    pltf.amplification(1, event_params, [0, 72], label = 'tE='+str(tE), color = plt.cm.autumn(i/n))
-    single_projection = sampling.State(truth = event_params.truth[:3])
-    pltf.amplification(0, single_projection, [0, 72], label = 'single, tE='+str(tE), color = plt.cm.winter(i/n))
+            density_tE = []
+            P_m2_tE =[]
+            for i in range(n):
+                tE = tE_range[i]
+                theta_tE = deepcopy(theta)
+                theta_tE[2] = tE
+                event_params = sampling.State(truth = theta_tE)
 
-plt.legend()
-plt.xlabel('Time [days]')
-plt.ylabel('Magnification')
-plt.tight_layout()
-plt.savefig('figures/EPm2tE.png')
-plt.clf()
+                P_m2_tE.append(P_m2(event_params, sn_base, n_epochs))
+
+                density_tE.append(np.exp(tE_pi.log_pdf(tE)))
+
+                #pltf.amplification(1, event_params, [0, 72], label = 'tE='+str(tE), color = plt.cm.autumn(i/n))
+                single_projection = sampling.State(truth = event_params.truth[:3])
+                #pltf.amplification(0, single_projection, [0, 72], label = 'single, tE='+str(tE), color = plt.cm.winter(i/n))
+                EPM2 = sum([a*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE)
+                sdEPM2 = (sum([(a-EPM2)**2*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE))**0.5
+            
+            file.write("n_epochs: "+str(n_epochs)+" sn_base: "+str(sn_base)+" E: "+str(EPM2)+" sd+-: "+str(sdEPM2)+"\n")
+
+
+#plt.legend()
+#plt.xlabel('Time [days]')
+#plt.ylabel('Magnification')
+#plt.tight_layout()
+#plt.savefig('figures/EPm2tE.png')
+#plt.clf()
 
 print(P_m2_tE)
 print(density_tE)
-EPM2 = sum([a*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE)
-sdEPM2 = sum([(a-EPM2)**2*b for a,b in zip(P_m2_tE, density_tE)])/sum(density_tE)**0.5
+
 print(EPM2)
 print(sdEPM2)
 

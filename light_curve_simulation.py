@@ -124,9 +124,7 @@ def binary_log_likelihood(self, theta):
         y = self.data.flux # The observed flux signal.
         
         # Fit proposed flux as least squares solution.
-        A = np.vstack([a, np.ones(len(a))]).T
-        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-        F = f_s*a + f_b # The least squares signal.
+        F = least_squares_signal(a, y)
 
         sd = self.data.err_flux
         chi2 = np.sum((y - F)**2/sd**2)
@@ -135,6 +133,13 @@ def binary_log_likelihood(self, theta):
         return -math.inf
 
     return -chi2/2 # Transform chi2 to log likelihood.
+
+def least_squares_signal(a, y):
+    # Fit proposed flux as least squares solution.
+    A = np.vstack([a, np.ones(len(a))]).T
+    f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
+    F = f_s*a + f_b # The least squares signal.
+    return F
 
 def single_log_likelihood(self, theta):
     """Calculate the log likelihood of a state in a model.
@@ -157,9 +162,7 @@ def single_log_likelihood(self, theta):
         y = self.data.flux # The observed flux signal.
         
         # Fit proposed flux as least squares solution.
-        A = np.vstack([a, np.ones(len(a))]).T
-        f_s, f_b = np.linalg.lstsq(A, y, rcond = None)[0]
-        F = f_s*a + f_b # The least squares signal.
+        F = least_squares_signal(a, y)
 
         sd = self.data.err_flux
         chi2 = np.sum((y - F)**2/sd**2)

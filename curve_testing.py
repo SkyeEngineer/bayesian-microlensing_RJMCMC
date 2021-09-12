@@ -25,11 +25,11 @@ import time
 #-----------
 
 
-suite_n = 3
+suite_n = 1
 adapt_MH_warm_up = 25 #25 # mcmc steps without adaption
-adapt_MH = 975  #475 # mcmc steps with adaption
+adapt_MH = 75  #475 # mcmc steps with adaption
 initial_n = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 1000 # rjmcmc steps
+iterations = 100 # rjmcmc steps
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 sn_base = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
@@ -37,7 +37,7 @@ n_pixels = 3 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 uniform_priors = False 
 informative_priors = True
-use_neural_net = True # use neural net to get maximum aposteriori estimate for centreing points
+use_neural_net = False # use neural net to get maximum aposteriori estimate for centreing points
 dpi = 100
 user_feedback = True
 
@@ -50,8 +50,8 @@ name = names[suite_n]
 # GENERATE DATA
 # synthetic event parameters
 model_parameters = [
-    [15, 0.1, 10],                  # 0
-    [15, 0.1, 10, 0.01, 0.2, 60],   # 1
+    [15, 0.1, 10, 0.01, 0.2, 60],                  # 0
+    [15, 0.1, 10, 0.01, 0.3, 60],   # 1
     [15, 0.1, 10, 0.01, 0.5, 60],  # 2
     [15, 0.1, 10, 0.01, 0.7, 60]]  # 3
 event_params = sampling.State(truth = model_parameters[suite_n])
@@ -86,17 +86,17 @@ if use_neural_net == True:
 
 else: # use known values for centers 
     single_centers = [
-    [15.02, 0.1, 10.1], # 0
-    [15.02, 0.1, 10.1], # 1
-    [15.02, 0.1, 10.1], # 2
-    [15.02, 0.1, 10.1]] # 3
+    [15.0245, 0.1035, 10**1.0063], # 0
+    [15.0245, 0.1035, 10**1.0063], # 1
+    [15.0245, 0.1035, 10**1.0063], # 2
+    [15.0245, 0.1035, 10**1.0063]] # 3
     single_center = sampling.State(truth = np.array(single_centers[suite_n]))
 
     binary_centers = [
-    [15.02, 0.1, 10.1, 0.00331131121, 2.75118, 152.23], # 0
-    [15.02, 0.1, 10.1, 0.00331131121, 2.75118, 152.23],    # 1
-    [15.02, 0.1, 10.1, 0.00331131121, 2.75118, 152.23],  # 2
-    [15.02, 0.1, 10.1, 0.00331131121, 2.75118, 152.23]]   # 3
+    [1.50424747e+01, 1.04854599e-01, 1.00131283e+01, 4.51699379e-05, 9.29979384e-01, 8.72737579e+01], # 0
+    [15.0245, 0.1035, 10**1.0063, 10**-2.3083, 10**0.5614, 55.2111],    # 1
+    [15.0186, 0.1015, 10**1.0050, 10**-1.9734, 10**-0.3049, 60.4598],  # 2
+    [14.9966, 0.1020, 10**1.0043, 10**-1.9825, 10**-0.1496, 60.2111]]   # 3
     binary_center = sampling.State(truth = np.array(binary_centers[suite_n]))
 
 
@@ -114,7 +114,7 @@ binary_Model = sampling.Model(1, 6, binary_center, priors, binary_covariance, da
 Models = [single_Model, binary_Model]
 
 start_time = (time.time())
-joint_model_chain = sampling.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback)
+joint_model_chain, total_acc, inter_info = sampling.adapt_RJMH(Models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback)
 duration = (time.time() - start_time)/60
 print(duration, ' minutes')
 single_Model, binary_Model = Models
@@ -125,7 +125,6 @@ single_Model, binary_Model = Models
 
 #print(single_Model.acc, len(single_Model.acc))
 #print(Models[0].acc, len(Models[0].acc))
-
 # plotting resamplings
 pltf.style()
 labels = ['Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
@@ -133,14 +132,15 @@ letters = ['t0', 'u0', 'tE', 'log10(q)', 's', 'a']
 symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
 shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
 
-pltf.adaption_contraction(binary_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-binary', dpi)
-pltf.adaption_contraction(single_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-single', dpi)
+#pltf.adaption_contraction(binary_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-binary', dpi)
+#pltf.adaption_contraction(single_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-single', dpi)
+pltf.adaption_contraction(inter_info, iterations, name+'-inter', dpi)
 
 
 
-acf.plot_act(joint_model_chain, symbols, name, dpi)
+#acf.plot_act(joint_model_chain, symbols, name, dpi)
 #acf.attempt_truncation(Models, joint_model_chain)
-#sampling.output_file(Models, joint_model_chain, n_epochs, sn_base, letters, name, event_params)
+sampling.output_file(Models, joint_model_chain, total_acc, n_epochs, sn_base, letters, name, event_params)
 
 # trace of model index
 plt.plot(np.linspace(0, joint_model_chain.n, joint_model_chain.n), joint_model_chain.model_indices, linewidth = 0.25, color = 'purple')
@@ -150,6 +150,6 @@ plt.locator_params(axis = "y", nbins = 2) # only two ticks
 plt.savefig('results/'+name+'-mtrace.png', bbox_inches = 'tight', dpi = dpi)
 plt.clf()
 
-pltf.density_heatmaps(binary_Model, 3, event_params, symbols, 1, name, dpi)
-pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
-pltf.center_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)
+pltf.density_heatmaps(binary_Model, 3, data, event_params, symbols, 1, name, dpi)
+#pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
+#pltf.center_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)

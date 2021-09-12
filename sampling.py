@@ -176,6 +176,7 @@ class Model(object):
 
         self.covariances.append(self.covariance)
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
+        self.center = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
 
         return
 
@@ -355,13 +356,7 @@ def adapt_RJMH_proposal(model, proposed_model, theta, lv):
         else: # proposed is subset
             cov = model.covariance
 
-        c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
-        c_12 = cov[:s, s:] # Covariances, not variances.
-        c_21 = cov[s:, :s] # Same as above.
-        c_22 = cov[s:, s:] # Covariance matrix of non-shared.
-        c_22_inv = np.linalg.inv(c_22)
-
-        conditioned_cov = c_11 - c_12.dot(c_22_inv).dot(c_21)
+        conditioned_cov = schur_complement(cov, s)
 
         if proposed_model.D < model.D: # Jump to smaller model. Fix non-shared parameters.
 
@@ -380,6 +375,14 @@ def adapt_RJMH_proposal(model, proposed_model, theta, lv):
 
             return proposed_theta
 
+def schur_complement(cov, s):
+    c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
+    c_12 = cov[:s, s:] # Covariances, not variances.
+    c_21 = cov[s:, :s] # Same as above.
+    c_22 = cov[s:, s:] # Covariance matrix of non-shared.
+    c_22_inv = np.linalg.inv(c_22)
+
+    return c_11 - c_12.dot(c_22_inv).dot(c_21)
 
 def initialise_RJMH_model(empty_model, warm_up, iterations, n_repeat, user_feedback = False):
     """Prepares a model for the adaptive RJ algorithm.
@@ -440,6 +443,11 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
                         0 if it was rejected, associated with the joint model.
     """
 
+    if len(models) == 2:
+        inter_info = deepcopy(models[1])
+        inter_info.covariances = [schur_complement(models[1].covariance, models[0].D)]
+    else: inter_info = None
+
     # Initialise model chains.
     for m_i in range(len(models)):
         models[m_i] = initialise_RJMH_model(models[m_i], adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
@@ -448,9 +456,6 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
     # Choose a random model to start in.
     model = random.choice(models)
-    #print(models[0].acc, len(models[0].acc))
-    #print(models[1].acc, len(models[1].acc))
-    #print(model.acc, len(model.acc))
     theta = deepcopy(model.sampled.states[-1]) # Final state in model's warmup chain.
 
     v = deepcopy(models[-1].sampled.states[-1]) # Auxiliary variables final state in super set model
@@ -469,7 +474,7 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
     v_D = models[-1].D # Dimension of largest model is auxilliary variable size.
 
-    # Initial propbability values.
+    # Initial probability values.
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta, v = v, v_D = v_D)
 
@@ -494,6 +499,10 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
             if model is proposed_model: # Intra model move.
                 model.acc.append(1)
+            elif inter_info is not None: # Inter model move.
+                inter_info.acc.append(1)
+                inter_info.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_info.sampled.n += 1
 
             model = proposed_model
             theta = deepcopy(proposed)
@@ -506,6 +515,10 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
             
             if model is proposed_model: # Intra model move.
                 model.acc.append(0)
+            elif inter_info is not None: # Inter model move.
+                inter_info.acc.append(0)
+                inter_info.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_info.sampled.n += 1
         
         # Update model chain.
         model.add_state(theta, adapt = True)
@@ -520,11 +533,11 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
         print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-    return joint_model_chain
+    return joint_model_chain, total_acc, inter_info
 
 
 
-def output_file(models, joint_model_chain, n_epochs, sn, letters, name = "", event_params = None):
+def output_file(models, joint_model_chain, total_acc, n_epochs, sn, letters, name = "", event_params = None):
     
     # output File:
     with open("results/"+name+"-run.txt", "w") as file:
@@ -540,11 +553,7 @@ def output_file(models, joint_model_chain, n_epochs, sn, letters, name = "", eve
         file.write("\n")
         file.write("Run information:\n")
         file.write("Iterations: "+str(joint_model_chain.n)+"\n")
-        total_acc = 0
-        for model in models:
-            total_acc += np.sum(model.acc)
-        total_acc /= joint_model_chain.n
-        file.write("Average acc; Total: "+str(total_acc))
+        file.write("Average acc; Total: "+str(np.average(total_acc)))
 
         # results
         file.write("\n\nResults:\n")

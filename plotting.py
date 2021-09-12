@@ -15,7 +15,7 @@ from scipy.stats import chi2
 import scipy
 import corner
 import matplotlib as mpl
-
+import light_curve_simulation
 
 
 def adaption_contraction(model, iterations, name = '', dpi = 100):
@@ -107,6 +107,23 @@ def amplification(m, theta, ts, label = None, color = None, alpha = None, causti
 
     return
 
+def fitted_flux(m, theta, data, ts, label = None, color = None, alpha = None):
+
+    if m == 0:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E'], theta.truth)))
+    if m == 1:
+        model = mm.Model(dict(zip(['t_0', 'u_0', 't_E', 'q', 's', 'alpha'], theta.truth)))
+    model.set_magnification_methods([ts[0], 'point_source', ts[1]])
+
+    epochs = np.linspace(ts[0], ts[1], 720)
+
+
+    a = model.magnification(epochs)
+    # Fit proposed flux as least squares solution.
+    F = light_curve_simulation.least_squares_signal(a, data.flux)
+    plt.plot(epochs, F, color = color, label = label, alpha = alpha)
+
+    return
 
 def style():
     plt.rcParams["font.family"] = "sans-serif"
@@ -154,7 +171,7 @@ def adjust_viewing_axis(axis, ax, states, density_base, bounds, size):
     return Upper, Lower
 
 
-def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name = '', dpi = 100):
+def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1, name = '', dpi = 100):
 
     n_dim = model.D
 
@@ -173,12 +190,13 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
     axes = np.array(figure.axes).reshape((n_dim, n_dim))
 
     # params to evaluate 2d slices at
-    if event_params is not None:
-        density_base = event_params
+    #if event_params is not None:
+    #    density_base = event_params
 
-    else:
-        density_base = model.center
+    #else:
+    density_base = model.center
 
+    fit_mu = np.zeros((model.D))
 
     # Loop over the diagonal
     for i in range(n_dim):
@@ -186,16 +204,16 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
         ax.cla()
 
         # distribution plots
-        mu = np.average(states[i, :])
+        fit_mu[i] = np.average(states[i, :])
         sd = np.std(states[i, :], ddof = 1)
-        ax.axvspan(mu - sd, mu + sd, alpha = 0.2, color = 'red', label = r'$\bar{\mu}\pm\bar{\sigma}$')
+        ax.axvspan(fit_mu[i] - sd, fit_mu[i] + sd, alpha = 0.5, color = 'lime', label = r'$\bar{\mu}\pm\bar{\sigma}$')
 
-        ax.hist(states[i, :], bins = 10, density = False, color = 'black', alpha = 0.8)
+        ax.hist(states[i, :], bins = 10, density = False, color = 'black', alpha = 1.0)
 
         if event_params is not None:
             ax.axvline(event_params.scaled[i], label = r'$\theta$', color = 'red')
 
-        ax.set_title(r'$\bar{\mu} = $'+f'{mu:.4}'+',\n'+r'$\bar{\sigma} = \pm$'+f'{sd:.4}')
+        ax.set_title(r'$\bar{\mu} = $'+f'{fit_mu[i]:.4}'+',\n'+r'$\bar{\sigma} = \pm$'+f'{sd:.4}')
 
         if i == 0: # first
             ax.set_ylabel(symbols[i])
@@ -211,7 +229,7 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
             ax.axes.get_xaxis().set_ticklabels([])
             ax.axes.get_yaxis().set_ticklabels([])
 
-        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], density_base.scaled[i], model.priors[i], view_size)
+        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], event_params.scaled[i], model.priors[i], view_size)
 
 
     # loop over lower triangular 
@@ -221,8 +239,8 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
             ax.cla()
             
             # posterior heat map sizing
-            xUpper, xLower = adjust_viewing_axis('x', ax, states[xi, :], density_base.scaled[xi], model.priors[xi], view_size)
-            yUpper, yLower = adjust_viewing_axis('y', ax, states[yi, :], density_base.scaled[yi], model.priors[yi], view_size)
+            xUpper, xLower = adjust_viewing_axis('x', ax, states[xi, :], event_params.scaled[xi], model.priors[xi], view_size)
+            yUpper, yLower = adjust_viewing_axis('y', ax, states[yi, :], event_params.scaled[yi], model.priors[yi], view_size)
 
             yaxis = np.linspace(yLower, yUpper, n_pixels)
             xaxis = np.linspace(xLower, xUpper, n_pixels)
@@ -255,7 +273,7 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
             row = np.array([xi, yi])
             col = np.array([xi, yi])
             K = model.covariance[row[:, np.newaxis], col] 
-            angles = np.linspace(0, 2*math.pi, 720)
+            angles = np.linspace(0, 2*math.pi - 2*math.pi/720, 720)
             R = [np.cos(angles), np.sin(angles)]
             R = np.transpose(np.array(R))
 
@@ -266,7 +284,7 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
             for level in [1 - 0.989, 1 - 0.865, 1 - 0.393]: # 1,2,3 sigma levels
                 rad = np.sqrt(chi2.isf(level, 2))
                 level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
-                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'white')
+                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'lime')
 
             ax.set_ylim(ylim)
             ax.set_xlim(xlim)
@@ -293,6 +311,19 @@ def density_heatmaps(model, n_pixels, event_params, symbols, view_size = 1, name
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
+    
+    axes = figure.get_axes()[4].get_gridspec()
+    inset_ax = figure.add_subplot(axes[:2, n_dim-3:])
+    inset_ax.set_ylabel('Flux')
+    inset_ax.set_xlabel('Time [days]')
+    ts = [0, 72]
+    epochs = np.linspace(0, 72, 720)
+    inset_ax.plot(epochs, data.flux, color = 'black', label = 'y')
+
+    #fitted_flux(model.m, event_params, data, ts, label = 'truth', color = 'red')
+    
+    fitted_params = sampling.State(scaled = fit_mu)
+    fitted_flux(model.m, fitted_params, data, ts, label = 'fit', color = 'lime')
 
     figure.savefig('results/' + name + '-density-heatmap.png', bbox_inches = "tight", dpi = dpi) # tight layout destroys spacing
     figure.clf()

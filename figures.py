@@ -11,13 +11,14 @@ from numpy.core.function_base import linspace
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
-import main_functions as f
+import sampling
+import light_curve_simulation
 import matplotlib.patches as mpatches
-import plot_functions as pltf
+import plotting as pltf
 import copy
 
 
-pltf.Style
+pltf.style()
 
 #theta = [36, 0.1, 36, 0.8, 0.25, 123]
 #theta = [36, 0.1, 36, 0.01, 0.01, 0.6, 123]
@@ -110,7 +111,7 @@ if False:
 
 
 
-if True:
+if False:
     #plt.grid()
 
 
@@ -181,6 +182,40 @@ if False:
     plt.savefig('Plots/FiniteParamCurve.png')
     plt.clf()
 
+if True:
+    # REPORT QUALITY PLOT
+
+    ts = [0, 72]
+    n_epochs = 720
+    epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
+
+    noisy_data = light_curve_simulation.synthetic_single(sampling.State(truth=[36, 1.0, 5.5]), n_epochs, 23)
+
+    noisy_lower = noisy_data.flux - noisy_data.err_flux
+    noisy_upper = noisy_data.flux + noisy_data.err_flux
+    plt.fill_between(epochs, noisy_lower, noisy_upper, alpha = 1.0, label = r'$\pm3\sigma$', color = 'pink', linewidth=0.0)
+
+    clean_data = light_curve_simulation.synthetic_single(sampling.State([36, 1.0, 5.5]), n_epochs, 230, )
+    clean_lower = clean_data.flux - clean_data.err_flux
+    clean_upper = clean_data.flux + clean_data.err_flux
+
+
+    plt.fill_between(epochs, clean_lower, clean_upper, alpha = 1.0, label = r'$\pm3\sigma$', color = 'green', linewidth=0.0)
+    plt.scatter(epochs, clean_data.flux, c='lime', label=r'$s=0.2$', s=1)
+    plt.scatter(epochs, noisy_data.flux, c='red', label=r'$s=0.7$', s=1)
+    
+    #legend
+    #main_leg = plt.legend(frameon=False, loc='lower right', handlelength=0.7)
+    #shapes = iter(main_leg.legendHandles)
+    #next(shapes)
+    #for handle in shapes:
+    #    handle.set_sizes([15.0])
+    plt.xlabel('Time [days]')
+    plt.ylabel('Flux')
+
+    plt.savefig('figures/dirty-curves.png', bbox_inches="tight")#, dpi=500, transparent=True)
+    plt.clf()
+
 
 if False:
     # REPORT QUALITY PLOT
@@ -188,53 +223,55 @@ if False:
     ts = [0, 72]
     n_epochs = 720
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    v = 345
-    w = 375
-    t_del = 10
+    v = 130
+    w = 170
+    t_del = 720-175#10
 
-    data_3 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.7, 60], 1, n_epochs, 23)
+    data_3 = light_curve_simulation.synthetic_binary(sampling.State([15, 0.1, 10, 0.01, 0.7, 60]), n_epochs, 23, )
     #data_2 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.2, 60], 1, n_epochs, 23)
-    data_1 = f.Synthetic_Light_Curve([36, 0.1, 10, 0.01, 0.2, 60], 1, n_epochs, 23)
+    data_1 = light_curve_simulation.synthetic_single(sampling.State(truth=[15, 0.1, 10, 0.01, 0.2, 60]), n_epochs, 23)
 
     lower = data_1.flux - 3*data_1.err_flux
     upper = data_1.flux + 3*data_1.err_flux
 
     #main
-    plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 0.375, label = r'$F\pm3\sigma$', color = 'red', linewidth=0.0)
-    plt.scatter(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='black', label=r'$s=0.2$', s=1)
-    plt.scatter(epochs[0:w+t_del], data_3.flux[0:w+t_del], c='cyan', label=r'$s=0.7$', s=1)
+    plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 1.0, label = r'$\pm3\sigma$', color = 'black', linewidth=0.0)
+    plt.scatter(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='red', label=r'$s=0.2$', s=1)
+    plt.scatter(epochs[0:w+t_del], data_3.flux[0:w+t_del], c='lime', label=r'$s=0.7$', s=1)
     
     #legend
-    main_leg = plt.legend(frameon=False, loc='lower right', handlelength=0.7)
-    shapes = iter(main_leg.legendHandles)
-    next(shapes)
-    for handle in shapes:
-        handle.set_sizes([15.0])
+    #main_leg = plt.legend(frameon=False, loc='lower right', handlelength=0.7)
+    #shapes = iter(main_leg.legendHandles)
+    #next(shapes)
+    #for handle in shapes:
+    #    handle.set_sizes([15.0])
     plt.xlabel('Time [days]')
     plt.ylabel('Flux')
 
     #inset
-    inset = plt.axes([0.17, 0.45, 0.41, 0.41])
-    inset.scatter(epochs[v:w], data_3.flux[v:w], c='cyan', s=1, label = r'$s=0.7$')
-    inset.scatter(epochs[v:w], data_1.flux[v:w], c='black', s=1, label = r'$s=0.2$')
-    inset.axes.get_yaxis().set_ticklabels([])
-    inset.tick_params(axis="y", direction="in", pad=-0)
+    inset = plt.axes([0.17+0.3, 0.45, 0.41, 0.41])
+    #inset.fill_between(epochs[v:w], lower[v:w], upper[v:w], alpha = 1.0, label = r'$\pm3\sigma$', color = 'black', linewidth=0.0)
+    inset.scatter(epochs[v:w], data_3.flux[v:w], c='lime', s=1, label = r'$s=0.7$')
+    inset.scatter(epochs[v:w], data_1.flux[v:w], c='red', s=1, label = r'$s=0.2$')
+
+    #inset.axes.get_yaxis().set_ticklabels([])
+    #inset.tick_params(axis="y", direction="in", pad=-0)
 
     #residual
-    frame_resid = plt.axes([0.125, -0.1, 0.775, 0.1])
+    frame_resid = plt.axes([0.125, -0.125, 0.775, 0.1])
     residuals = data_1.flux[0:w+t_del]-data_3.flux[0:w+t_del]
     lower = -3*data_1.err_flux[0:w+t_del]
     upper = 3*data_1.err_flux[0:w+t_del]
-    plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 0.375, label = r'$F\pm3\sigma$', color = 'red', linewidth=0.0)
-    plt.plot(epochs[0:w+t_del], residuals, c="blue")
+    #plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 0.5, label = r'$F\pm3\sigma$', color = 'black', linewidth=0.0)
+    plt.plot(epochs[0:w+t_del], residuals, c="black")
     frame_resid.set_xticklabels([])
     frame_resid.xaxis.tick_top()
     frame_resid.set_ylabel('Residual')
 
-    plt.savefig('Plots/evans-curves.png', bbox_inches="tight")#, dpi=500, transparent=True)
+    plt.savefig('figures/evans-curves.png', bbox_inches="tight")#, dpi=500, transparent=True)
     plt.clf()
 
-
+throw=throw
 
 
 if False:
