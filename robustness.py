@@ -65,7 +65,7 @@ def P_m2(event_params, sn_base, n_epochs):
 
     else: # use known values for centers 
 
-        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 2.5, 0])))
+        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.01, 2.5, 0])))
         single_center = sampling.State(truth = np.array(event_params.truth))
 
     #single_center = sampling.State(truth = neural_net.get_model_centers(neural_net.get_posteriors(0), data.flux))
@@ -96,7 +96,7 @@ def P_m2(event_params, sn_base, n_epochs):
 theta = [36, 1.0, 5.5]
 n = 5
 tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
-tE_range = np.linspace(1, 25, n)
+tE_range = np.linspace(1, 10, n)
 density_tE = []
 P_m2_tE =[]
 

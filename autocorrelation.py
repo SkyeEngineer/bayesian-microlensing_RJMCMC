@@ -67,6 +67,13 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
     n_act = 10
     N = np.exp(np.linspace(np.log(int(n_samples/n_act)), np.log(n_samples), n_act)).astype(int)
 
+    # Again for the model indices.
+    act_m_indices = np.zeros(len(N))
+    m_indices_signal = np.array(joint_model_chain.model_indices)
+    for i, n in enumerate(N):
+        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
+    plt.loglog(N, act_m_indices, "o-", label=r"$m_i$",  linewidth = 2, markersize = 5, color='steelblue')
+
     # Loop through parameters.
     for p in range(joint_model_chain.states[-1].D):
         act_p = np.zeros(len(N))
@@ -75,14 +82,7 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
         for i, n in enumerate(N):
             act_p[i] = mc.autocorr.integrated_time(p_signal[:n], c = 5, tol = 5, quiet = True)
 
-        plt.loglog(N, act_p, "o-", label = symbols[p], color = plt.cm.autumn(p/joint_model_chain.states[-1].D), linewidth = 2, markersize = 5)
-
-    # Again for the model indices.
-    act_m_indices = np.zeros(len(N))
-    m_indices_signal = np.array(joint_model_chain.model_indices)
-    for i, n in enumerate(N):
-        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
-    plt.loglog(N, act_m_indices, "o-b", label=r"$m_i$",  linewidth = 2, markersize = 5)
+        plt.loglog(N, act_p, "o-", label = symbols[p], color = plt.cm.RdPu.reversed()(p*0.5/joint_model_chain.states[-1].D), linewidth = 2, markersize = 5)
 
     # Plotting details.
     ylim = plt.gca().get_ylim()
@@ -91,7 +91,7 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
     plt.xlabel(r"Samples, $N$")
     plt.ylabel(r"Autocorrelation time, $\tau$")
     plt.legend(fontsize = 7, frameon = False)
-    plt.savefig('results/'+name+'-act.png', dpi = dpi, bbox_inches = 'tight')
+    plt.savefig('results/'+name+'-act.png', dpi = dpi, bbox_inches = 'tight', transparent=True)
     plt.clf()
 
     return

@@ -539,7 +539,7 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
 
 
-def output_file(models, joint_model_chain, total_acc, n_epochs, sn, letters, name = "", event_params = None):
+def output_file(models, burn_in, joint_model_chain, total_acc, n_epochs, sn, letters, name = "", event_params = None):
     
     # output File:
     with open("results/"+name+"-run.txt", "w") as file:
@@ -561,9 +561,9 @@ def output_file(models, joint_model_chain, total_acc, n_epochs, sn, letters, nam
         file.write("\n\nResults:\n")
         for model in models:
             # models
-            P_model = (model.sampled.n-1000)/joint_model_chain.n
-            sd_model = np.std(np.array(joint_model_chain.model_indices))#(((model.sampled.n-1000)*(1-P_model)**2 + (joint_model_chain.n-model.sampled.n+1000)*(0-P_model)**2) / (joint_model_chain.n-1))**0.5
-            file.write("\n"+str(model.m)+"\nP(m|y): "+str(P_model)+r"\pm"+str(sd_model)+"\n")
+            P_model = (model.sampled.n-burn_in)/joint_model_chain.n
+            sde_model = np.std(np.array(joint_model_chain.model_indices))/(joint_model_chain.n**0.5)
+            file.write("\n"+str(model.m)+"\nP(m|y): "+str(P_model)+r"\pm"+str(sde_model)+"\n")
 
             # parameters
             model_states = model.sampled.states_array(scaled = True)
