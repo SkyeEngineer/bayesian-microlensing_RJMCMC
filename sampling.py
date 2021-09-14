@@ -249,6 +249,8 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
     if warm_up < 5:
         raise ValueError("Not enough iterations to safely establish an empirical covariance matrix.")
     
+
+
     theta = model.center
     best_theta = deepcopy(theta)
 
@@ -559,8 +561,8 @@ def output_file(models, joint_model_chain, total_acc, n_epochs, sn, letters, nam
         file.write("\n\nResults:\n")
         for model in models:
             # models
-            P_model = model.sampled.n/joint_model_chain.n
-            sd_model = ((model.sampled.n*(1-P_model)**2 + (joint_model_chain.n-model.sampled.n)*(0-P_model)**2) / (joint_model_chain.n-1))**0.5
+            P_model = (model.sampled.n-1000)/joint_model_chain.n
+            sd_model = np.std(np.array(joint_model_chain.model_indices))#(((model.sampled.n-1000)*(1-P_model)**2 + (joint_model_chain.n-model.sampled.n+1000)*(0-P_model)**2) / (joint_model_chain.n-1))**0.5
             file.write("\n"+str(model.m)+"\nP(m|y): "+str(P_model)+r"\pm"+str(sd_model)+"\n")
 
             # parameters

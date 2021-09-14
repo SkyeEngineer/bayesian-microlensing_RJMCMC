@@ -10,7 +10,7 @@ import plotting as pltf
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import get_neural_network as neural_net
+#import get_neural_network as neural_net
 from copy import deepcopy
 
 import time
@@ -25,9 +25,9 @@ def P_m2(event_params, sn_base, n_epochs):
     #-----------
 
     adapt_MH_warm_up = 25 #25 # mcmc steps without adaption
-    adapt_MH = 75 #475 # mcmc steps with adaption
+    adapt_MH = 475 #475 # mcmc steps with adaption
     initial_n = 1 #5 # times to repeat mcmc optimisation of centers to try to get better estimate
-    iterations = 100 # rjmcmc steps
+    iterations = 5000 # rjmcmc steps
 
     truncate = False # automatically truncate burn in period based on autocorrelation of m
 
@@ -65,7 +65,7 @@ def P_m2(event_params, sn_base, n_epochs):
 
     else: # use known values for centers 
 
-        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 0.2, 0])))
+        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 2.5, 0])))
         single_center = sampling.State(truth = np.array(event_params.truth))
 
     #single_center = sampling.State(truth = neural_net.get_model_centers(neural_net.get_posteriors(0), data.flux))
@@ -94,16 +94,16 @@ def P_m2(event_params, sn_base, n_epochs):
 
 
 theta = [36, 1.0, 5.5]
-n = 2
+n = 5
 tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
-tE_range = np.linspace(5.5, 55, n)
+tE_range = np.linspace(1, 25, n)
 density_tE = []
 P_m2_tE =[]
 
 with open("results/robustness-run.txt", "w") as file:
 
-    for n_epochs in [72, 360]:
-        for sn_base in [23, 126.5]:
+    for n_epochs in [72, 360, 720]:
+        for sn_base in [23, 126.5, 230]:
 
 
             density_tE = []
