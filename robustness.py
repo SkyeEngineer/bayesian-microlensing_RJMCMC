@@ -25,9 +25,9 @@ def P_m2(event_params, sn_base, n_epochs):
     #-----------
 
     adapt_MH_warm_up = 25 #25 # mcmc steps without adaption
-    adapt_MH = 475 #475 # mcmc steps with adaption
+    adapt_MH = 975 #475 # mcmc steps with adaption
     initial_n = 1 #5 # times to repeat mcmc optimisation of centers to try to get better estimate
-    iterations = 5000 # rjmcmc steps
+    iterations = 10000 # rjmcmc steps
 
     truncate = False # automatically truncate burn in period based on autocorrelation of m
 
@@ -65,7 +65,7 @@ def P_m2(event_params, sn_base, n_epochs):
 
     else: # use known values for centers 
 
-        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.01, 2.5, 0])))
+        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 2.5, 0])))
         single_center = sampling.State(truth = np.array(event_params.truth))
 
     #single_center = sampling.State(truth = neural_net.get_model_centers(neural_net.get_posteriors(0), data.flux))

@@ -27,18 +27,18 @@ import time
 
 suite_n = 0
 adapt_MH_warm_up = 25 #25 # mcmc steps without adaption
-adapt_MH = 975  #475 # mcmc steps with adaption
+adapt_MH = 1975  #475 # mcmc steps with adaption
 initial_n = 1 # times to repeat mcmc optimisation of centers to try to get better estimate
-iterations = 1000 # rjmcmc steps
+iterations = 20000 # rjmcmc steps
 n_epochs = 720
 epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 sn_base = 23 #(230-23)/2 + 23 # np.random.uniform(23.0, 230.0) # lower means noisier
-n_pixels = 6 # density for posterior contour plot
+n_pixels = 20 # density for posterior contour plot
 n_sampled_curves = 5 # sampled curves for viewing distribution of curves
 uniform_priors = False 
 informative_priors = True
 use_neural_net = False # use neural net to get maximum aposteriori estimate for centreing points
-dpi = 100
+dpi = 250
 user_feedback = True
 
 #---------------
