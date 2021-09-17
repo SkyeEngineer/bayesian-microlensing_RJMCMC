@@ -65,7 +65,7 @@ def P_m2(event_params, sn_base, n_epochs):
 
     else: # use known values for centers 
 
-        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.001, 2.5, 0])))
+        binary_center = sampling.State(truth = np.concatenate((np.array(event_params.truth),[0.03, 2.5, 300])))
         single_center = sampling.State(truth = np.array(event_params.truth))
 
     #single_center = sampling.State(truth = neural_net.get_model_centers(neural_net.get_posteriors(0), data.flux))

@@ -50,18 +50,23 @@ def adaption_contraction(model, iterations, name = '', dpi = 100):
     trace_colour = 'purple'
 
     a1 = plt.axes()
-    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, c = rate_colour)
+    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, "o-", c = rate_colour, linewidth = 2, markersize = 5)
 
     a1.set_ylabel(r'Average $\alpha(\theta_i, \theta_j)$')
     a1.set_ylim((0.0, 1.0))
 
-    a1.set_xlabel(f'Iterations')
+    a1.set_xlabel(r'Iterations')
+    a1.tick_params(axis="both", which="major", labelsize=12)
+    #xmin, xmax = a1.get_xlim()
+    #a1.set_xticks
+    a1.locator_params(axis="x", nbins=5)
     a2 = a1.twinx()
 
-    a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, c = trace_colour)
+    a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, "o-", c = trace_colour, linewidth = 2, markersize = 5)
     if len(covs[0][:]) == 6:
         a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
-    a2.set_ylabel(r'Average $Tr(C)$')
+    a2.set_ylabel(r'Normalised Average $Tr(C)$')
+    a2.tick_params(axis="both", which="major", labelsize=12)
     
     a2.set_ylim((0.0, 1.0))
     a2.set_yticks([0.0, 1.0])
@@ -127,7 +132,7 @@ def fitted_flux(m, theta, data, ts, label = None, color = None, alpha = None):
 
 def style():
     plt.rcParams["font.family"] = "sans-serif"
-    plt.rcParams['font.size'] = 12
+    plt.rcParams['font.size'] = 15 #12
     plt.style.use('seaborn-bright')
     plt.rcParams["legend.edgecolor"] = '0'
     plt.rcParams["legend.framealpha"] = 1
@@ -269,12 +274,12 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
                     center_theta = sampling.State(scaled=center_temp)
                     event_theta = sampling.State(scaled=event_temp)
 
-                    center_density = np.exp(model.log_likelihood(center_theta) + model.log_prior_density(center_theta))
-                    event_density = np.exp(model.log_likelihood(event_theta) + model.log_prior_density(event_theta))
+                    center_density = np.exp(model.log_likelihood(center_theta)) #+ model.log_prior_density(center_theta))
+                    event_density = np.exp(model.log_likelihood(event_theta)) #+ model.log_prior_density(event_theta))
 
                     density[x][y] = center_density*0.5 + 0.5*event_density
 
-            density = np.sqrt(np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
+            density = (np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
             ax.imshow(density, interpolation = 'quadric', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower), cmap = plt.cm.PuBu.reversed())
 
             # the fit normal distribution's contours
@@ -295,7 +300,7 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
             for level in [1 - 0.989, 1 - 0.865, 1 - 0.393]: # 1,2,3 sigma levels
                 rad = np.sqrt(chi2.isf(level, 2))
                 level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
-                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'black')
+                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = 'white')
 
             ax.set_ylim(ylim)
             ax.set_xlim(xlim)
@@ -340,7 +345,7 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
     
     fitted_params = sampling.State(scaled = fit_mu)
     fitted_flux(model.m, fitted_params, data, ts, label = 'Inferred', color = 'plum')
-    inset_ax.legend(fontsize = 15, handlelength=0.7, frameon = False)
+    inset_ax.legend(fontsize = 20, handlelength=0.7, frameon = False)
 
     figure.savefig('results/' + name + '-density-heatmap.png', bbox_inches = "tight", dpi = dpi, transparent=True) # tight layout destroys spacing
     figure.clf()
