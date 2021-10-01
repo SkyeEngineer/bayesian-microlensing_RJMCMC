@@ -6,6 +6,7 @@ See the detailed tutorial from:
 
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import emcee as mc
 import plotting as pltf
@@ -67,12 +68,7 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
     n_act = 10
     N = np.exp(np.linspace(np.log(int(n_samples/n_act)), np.log(n_samples), n_act)).astype(int)
 
-    # Again for the model indices.
-    act_m_indices = np.zeros(len(N))
-    m_indices_signal = np.array(joint_model_chain.model_indices)
-    for i, n in enumerate(N):
-        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
-    plt.loglog(N, act_m_indices, "o-", label=r"$m_i$",  linewidth = 2, markersize = 5, color='steelblue')
+
 
     # Loop through parameters.
     for p in range(joint_model_chain.states[-1].D):
@@ -84,13 +80,25 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
 
         plt.loglog(N, act_p, "o-", label = symbols[p], color = plt.cm.RdPu.reversed()(p*0.5/joint_model_chain.states[-1].D), linewidth = 2, markersize = 5)
 
+    # Again for the model indices.
+    act_m_indices = np.zeros(len(N))
+    m_indices_signal = np.array(joint_model_chain.model_indices)
+    for i, n in enumerate(N):
+        act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
+    plt.loglog(N, act_m_indices, "o-", label=r"$m$",  linewidth = 3, markersize = 7.5, color='steelblue')
+
     # Plotting details.
     ylim = plt.gca().get_ylim()
     plt.plot(N, N / 50.0, "--k", label = r"$\tau = N/50$")
     plt.ylim(ylim)
     plt.xlabel(r"Samples, $N$")
+    #plt.gca().set_xscale("log")
+    #plt.xticks(ticks=[int(n_samples/2), n_samples])
+    #plt.gca().get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    #plt.gca().get_xaxis().get_major_formatter().labelOnlyBase = False
+    plt.tick_params(axis="both", which="major", labelsize=12)
     plt.ylabel(r"Autocorrelation time, $\tau$")
-    plt.legend(fontsize = 7, frameon = False)
+    plt.legend(fontsize = 12, frameon = False, handlelength=1.0, labelspacing=0.25)
     plt.savefig('results/'+name+'-act.png', dpi = dpi, bbox_inches = 'tight', transparent=True)
     plt.clf()
 
