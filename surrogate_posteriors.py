@@ -44,8 +44,8 @@ def maximise_posterior(posterior, signal_data):
     Returns:
         centre: [list] Estimated parameter values of maximum.
     """
-    maxp = posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)
-    centre = np.array(np.float64(maxp.numpy))
+    centre = np.array(np.float64(posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)))
+    
     
     print(centre)
 

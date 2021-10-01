@@ -35,7 +35,7 @@ Implements algorithms for bayesian sampling. Uses the main
 classes: State, Chain, and model.
 &#34;&#34;&#34;
 
-import MulensModel as mm 
+#import MulensModel as mm 
 import math
 import random
 import numpy as np
@@ -53,9 +53,9 @@ class State(object):
     the mass ratio.
 
     Attributes:
-        truth [list]: Parameter values for the state, in true space.
-        scaled [list]: Parameter values for the state, in scaled space.
-        D [int]: The dimensionality of the state.
+        truth: [list] Parameter values for the state, in true space.
+        scaled: [list] Parameter values for the state, in scaled space.
+        D: [int] The dimensionality of the state.
     &#34;&#34;&#34;
 
     def __init__(self, truth = None, scaled = None):
@@ -90,17 +90,17 @@ class Chain(object):
     Describes a markov chain, perhaps from a joint model space.
 
     Attributes:
-        states [list]: State objects in the chain.
-        model_indices [list]: models the states are from. 
-        n [int]: The number of states in the chain.
+        states: [list] State objects in the chain.
+        model_indices: [list] models the states are from. 
+        n: [int] The number of states in the chain.
     &#34;&#34;&#34;
 
     def __init__(self, m, state):
         &#34;&#34;&#34;Initialises the chain with one state from one model.
 
         Args:
-            state [state]: The state object.
-            m [int]: The index of the model the state is from.
+            state: [state] The state object.
+            m: [int] The index of the model the state is from.
         &#34;&#34;&#34;
         self.states = [state]
         self.model_indices = [m]
@@ -110,8 +110,8 @@ class Chain(object):
         &#34;&#34;&#34;Adds a state in a model to the chain.
 
         Args:
-            state [state]: The state object.
-            m [int]: The index of the model the state is from.
+            state: [state] The state object.
+            m: [int] The index of the model the state is from.
         &#34;&#34;&#34;
         self.states.append(state)
         self.model_indices.append(m)
@@ -122,11 +122,11 @@ class Chain(object):
         &#34;&#34;&#34;Creates a numpy array of all states in the chain.
 
         Args:
-            scale [optional, bool]: Whether the array should be in scaled or 
+            scale: [optional, bool] Whether the array should be in scaled or 
                                     true space.
 
         Returns:
-            chain_array [np.array]: The numpy array of all state parameters. 
+            chain_array: [np.array] The numpy array of all state parameters. 
                                     Columns are states, rows are parameters 
                                     for all states.
         &#34;&#34;&#34;
@@ -146,7 +146,7 @@ class Chain(object):
         return chain_array
 
 
-class model(object):
+class Model(object):
     &#34;&#34;&#34;A model to describe a probability distribution.
 
     Contains a chain of states from this model, as well as information
@@ -154,38 +154,39 @@ class model(object):
     and stores a guess at a maximum posterior density estimate.
 
     Attributes:
-        m [int]: model index.
-        D [int]: Dimensionality of a state in the model.
-        priors [list]: Prior distribution objects for state parameter values.
-        sampled [chain]: States sampled from the model&#39;s distribution.
-        scaled_average_state [list]: The scaled average parameter values of the chain.
-        center [state]: Best guess at maximum posterior density.
-        covariance [array]: Current covariance matrix, based on all states.
-        covariances [list]: All previous covariance matrices.
-        acc [list]: Binary values, 1 if the state proposed was accepted,
-            0 if it was rejected.
-        data [mulensdata]: Object for photometry readings from the 
+        m: [int] Model index.
+        D: [int] Dimensionality of a state in the model.
+        priors: [list] Prior distribution objects for state parameter values.
+        sampled: [chain] States sampled from the model&#39;s distribution.
+        scaled_average_state: [list] The scaled average parameter values of the chain.
+        centre: [state] Best guess at maximum posterior density.
+        covariance: [array] Current covariance matrix, based on all states.
+        covariances: [list] All previous covariance matrices.
+        acc: [list] Binary values, 1 if the state proposed was accepted,
+                    0 if it was rejected.
+        data: [mulensdata] Object for photometry readings from the 
             microlensing event.
-        log_likelihood [function]: Method to calculate the log likelihood a state is
-            from this model.
-        I [np.array]: Identity matrix the size of D.
-        s [float]: Mixing parameter (see Haario et al 2001).
+        log_likelihood: [function] Method to calculate the log likelihood a state is
+                                    from this model.
+        I: [np.array] Identity matrix the size of D.
+        s: [float] Mixing parameter (see Haario et al 2001).
     &#34;&#34;&#34;
 
-    def __init__(self, m, D, center, priors, covariance, data, log_likelihood_fnc):
+    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc):
         &#34;&#34;&#34;Initialises the model.&#34;&#34;&#34;
         self.m = m
         self.D = D
         self.priors = priors
-        self.center = center
-        self.sampled = Chain(m, center)
-        self.scaled_avg_state = center.scaled
-        self.acc = [1] # First state always accepted
+        self.centre = centre
+        self.sampled = Chain(m, centre)
+        self.scaled_avg_state = centre.scaled
+        self.acc = [1] # First state always accepted.
         self.covariance = covariance
         self.covariances = [covariance]
 
         self.data = data
-        # model&#39;s custom likelihood function
+        
+        # Model&#39;s custom likelihood function.
         self.log_likelihood = MethodType(log_likelihood_fnc, self)
 
         self.I = np.identity(D)
@@ -195,8 +196,8 @@ class model(object):
         &#34;&#34;&#34;Adds a sampled state to the model.
 
         Args:
-            theta [state]: Parameters to add.
-            adapt [optional, bool]: Whether or not to adjust the covariance 
+            theta: [state] Parameters to add.
+            adapt: [optional, bool] Whether or not to adjust the covariance 
                                     matrix based on the new state.
         &#34;&#34;&#34;
         self.sampled.n += 1
@@ -207,6 +208,7 @@ class model(object):
 
         self.covariances.append(self.covariance)
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
+        self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
 
         return
 
@@ -216,12 +218,12 @@ class model(object):
         Optionally adjusts this log density when using auxilliary vriables.
 
         Args:
-            theta [state]: Parameters to calculate the log prior density for.
-            v [optional, state]: The values of all auxiliary variables.
-            v_D [optional, int]: The dimensionality to use with auxilliary variables.
+            theta: [state] Parameters to calculate the log prior density for.
+            v: [optional, state] The values of all auxiliary variables.
+            v_D: [optional, int] The dimensionality to use with auxilliary variables.
 
         Returns:
-            log_prior_product [float]: The log prior probability density.
+            log_prior_product: [float] The log prior probability density.
         &#34;&#34;&#34;    
         log_prior_product = 0.
 
@@ -259,28 +261,29 @@ def gaussian_proposal(theta, covariance):
     &#34;&#34;&#34;Samples a gaussian move.&#34;&#34;&#34;
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
-def adapt_MH(model, warm_up, iterations, user_feedback = False):
+def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False):
     &#34;&#34;&#34;Performs Adaptive Metropolis Hastings.
     
     Produces a posterior distribution by adapting the proposal process within 
     one model, as described in Haario et al (2001).
 
     Args:
-        model [model]: Model object to sample the distribution from.
-        warm_up [int]: Number of steps without adaption.
-        iterations [int]: Number of steps with adaption.
-        user_feedback [optional, bool]: Whether or not to print progress.
+        model: [model] Model object to sample the distribution from.
+        adaptive_iterations: [int] Number of steps with adaption.
+        fixed_iterations: [optional, int] Number of steps without adaption.
+        user_feedback: [optional, bool] Whether or not to print progress.
 
     Returns:
-        best_theta [state]: State producing the best posterior density visited.
-        log_best_posterior [float]: Best log posterior density visited. 
+        best_theta: [state] State producing the best posterior density visited.
+        log_best_posterior: [float] Best log posterior density visited. 
     &#34;&#34;&#34;
 
-    if warm_up &lt; 5:
+    if fixed_iterations &lt; 5:
         raise ValueError(&#34;Not enough iterations to safely establish an empirical covariance matrix.&#34;)
     
-    theta = model.center
-    Besttheta = theta
+
+    theta = model.centre
+    best_theta = deepcopy(theta)
 
     # Initial propbability values.
     log_likelihood = model.log_likelihood(theta)
@@ -288,7 +291,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
     log_best_posterior = log_likelihood + log_prior
 
     # Warm up walk to establish an empirical covariance.
-    for i in range(1, warm_up):
+    for i in range(1, fixed_iterations):
 
         # Propose a new state and calculate the resulting density.
         proposed = State(scaled = gaussian_proposal(theta.scaled, model.covariance))
@@ -298,19 +301,19 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         # Metropolis acceptance criterion.
         if random.random() &lt; np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
-            # store best state
+            # Store best state.
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior &lt; log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
-        else: model.acc.append(0) # reject proposal
+        else: model.acc.append(0) # Reject proposal.
         
-        # update storage
+        # Update storage.
         model.add_state(theta, adapt = False)
 
     # Calculate intial empirical covariance matrix.
@@ -319,10 +322,10 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
     model.covariances.append(model.covariance)
 
     # Perform adaptive walk.
-    for i in range(warm_up, iterations):
+    for i in range(fixed_iterations, adaptive_iterations + fixed_iterations):
 
         if user_feedback:
-            cf = i / (iterations - 1)
+            cf = i / (adaptive_iterations + fixed_iterations - 1)
             print(f&#39;log score: {log_best_posterior:.4f}, progress: [{&#34;#&#34;*round(50*cf)+&#34;-&#34;*round(50*(1-cf))}] {100.*cf:.2f}%\r&#39;, end=&#34;&#34;)
 
         # Propose a new state and calculate the resulting density.
@@ -333,7 +336,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         # Metropolis acceptance criterion.
         if random.random() &lt; np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
@@ -341,7 +344,7 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior &lt; log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
         else: model.acc.append(0) # Reject proposal.
         
@@ -349,30 +352,30 @@ def adapt_MH(model, warm_up, iterations, user_feedback = False):
         model.add_state(theta, adapt = True)
 
     if user_feedback:
-        print(f&#34;\n model: {model.m}, average acc: {(np.sum(model.acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}&#34;)
+        print(f&#34;\n model: {model.m}, average acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, best score: {log_best_posterior:.4f}&#34;)
 
-    return Besttheta, log_best_posterior
+    return best_theta, log_best_posterior
 
 
-def adapt_RJMH_proposal(model, proposed_model, theta, lv):
+def ARJMH_proposal(model, proposed_model, theta, lv):
     &#34;&#34;&#34;Performs an Adaptive Reversible-Jump Metropolis Hastings proposal.
     
     Args:
-        model [model]: Model to jump from.
-        proposed_model [model]: Model to jump to.
-        theta [state]: State to jump from.
-        lv [lis]: Current auxilliary variables center divergence.
+        model: [model] Model to jump from.
+        proposed_model: [model] Model to jump to.
+        theta: [state] State to jump from.
+        lv: [list] Current auxilliary variables centre divergence.
 
     Returns:
-        proposed_theta [state]: State proposed to jump to.
+        proposed_theta: [state] State proposed to jump to.
     &#34;&#34;&#34;
-    l = theta.scaled - model.center.scaled # Offset from initial model&#39;s centre.
+    l = theta.scaled - model.centre.scaled # Offset from initial model&#39;s centre.
 
-    if model.m == proposed_model.m: # Intra-model move.
+    if model is proposed_model: # Intra-model move.
 
-        # Use the covariance at the proposed model&#39;s center for local shape.
+        # Use the covariance at the proposed model&#39;s centre for local shape.
         u = gaussian_proposal(np.zeros((proposed_model.D)), proposed_model.covariance)
-        proposed_theta = u + l + proposed_model.center.scaled
+        proposed_theta = u + l + proposed_model.centre.scaled
         
         return proposed_theta
 
@@ -386,101 +389,110 @@ def adapt_RJMH_proposal(model, proposed_model, theta, lv):
         else: # proposed is subset
             cov = model.covariance
 
-        c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
-        c_12 = cov[:s, s:] # Covariances, not variances.
-        c_21 = cov[s:, :s] # Same as above.
-        c_22 = cov[s:, s:] # Covariance matrix of non-shared.
-        c_22_inv = np.linalg.inv(c_22)
+        conditioned_cov = schur_complement(cov, s)
 
-        conditioned_cov = c_11 - c_12.dot(c_22_inv).dot(c_21)
-
-        if proposed_model.D &lt; model.D: # Jump to smaller model. Fix non-shared parameters.
+        # Jump to smaller model. Fix non-shared parameters.
+        if proposed_model.D &lt; model.D:
 
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
-            proposed_theta = u + l[:s] + proposed_model.center.scaled
+            proposed_theta = u + l[:s] + proposed_model.centre.scaled
 
             return proposed_theta
 
         if proposed_model.D &gt; model.D: # Jump to larger model. Append v.
 
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
-            shared_map = u + l[:s] + proposed_model.center.scaled[:s]
-            non_shared_map = lv[s:] + proposed_model.center.scaled[s:]
+            shared_map = u + l[:s] + proposed_model.centre.scaled[:s]
+            non_shared_map = lv[s:] + proposed_model.centre.scaled[s:]
             map = np.concatenate((shared_map, non_shared_map))
             proposed_theta = map
 
             return proposed_theta
 
+def schur_complement(cov, s):
+    c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
+    c_12 = cov[:s, s:] # Covariances, not variances.
+    c_21 = cov[s:, :s] # Same as above.
+    c_22 = cov[s:, s:] # Covariance matrix of non-shared.
+    c_22_inv = np.linalg.inv(c_22)
 
-def initialise_RJMH_model(empty_model, warm_up, iterations, n_repeat, user_feedback = False):
-    &#34;&#34;&#34;Prepares a model for the adaptive RJ algorithm.
+    return c_11 - c_12.dot(c_22_inv).dot(c_21)
+
+def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repetitions = 1, user_feedback = False):
+    &#34;&#34;&#34;Prepares a model for the ARJMH algorithm.
     
     Repeats the adaptive MH warmup process for a model, storing the best run.
 
     Args:
-        empty_model [model]: Initial model object.
-        warm_up [int]: Number of non-adaptive steps.
-        iterations [int]: Number of adaptive steps.
-        n_repeat [int]: Number of times to try for a better run.
-        user_feedback [optional, bool]: Whether or not to print progress.
+        empty_model: [model] Initial model object.
+        adaptive_iterations: [int] Number of adaptive steps.
+        fixed_iterations: [optional, int] Number of non-adaptive steps.
+        repetitions: [optional, int] Number of times to try for a better run.
+        user_feedback: [optional, bool] Whether or not to print progress.
 
     Returns:
-        incumbent_model [model]: Model with the states from the best run.
+        incumbent_model: [model] Model with the states from the best run.
     &#34;&#34;&#34;
 
-    inc_log_best_posterior = -math.inf # Initialise incumbent posterior to always lose
+    inc_log_best_posterior = -math.inf # Initialise incumbent posterior to always lose.
 
-    for i in range(n_repeat):
+    for i in range(repetitions):
         
         if user_feedback:
-            print(&#34;Running the &#34;+str(i+1)+&#34;/&#34;+str(n_repeat)+&#34;th initialisation per model\n&#34;)
+            print(&#34;Running the &#34;+str(i+1)+&#34;/&#34;+str(repetitions)+&#34;th initialisation per model\n&#34;)
 
         model = deepcopy(empty_model) # Fresh model.
 
         # Run adaptive MH.
-        best_theta, log_best_posterior = adapt_MH(model, warm_up, iterations, user_feedback = user_feedback)
+        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations = fixed_iterations, user_feedback = user_feedback)
 
         # Keep the best posterior density run.
         if inc_log_best_posterior &lt; log_best_posterior:
-            incumbent_model = model
-            incumbent_model.center = best_theta
+            incumbent_model = deepcopy(model)
+            incumbent_model.centre = deepcopy(best_theta)
 
     return incumbent_model
 
 
-def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = False):
+def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterations = 25, warm_up_repititions = 1, user_feedback = False):
     &#34;&#34;&#34;Samples from a joint distribution of models.
     
     Initialises each model with multiple adaptive MH runs. Then uses the resulting
     covariances to run adaptive RJMH on all models.
 
     Args:
-        models [list]: Model objects to sample from. 
+        models: [list] Model objects to sample from. 
                     Should be sorted by increasing dimensionality.
-        adapt_MH_warm_up [int]: Number of non-adaptive steps to initilaise with.
-        adapt_MH [int]: Number of adaptive steps to initialise with.
-        n_repeat [int]: Number of times to try for a better initial run.
-        iterations [int]: Number of adaptive RJMH steps.
-        user_feedback [optional, bool]: Whether or not to print progress.
+        iterations: [int] Number of adaptive RJMH steps.
+        adaptive_warm_up_iterations: [int] Number of adaptive steps to initialise with.
+        fixed_warm_up_iterations: [int] Number of fixed steps to initilaise with.
+        warm_up_repititions: [int] Number of times to try for a better initial run.
+        user_feedback: [optional, bool] Whether or not to print progress.
 
     Returns:
-        joint_model_chain [chain]: Generalised chain with states from any model.
-        total_acc [list]: Binary values, 1 if the state proposed was accepted,
-                        0 if it was rejected, associated with the joint model.
+        joint_model_chain: [chain] Generalised chain with states from any model.
+        total_acc: [list] Binary values, 1 if the state proposed was accepted,
+                          0 if it was rejected, associated with the joint model.
+        inter_model_history: [model] Stored inter-model covariances and acc.
     &#34;&#34;&#34;
 
+    if len(models) == 2:
+        inter_model_history = deepcopy(models[1])
+        inter_model_history.covariances = [schur_complement(models[1].covariance, models[0].D)]
+    else: inter_model_history = None
+
     # Initialise model chains.
-    for model in models:
-        model = initialise_RJMH_model(model, adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
+    for m_i in range(len(models)):
+        models[m_i] = warm_up_model(models[m_i], adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
 
     random.seed(42)
 
     # Choose a random model to start in.
     model = random.choice(models)
-    theta = model.sampled.states[-1] # Final state in model&#39;s warmup chain.
+    theta = deepcopy(model.sampled.states[-1]) # Final state in model&#39;s warmup chain.
 
-    v = models[-1].sampled.states[-1] # Auxiliary variables final state in super set model
-    lv = models[-1].sampled.states[-1].scaled - models[-1].center.scaled # auxiliary variables offset from center
+    v = deepcopy(models[-1].sampled.states[-1]) # Auxiliary variables final state in super set model.
+    lv = models[-1].sampled.states[-1].scaled - models[-1].centre.scaled # Auxiliary variables offset from centre.
 
     # Create joint model as initial theta appended to auxiliary variables.
     initial_superset = models[-1].D - model.D
@@ -495,13 +507,13 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
     v_D = models[-1].D # Dimension of largest model is auxilliary variable size.
 
-    # Initial propbability values.
+    # Initial probability values.
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta, v = v, v_D = v_D)
 
 
-    if user_feedback: print(&#34;Running adapt-RJMH.&#34;)
-    for i in range(1, iterations): # Adapt-RJMH algorithm.
+    if user_feedback: print(&#34;Running ARJMH.&#34;)
+    for i in range(1, iterations): # ARJMH algorithm.
         
         if user_feedback:
             cf = i / (iterations - 1)
@@ -509,7 +521,7 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
 
         # Propose a new model and state and calculate the resulting density.
         proposed_model = random.choice(models)
-        proposed = State(scaled = adapt_RJMH_proposal(model, proposed_model, theta, lv))
+        proposed = State(scaled = ARJMH_proposal(model, proposed_model, theta, lv))
         log_likelihood_proposed = proposed_model.log_likelihood(proposed)
         log_prior_proposed = proposed_model.log_prior_density(proposed, v = v, v_D = v_D)
 
@@ -518,11 +530,15 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
             # Accept proposal.
             total_acc[i] = 1
 
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(1)
+            elif inter_model_history is not None: # Inter model move.
+                inter_model_history.acc.append(1)
+                inter_model_history.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_model_history.sampled.n += 1
 
             model = proposed_model
-            theta = proposed
+            theta = deepcopy(proposed)
 
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
@@ -530,63 +546,69 @@ def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_f
         else: # Reject proposal.
             total_acc[i] = 0
             
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(0)
+            elif inter_model_history is not None: # Inter model move.
+                inter_model_history.acc.append(0)
+                inter_model_history.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_model_history.sampled.n += 1
         
         # Update model chain.
         model.add_state(theta, adapt = True)
         v = State(scaled = np.concatenate((theta.scaled, v.scaled[model.D:])))
         joint_model_chain.add_general_state(model.m, v)
 
-        # Update auxilliary center divergence for new states.
-        lv[:model.D] = theta.scaled - model.center.scaled
+        # Update auxilliary centre divergence for new states.
+        lv[:model.D] = theta.scaled - model.centre.scaled
 
     if user_feedback:
         print(f&#34;\n average acc: {np.average(total_acc):4f}&#34;)
         print(&#34;P(m1|y): &#34; + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
         print(&#34;P(m2|y): &#34; + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-    return joint_model_chain
+    return joint_model_chain, total_acc, inter_model_history
 
 
 
-def output_file(models, joint_model_chain, n_epochs, sn, letters, name = &#34;&#34;, event_params = None):
+def output_file(models, warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn, letters, name = &#34;&#34;, event_params = None):
     
-    # output File:
+    # Output File.
     with open(&#34;results/&#34;+name+&#34;-run.txt&#34;, &#34;w&#34;) as file:
-
         file.write(&#34;Run &#34;+name+&#34;\n&#34;)
         
-        # inputs
+        # Inputs.
         file.write(&#34;Inputs:\n&#34;)
         if event_params is not None:
             file.write(&#34;Parameters: &#34;+str(event_params.truth)+&#34;\n&#34;)
         file.write(&#34;Number of observations: &#34;+str(n_epochs)+&#34;, Signal to noise baseline: &#34;+str(sn)+&#34;\n&#34;)
-        
         file.write(&#34;\n&#34;)
         file.write(&#34;Run information:\n&#34;)
         file.write(&#34;Iterations: &#34;+str(joint_model_chain.n)+&#34;\n&#34;)
-        total_acc = 0
-        for model in models:
-            total_acc += np.sum(model.acc)
-        total_acc /= joint_model_chain.n
-        file.write(&#34;Average acc; Total: &#34;+str(total_acc))
+        file.write(&#34;Average acc; Total: &#34;+str(np.average(total_acc)))
 
-        # results
+        # Results.
         file.write(&#34;\n\nResults:\n&#34;)
         for model in models:
-            # models
-            P_model = model.sampled.n/joint_model_chain.n
-            sd_model = ((model.sampled.n*(1-P_model)**2 + (joint_model_chain.n-model.sampled.n)*(0-P_model)**2) / (joint_model_chain.n-1))**0.5
-            file.write(&#34;\n&#34;+str(model.m)+&#34;\nP(m|y): &#34;+str(P_model)+r&#34;\pm&#34;+str(sd_model)+&#34;\n&#34;)
+            
+            # Models.
+            P_model = (model.sampled.n-burn_in)/joint_model_chain.n
+            sde_model = np.std(np.array(joint_model_chain.model_indices))/(joint_model_chain.n**0.5)
+            file.write(&#34;\n&#34;+str(model.m)+&#34;\nP(m|y): &#34;+str(P_model)+r&#34;\pm&#34;+str(sde_model)+&#34;\n&#34;)
 
-            # parameters
+            # Parameters.
             model_states = model.sampled.states_array(scaled = True)
             for i in range(len(model.sampled.states[-1].scaled)):
                 mu = np.average(model_states[i, :])
                 sd = np.std(model_states[i, :], ddof = 1)
                 file.write(letters[i]+&#34;: mean: &#34;+str(mu)+&#34;, sd: &#34;+str(sd)+&#34; \n&#34;)
-    
+                
+                # Hardcoded unscale q.
+                if i == 3:
+                    exp10 = np.power(10, model_states[i, :])
+                    mu = np.average(exp10)
+                    sd = np.std(exp10, ddof = 1)
+                    file.write(&#34;q: mean: &#34;+str(mu)+&#34;, sd: &#34;+str(sd)+&#34; \n&#34;)
+
     return</code></pre>
 </details>
 </section>
@@ -597,51 +619,58 @@ def output_file(models, joint_model_chain, n_epochs, sn, letters, name = &#34;&#
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="sampling.adapt_MH"><code class="name flex">
-<span>def <span class="ident">adapt_MH</span></span>(<span>model, warm_up, iterations, user_feedback=False)</span>
+<dt id="sampling.AMH"><code class="name flex">
+<span>def <span class="ident">AMH</span></span>(<span>model, adaptive_iterations, fixed_iterations=25, user_feedback=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Performs Adaptive Metropolis Hastings.</p>
 <p>Produces a posterior distribution by adapting the proposal process within
 one model, as described in Haario et al (2001).</p>
 <h2 id="args">Args</h2>
-<p>model [model]: Model object to sample the distribution from.
-warm_up [int]: Number of steps without adaption.
-iterations [int]: Number of steps with adaption.
-user_feedback [optional, bool]: Whether or not to print progress.</p>
+<dl>
+<dt><strong><code>model</code></strong></dt>
+<dd>[model] Model object to sample the distribution from.</dd>
+<dt><strong><code>adaptive_iterations</code></strong></dt>
+<dd>[int] Number of steps with adaption.</dd>
+<dt><strong><code>fixed_iterations</code></strong></dt>
+<dd>[optional, int] Number of steps without adaption.</dd>
+<dt><strong><code>user_feedback</code></strong></dt>
+<dd>[optional, bool] Whether or not to print progress.</dd>
+</dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>best_theta [state]</code></dt>
-<dd>State producing the best posterior density visited.</dd>
-<dt><code>log_best_posterior [float]</code></dt>
-<dd>Best log posterior density visited.</dd>
+<dt><code>best_theta</code></dt>
+<dd>[state] State producing the best posterior density visited.</dd>
+<dt><code>log_best_posterior</code></dt>
+<dd>[float] Best log posterior density visited.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def adapt_MH(model, warm_up, iterations, user_feedback = False):
+<pre><code class="python">def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False):
     &#34;&#34;&#34;Performs Adaptive Metropolis Hastings.
     
     Produces a posterior distribution by adapting the proposal process within 
     one model, as described in Haario et al (2001).
 
     Args:
-        model [model]: Model object to sample the distribution from.
-        warm_up [int]: Number of steps without adaption.
-        iterations [int]: Number of steps with adaption.
-        user_feedback [optional, bool]: Whether or not to print progress.
+        model: [model] Model object to sample the distribution from.
+        adaptive_iterations: [int] Number of steps with adaption.
+        fixed_iterations: [optional, int] Number of steps without adaption.
+        user_feedback: [optional, bool] Whether or not to print progress.
 
     Returns:
-        best_theta [state]: State producing the best posterior density visited.
-        log_best_posterior [float]: Best log posterior density visited. 
+        best_theta: [state] State producing the best posterior density visited.
+        log_best_posterior: [float] Best log posterior density visited. 
     &#34;&#34;&#34;
 
-    if warm_up &lt; 5:
+    if fixed_iterations &lt; 5:
         raise ValueError(&#34;Not enough iterations to safely establish an empirical covariance matrix.&#34;)
     
-    theta = model.center
-    Besttheta = theta
+
+    theta = model.centre
+    best_theta = deepcopy(theta)
 
     # Initial propbability values.
     log_likelihood = model.log_likelihood(theta)
@@ -649,7 +678,7 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
     log_best_posterior = log_likelihood + log_prior
 
     # Warm up walk to establish an empirical covariance.
-    for i in range(1, warm_up):
+    for i in range(1, fixed_iterations):
 
         # Propose a new state and calculate the resulting density.
         proposed = State(scaled = gaussian_proposal(theta.scaled, model.covariance))
@@ -659,19 +688,19 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
         # Metropolis acceptance criterion.
         if random.random() &lt; np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
-            # store best state
+            # Store best state.
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior &lt; log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
-        else: model.acc.append(0) # reject proposal
+        else: model.acc.append(0) # Reject proposal.
         
-        # update storage
+        # Update storage.
         model.add_state(theta, adapt = False)
 
     # Calculate intial empirical covariance matrix.
@@ -680,10 +709,10 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
     model.covariances.append(model.covariance)
 
     # Perform adaptive walk.
-    for i in range(warm_up, iterations):
+    for i in range(fixed_iterations, adaptive_iterations + fixed_iterations):
 
         if user_feedback:
-            cf = i / (iterations - 1)
+            cf = i / (adaptive_iterations + fixed_iterations - 1)
             print(f&#39;log score: {log_best_posterior:.4f}, progress: [{&#34;#&#34;*round(50*cf)+&#34;-&#34;*round(50*(1-cf))}] {100.*cf:.2f}%\r&#39;, end=&#34;&#34;)
 
         # Propose a new state and calculate the resulting density.
@@ -694,7 +723,7 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
         # Metropolis acceptance criterion.
         if random.random() &lt; np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
             # Accept proposal.
-            theta = proposed
+            theta = deepcopy(proposed)
             log_likelihood = log_likelihood_proposed
             model.acc.append(1)
 
@@ -702,7 +731,7 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
             log_posterior = log_likelihood_proposed + log_prior_proposed
             if log_best_posterior &lt; log_posterior:
                 log_best_posterior = log_posterior
-                Besttheta = theta
+                best_theta = deepcopy(theta)
 
         else: model.acc.append(0) # Reject proposal.
         
@@ -710,71 +739,87 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
         model.add_state(theta, adapt = True)
 
     if user_feedback:
-        print(f&#34;\n model: {model.m}, average acc: {(np.sum(model.acc) / (iterations + warm_up)):4f}, best score: {log_best_posterior:.4f}&#34;)
+        print(f&#34;\n model: {model.m}, average acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, best score: {log_best_posterior:.4f}&#34;)
 
-    return Besttheta, log_best_posterior</code></pre>
+    return best_theta, log_best_posterior</code></pre>
 </details>
 </dd>
-<dt id="sampling.adapt_RJMH"><code class="name flex">
-<span>def <span class="ident">adapt_RJMH</span></span>(<span>models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback=False)</span>
+<dt id="sampling.ARJMH"><code class="name flex">
+<span>def <span class="ident">ARJMH</span></span>(<span>models, iterations, adaptive_warm_up_iterations, fixed_warm_up_iterations=25, warm_up_repititions=1, user_feedback=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Samples from a joint distribution of models.</p>
 <p>Initialises each model with multiple adaptive MH runs. Then uses the resulting
 covariances to run adaptive RJMH on all models.</p>
 <h2 id="args">Args</h2>
-<p>models [list]: Model objects to sample from.
-Should be sorted by increasing dimensionality.
-adapt_MH_warm_up [int]: Number of non-adaptive steps to initilaise with.
-adapt_MH [int]: Number of adaptive steps to initialise with.
-n_repeat [int]: Number of times to try for a better initial run.
-iterations [int]: Number of adaptive RJMH steps.
-user_feedback [optional, bool]: Whether or not to print progress.</p>
+<dl>
+<dt><strong><code>models</code></strong></dt>
+<dd>[list] Model objects to sample from.
+Should be sorted by increasing dimensionality.</dd>
+<dt><strong><code>iterations</code></strong></dt>
+<dd>[int] Number of adaptive RJMH steps.</dd>
+<dt><strong><code>adaptive_warm_up_iterations</code></strong></dt>
+<dd>[int] Number of adaptive steps to initialise with.</dd>
+<dt><strong><code>fixed_warm_up_iterations</code></strong></dt>
+<dd>[int] Number of fixed steps to initilaise with.</dd>
+<dt><strong><code>warm_up_repititions</code></strong></dt>
+<dd>[int] Number of times to try for a better initial run.</dd>
+<dt><strong><code>user_feedback</code></strong></dt>
+<dd>[optional, bool] Whether or not to print progress.</dd>
+</dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>joint_model_chain [chain]</code></dt>
-<dd>Generalised chain with states from any model.</dd>
-<dt><code>total_acc [list]</code></dt>
-<dd>Binary values, 1 if the state proposed was accepted,
+<dt><code>joint_model_chain</code></dt>
+<dd>[chain] Generalised chain with states from any model.</dd>
+<dt><code>total_acc</code></dt>
+<dd>[list] Binary values, 1 if the state proposed was accepted,
 0 if it was rejected, associated with the joint model.</dd>
+<dt><code>inter_model_history</code></dt>
+<dd>[model] Stored inter-model covariances and acc.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def adapt_RJMH(models, adapt_MH_warm_up, adapt_MH, initial_n, iterations, user_feedback = False):
+<pre><code class="python">def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterations = 25, warm_up_repititions = 1, user_feedback = False):
     &#34;&#34;&#34;Samples from a joint distribution of models.
     
     Initialises each model with multiple adaptive MH runs. Then uses the resulting
     covariances to run adaptive RJMH on all models.
 
     Args:
-        models [list]: Model objects to sample from. 
+        models: [list] Model objects to sample from. 
                     Should be sorted by increasing dimensionality.
-        adapt_MH_warm_up [int]: Number of non-adaptive steps to initilaise with.
-        adapt_MH [int]: Number of adaptive steps to initialise with.
-        n_repeat [int]: Number of times to try for a better initial run.
-        iterations [int]: Number of adaptive RJMH steps.
-        user_feedback [optional, bool]: Whether or not to print progress.
+        iterations: [int] Number of adaptive RJMH steps.
+        adaptive_warm_up_iterations: [int] Number of adaptive steps to initialise with.
+        fixed_warm_up_iterations: [int] Number of fixed steps to initilaise with.
+        warm_up_repititions: [int] Number of times to try for a better initial run.
+        user_feedback: [optional, bool] Whether or not to print progress.
 
     Returns:
-        joint_model_chain [chain]: Generalised chain with states from any model.
-        total_acc [list]: Binary values, 1 if the state proposed was accepted,
-                        0 if it was rejected, associated with the joint model.
+        joint_model_chain: [chain] Generalised chain with states from any model.
+        total_acc: [list] Binary values, 1 if the state proposed was accepted,
+                          0 if it was rejected, associated with the joint model.
+        inter_model_history: [model] Stored inter-model covariances and acc.
     &#34;&#34;&#34;
 
+    if len(models) == 2:
+        inter_model_history = deepcopy(models[1])
+        inter_model_history.covariances = [schur_complement(models[1].covariance, models[0].D)]
+    else: inter_model_history = None
+
     # Initialise model chains.
-    for model in models:
-        model = initialise_RJMH_model(model, adapt_MH_warm_up, adapt_MH, initial_n, user_feedback = user_feedback)
+    for m_i in range(len(models)):
+        models[m_i] = warm_up_model(models[m_i], adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
 
     random.seed(42)
 
     # Choose a random model to start in.
     model = random.choice(models)
-    theta = model.sampled.states[-1] # Final state in model&#39;s warmup chain.
+    theta = deepcopy(model.sampled.states[-1]) # Final state in model&#39;s warmup chain.
 
-    v = models[-1].sampled.states[-1] # Auxiliary variables final state in super set model
-    lv = models[-1].sampled.states[-1].scaled - models[-1].center.scaled # auxiliary variables offset from center
+    v = deepcopy(models[-1].sampled.states[-1]) # Auxiliary variables final state in super set model.
+    lv = models[-1].sampled.states[-1].scaled - models[-1].centre.scaled # Auxiliary variables offset from centre.
 
     # Create joint model as initial theta appended to auxiliary variables.
     initial_superset = models[-1].D - model.D
@@ -789,13 +834,13 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
 
     v_D = models[-1].D # Dimension of largest model is auxilliary variable size.
 
-    # Initial propbability values.
+    # Initial probability values.
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta, v = v, v_D = v_D)
 
 
-    if user_feedback: print(&#34;Running adapt-RJMH.&#34;)
-    for i in range(1, iterations): # Adapt-RJMH algorithm.
+    if user_feedback: print(&#34;Running ARJMH.&#34;)
+    for i in range(1, iterations): # ARJMH algorithm.
         
         if user_feedback:
             cf = i / (iterations - 1)
@@ -803,7 +848,7 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
 
         # Propose a new model and state and calculate the resulting density.
         proposed_model = random.choice(models)
-        proposed = State(scaled = adapt_RJMH_proposal(model, proposed_model, theta, lv))
+        proposed = State(scaled = ARJMH_proposal(model, proposed_model, theta, lv))
         log_likelihood_proposed = proposed_model.log_likelihood(proposed)
         log_prior_proposed = proposed_model.log_prior_density(proposed, v = v, v_D = v_D)
 
@@ -812,11 +857,15 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
             # Accept proposal.
             total_acc[i] = 1
 
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(1)
+            elif inter_model_history is not None: # Inter model move.
+                inter_model_history.acc.append(1)
+                inter_model_history.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_model_history.sampled.n += 1
 
             model = proposed_model
-            theta = proposed
+            theta = deepcopy(proposed)
 
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
@@ -824,63 +873,73 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
         else: # Reject proposal.
             total_acc[i] = 0
             
-            if model == proposed_model: # Intra model move.
+            if model is proposed_model: # Intra model move.
                 model.acc.append(0)
+            elif inter_model_history is not None: # Inter model move.
+                inter_model_history.acc.append(0)
+                inter_model_history.covariances.append(schur_complement(models[1].covariance, models[0].D))
+                inter_model_history.sampled.n += 1
         
         # Update model chain.
         model.add_state(theta, adapt = True)
         v = State(scaled = np.concatenate((theta.scaled, v.scaled[model.D:])))
         joint_model_chain.add_general_state(model.m, v)
 
-        # Update auxilliary center divergence for new states.
-        lv[:model.D] = theta.scaled - model.center.scaled
+        # Update auxilliary centre divergence for new states.
+        lv[:model.D] = theta.scaled - model.centre.scaled
 
     if user_feedback:
         print(f&#34;\n average acc: {np.average(total_acc):4f}&#34;)
         print(&#34;P(m1|y): &#34; + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
         print(&#34;P(m2|y): &#34; + str(np.sum(joint_model_chain.model_indices) / iterations))
 
-    return joint_model_chain</code></pre>
+    return joint_model_chain, total_acc, inter_model_history</code></pre>
 </details>
 </dd>
-<dt id="sampling.adapt_RJMH_proposal"><code class="name flex">
-<span>def <span class="ident">adapt_RJMH_proposal</span></span>(<span>model, proposed_model, theta, lv)</span>
+<dt id="sampling.ARJMH_proposal"><code class="name flex">
+<span>def <span class="ident">ARJMH_proposal</span></span>(<span>model, proposed_model, theta, lv)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Performs an Adaptive Reversible-Jump Metropolis Hastings proposal.</p>
 <h2 id="args">Args</h2>
-<p>model [model]: Model to jump from.
-proposed_model [model]: Model to jump to.
-theta [state]: State to jump from.
-lv [lis]: Current auxilliary variables center divergence.</p>
+<dl>
+<dt><strong><code>model</code></strong></dt>
+<dd>[model] Model to jump from.</dd>
+<dt><strong><code>proposed_model</code></strong></dt>
+<dd>[model] Model to jump to.</dd>
+<dt><strong><code>theta</code></strong></dt>
+<dd>[state] State to jump from.</dd>
+<dt><strong><code>lv</code></strong></dt>
+<dd>[list] Current auxilliary variables centre divergence.</dd>
+</dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>proposed_theta [state]</code></dt>
-<dd>State proposed to jump to.</dd>
+<dt><code>proposed_theta</code></dt>
+<dd>[state] State proposed to jump to.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def adapt_RJMH_proposal(model, proposed_model, theta, lv):
+<pre><code class="python">def ARJMH_proposal(model, proposed_model, theta, lv):
     &#34;&#34;&#34;Performs an Adaptive Reversible-Jump Metropolis Hastings proposal.
     
     Args:
-        model [model]: Model to jump from.
-        proposed_model [model]: Model to jump to.
-        theta [state]: State to jump from.
-        lv [lis]: Current auxilliary variables center divergence.
+        model: [model] Model to jump from.
+        proposed_model: [model] Model to jump to.
+        theta: [state] State to jump from.
+        lv: [list] Current auxilliary variables centre divergence.
 
     Returns:
-        proposed_theta [state]: State proposed to jump to.
+        proposed_theta: [state] State proposed to jump to.
     &#34;&#34;&#34;
-    l = theta.scaled - model.center.scaled # Offset from initial model&#39;s centre.
+    l = theta.scaled - model.centre.scaled # Offset from initial model&#39;s centre.
 
-    if model.m == proposed_model.m: # Intra-model move.
+    if model is proposed_model: # Intra-model move.
 
-        # Use the covariance at the proposed model&#39;s center for local shape.
+        # Use the covariance at the proposed model&#39;s centre for local shape.
         u = gaussian_proposal(np.zeros((proposed_model.D)), proposed_model.covariance)
-        proposed_theta = u + l + proposed_model.center.scaled
+        proposed_theta = u + l + proposed_model.centre.scaled
         
         return proposed_theta
 
@@ -894,26 +953,21 @@ lv [lis]: Current auxilliary variables center divergence.</p>
         else: # proposed is subset
             cov = model.covariance
 
-        c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
-        c_12 = cov[:s, s:] # Covariances, not variances.
-        c_21 = cov[s:, :s] # Same as above.
-        c_22 = cov[s:, s:] # Covariance matrix of non-shared.
-        c_22_inv = np.linalg.inv(c_22)
+        conditioned_cov = schur_complement(cov, s)
 
-        conditioned_cov = c_11 - c_12.dot(c_22_inv).dot(c_21)
-
-        if proposed_model.D &lt; model.D: # Jump to smaller model. Fix non-shared parameters.
+        # Jump to smaller model. Fix non-shared parameters.
+        if proposed_model.D &lt; model.D:
 
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
-            proposed_theta = u + l[:s] + proposed_model.center.scaled
+            proposed_theta = u + l[:s] + proposed_model.centre.scaled
 
             return proposed_theta
 
         if proposed_model.D &gt; model.D: # Jump to larger model. Append v.
 
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
-            shared_map = u + l[:s] + proposed_model.center.scaled[:s]
-            non_shared_map = lv[s:] + proposed_model.center.scaled[s:]
+            shared_map = u + l[:s] + proposed_model.centre.scaled[:s]
+            non_shared_map = lv[s:] + proposed_model.centre.scaled[s:]
             map = np.concatenate((shared_map, non_shared_map))
             proposed_theta = map
 
@@ -947,63 +1001,6 @@ lv [lis]: Current auxilliary variables center divergence.</p>
     return multivariate_normal.rvs(mean = theta, cov = covariance)</code></pre>
 </details>
 </dd>
-<dt id="sampling.initialise_RJMH_model"><code class="name flex">
-<span>def <span class="ident">initialise_RJMH_model</span></span>(<span>empty_model, warm_up, iterations, n_repeat, user_feedback=False)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Prepares a model for the adaptive RJ algorithm.</p>
-<p>Repeats the adaptive MH warmup process for a model, storing the best run.</p>
-<h2 id="args">Args</h2>
-<p>empty_model [model]: Initial model object.
-warm_up [int]: Number of non-adaptive steps.
-iterations [int]: Number of adaptive steps.
-n_repeat [int]: Number of times to try for a better run.
-user_feedback [optional, bool]: Whether or not to print progress.</p>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>incumbent_model [<a title="sampling.model" href="#sampling.model">model</a>]</code></dt>
-<dd>Model with the states from the best run.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def initialise_RJMH_model(empty_model, warm_up, iterations, n_repeat, user_feedback = False):
-    &#34;&#34;&#34;Prepares a model for the adaptive RJ algorithm.
-    
-    Repeats the adaptive MH warmup process for a model, storing the best run.
-
-    Args:
-        empty_model [model]: Initial model object.
-        warm_up [int]: Number of non-adaptive steps.
-        iterations [int]: Number of adaptive steps.
-        n_repeat [int]: Number of times to try for a better run.
-        user_feedback [optional, bool]: Whether or not to print progress.
-
-    Returns:
-        incumbent_model [model]: Model with the states from the best run.
-    &#34;&#34;&#34;
-
-    inc_log_best_posterior = -math.inf # Initialise incumbent posterior to always lose
-
-    for i in range(n_repeat):
-        
-        if user_feedback:
-            print(&#34;Running the &#34;+str(i+1)+&#34;/&#34;+str(n_repeat)+&#34;th initialisation per model\n&#34;)
-
-        model = deepcopy(empty_model) # Fresh model.
-
-        # Run adaptive MH.
-        best_theta, log_best_posterior = adapt_MH(model, warm_up, iterations, user_feedback = user_feedback)
-
-        # Keep the best posterior density run.
-        if inc_log_best_posterior &lt; log_best_posterior:
-            incumbent_model = model
-            incumbent_model.center = best_theta
-
-    return incumbent_model</code></pre>
-</details>
-</dd>
 <dt id="sampling.iterative_covariance"><code class="name flex">
 <span>def <span class="ident">iterative_covariance</span></span>(<span>cov, x, x_mu, n, s, I, eps=1e-12)</span>
 </code></dt>
@@ -1031,7 +1028,7 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
 </details>
 </dd>
 <dt id="sampling.output_file"><code class="name flex">
-<span>def <span class="ident">output_file</span></span>(<span>models, joint_model_chain, n_epochs, sn, letters, name='', event_params=None)</span>
+<span>def <span class="ident">output_file</span></span>(<span>models, warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn, letters, name='', event_params=None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -1039,44 +1036,129 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def output_file(models, joint_model_chain, n_epochs, sn, letters, name = &#34;&#34;, event_params = None):
+<pre><code class="python">def output_file(models, warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn, letters, name = &#34;&#34;, event_params = None):
     
-    # output File:
+    # Output File.
     with open(&#34;results/&#34;+name+&#34;-run.txt&#34;, &#34;w&#34;) as file:
-
         file.write(&#34;Run &#34;+name+&#34;\n&#34;)
         
-        # inputs
+        # Inputs.
         file.write(&#34;Inputs:\n&#34;)
         if event_params is not None:
             file.write(&#34;Parameters: &#34;+str(event_params.truth)+&#34;\n&#34;)
         file.write(&#34;Number of observations: &#34;+str(n_epochs)+&#34;, Signal to noise baseline: &#34;+str(sn)+&#34;\n&#34;)
-        
         file.write(&#34;\n&#34;)
         file.write(&#34;Run information:\n&#34;)
         file.write(&#34;Iterations: &#34;+str(joint_model_chain.n)+&#34;\n&#34;)
-        total_acc = 0
-        for model in models:
-            total_acc += np.sum(model.acc)
-        total_acc /= joint_model_chain.n
-        file.write(&#34;Average acc; Total: &#34;+str(total_acc))
+        file.write(&#34;Average acc; Total: &#34;+str(np.average(total_acc)))
 
-        # results
+        # Results.
         file.write(&#34;\n\nResults:\n&#34;)
         for model in models:
-            # models
-            P_model = model.sampled.n/joint_model_chain.n
-            sd_model = ((model.sampled.n*(1-P_model)**2 + (joint_model_chain.n-model.sampled.n)*(0-P_model)**2) / (joint_model_chain.n-1))**0.5
-            file.write(&#34;\n&#34;+str(model.m)+&#34;\nP(m|y): &#34;+str(P_model)+r&#34;\pm&#34;+str(sd_model)+&#34;\n&#34;)
+            
+            # Models.
+            P_model = (model.sampled.n-burn_in)/joint_model_chain.n
+            sde_model = np.std(np.array(joint_model_chain.model_indices))/(joint_model_chain.n**0.5)
+            file.write(&#34;\n&#34;+str(model.m)+&#34;\nP(m|y): &#34;+str(P_model)+r&#34;\pm&#34;+str(sde_model)+&#34;\n&#34;)
 
-            # parameters
+            # Parameters.
             model_states = model.sampled.states_array(scaled = True)
             for i in range(len(model.sampled.states[-1].scaled)):
                 mu = np.average(model_states[i, :])
                 sd = np.std(model_states[i, :], ddof = 1)
                 file.write(letters[i]+&#34;: mean: &#34;+str(mu)+&#34;, sd: &#34;+str(sd)+&#34; \n&#34;)
-    
+                
+                # Hardcoded unscale q.
+                if i == 3:
+                    exp10 = np.power(10, model_states[i, :])
+                    mu = np.average(exp10)
+                    sd = np.std(exp10, ddof = 1)
+                    file.write(&#34;q: mean: &#34;+str(mu)+&#34;, sd: &#34;+str(sd)+&#34; \n&#34;)
+
     return</code></pre>
+</details>
+</dd>
+<dt id="sampling.schur_complement"><code class="name flex">
+<span>def <span class="ident">schur_complement</span></span>(<span>cov, s)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def schur_complement(cov, s):
+    c_11 = cov[:s, :s] # Covariance matrix of shared parameters.
+    c_12 = cov[:s, s:] # Covariances, not variances.
+    c_21 = cov[s:, :s] # Same as above.
+    c_22 = cov[s:, s:] # Covariance matrix of non-shared.
+    c_22_inv = np.linalg.inv(c_22)
+
+    return c_11 - c_12.dot(c_22_inv).dot(c_21)</code></pre>
+</details>
+</dd>
+<dt id="sampling.warm_up_model"><code class="name flex">
+<span>def <span class="ident">warm_up_model</span></span>(<span>empty_model, adaptive_iterations, fixed_iterations=25, repetitions=1, user_feedback=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Prepares a model for the ARJMH algorithm.</p>
+<p>Repeats the adaptive MH warmup process for a model, storing the best run.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>empty_model</code></strong></dt>
+<dd>[model] Initial model object.</dd>
+<dt><strong><code>adaptive_iterations</code></strong></dt>
+<dd>[int] Number of adaptive steps.</dd>
+<dt><strong><code>fixed_iterations</code></strong></dt>
+<dd>[optional, int] Number of non-adaptive steps.</dd>
+<dt><strong><code>repetitions</code></strong></dt>
+<dd>[optional, int] Number of times to try for a better run.</dd>
+<dt><strong><code>user_feedback</code></strong></dt>
+<dd>[optional, bool] Whether or not to print progress.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>incumbent_model</code></dt>
+<dd>[model] Model with the states from the best run.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repetitions = 1, user_feedback = False):
+    &#34;&#34;&#34;Prepares a model for the ARJMH algorithm.
+    
+    Repeats the adaptive MH warmup process for a model, storing the best run.
+
+    Args:
+        empty_model: [model] Initial model object.
+        adaptive_iterations: [int] Number of adaptive steps.
+        fixed_iterations: [optional, int] Number of non-adaptive steps.
+        repetitions: [optional, int] Number of times to try for a better run.
+        user_feedback: [optional, bool] Whether or not to print progress.
+
+    Returns:
+        incumbent_model: [model] Model with the states from the best run.
+    &#34;&#34;&#34;
+
+    inc_log_best_posterior = -math.inf # Initialise incumbent posterior to always lose.
+
+    for i in range(repetitions):
+        
+        if user_feedback:
+            print(&#34;Running the &#34;+str(i+1)+&#34;/&#34;+str(repetitions)+&#34;th initialisation per model\n&#34;)
+
+        model = deepcopy(empty_model) # Fresh model.
+
+        # Run adaptive MH.
+        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations = fixed_iterations, user_feedback = user_feedback)
+
+        # Keep the best posterior density run.
+        if inc_log_best_posterior &lt; log_best_posterior:
+            incumbent_model = deepcopy(model)
+            incumbent_model.centre = deepcopy(best_theta)
+
+    return incumbent_model</code></pre>
 </details>
 </dd>
 </dl>
@@ -1092,13 +1174,22 @@ user_feedback [optional, bool]: Whether or not to print progress.</p>
 <div class="desc"><p>Collection of states.</p>
 <p>Describes a markov chain, perhaps from a joint model space.</p>
 <h2 id="attributes">Attributes</h2>
-<p>states [list]: State objects in the chain.
-model_indices [list]: models the states are from.
-n [int]: The number of states in the chain.
-Initialises the chain with one state from one model.</p>
+<dl>
+<dt><strong><code>states</code></strong></dt>
+<dd>[list] State objects in the chain.</dd>
+<dt><strong><code>model_indices</code></strong></dt>
+<dd>[list] models the states are from. </dd>
+<dt><strong><code>n</code></strong></dt>
+<dd>[int] The number of states in the chain.</dd>
+</dl>
+<p>Initialises the chain with one state from one model.</p>
 <h2 id="args">Args</h2>
-<p>state [state]: The state object.
-m [int]: The index of the model the state is from.</p></div>
+<dl>
+<dt><strong><code>state</code></strong></dt>
+<dd>[state] The state object.</dd>
+<dt><strong><code>m</code></strong></dt>
+<dd>[int] The index of the model the state is from.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1109,17 +1200,17 @@ m [int]: The index of the model the state is from.</p></div>
     Describes a markov chain, perhaps from a joint model space.
 
     Attributes:
-        states [list]: State objects in the chain.
-        model_indices [list]: models the states are from. 
-        n [int]: The number of states in the chain.
+        states: [list] State objects in the chain.
+        model_indices: [list] models the states are from. 
+        n: [int] The number of states in the chain.
     &#34;&#34;&#34;
 
     def __init__(self, m, state):
         &#34;&#34;&#34;Initialises the chain with one state from one model.
 
         Args:
-            state [state]: The state object.
-            m [int]: The index of the model the state is from.
+            state: [state] The state object.
+            m: [int] The index of the model the state is from.
         &#34;&#34;&#34;
         self.states = [state]
         self.model_indices = [m]
@@ -1129,8 +1220,8 @@ m [int]: The index of the model the state is from.</p></div>
         &#34;&#34;&#34;Adds a state in a model to the chain.
 
         Args:
-            state [state]: The state object.
-            m [int]: The index of the model the state is from.
+            state: [state] The state object.
+            m: [int] The index of the model the state is from.
         &#34;&#34;&#34;
         self.states.append(state)
         self.model_indices.append(m)
@@ -1141,11 +1232,11 @@ m [int]: The index of the model the state is from.</p></div>
         &#34;&#34;&#34;Creates a numpy array of all states in the chain.
 
         Args:
-            scale [optional, bool]: Whether the array should be in scaled or 
+            scale: [optional, bool] Whether the array should be in scaled or 
                                     true space.
 
         Returns:
-            chain_array [np.array]: The numpy array of all state parameters. 
+            chain_array: [np.array] The numpy array of all state parameters. 
                                     Columns are states, rows are parameters 
                                     for all states.
         &#34;&#34;&#34;
@@ -1172,8 +1263,12 @@ m [int]: The index of the model the state is from.</p></div>
 <dd>
 <div class="desc"><p>Adds a state in a model to the chain.</p>
 <h2 id="args">Args</h2>
-<p>state [state]: The state object.
-m [int]: The index of the model the state is from.</p></div>
+<dl>
+<dt><strong><code>state</code></strong></dt>
+<dd>[state] The state object.</dd>
+<dt><strong><code>m</code></strong></dt>
+<dd>[int] The index of the model the state is from.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -1182,8 +1277,8 @@ m [int]: The index of the model the state is from.</p></div>
     &#34;&#34;&#34;Adds a state in a model to the chain.
 
     Args:
-        state [state]: The state object.
-        m [int]: The index of the model the state is from.
+        state: [state] The state object.
+        m: [int] The index of the model the state is from.
     &#34;&#34;&#34;
     self.states.append(state)
     self.model_indices.append(m)
@@ -1197,12 +1292,15 @@ m [int]: The index of the model the state is from.</p></div>
 <dd>
 <div class="desc"><p>Creates a numpy array of all states in the chain.</p>
 <h2 id="args">Args</h2>
-<p>scale [optional, bool]: Whether the array should be in scaled or
-true space.</p>
+<dl>
+<dt><strong><code>scale</code></strong></dt>
+<dd>[optional, bool] Whether the array should be in scaled or
+true space.</dd>
+</dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code>chain_array [np.array]</code></dt>
-<dd>The numpy array of all state parameters.
+<dt><code>chain_array</code></dt>
+<dd>[np.array] The numpy array of all state parameters.
 Columns are states, rows are parameters
 for all states.</dd>
 </dl></div>
@@ -1214,11 +1312,11 @@ for all states.</dd>
     &#34;&#34;&#34;Creates a numpy array of all states in the chain.
 
     Args:
-        scale [optional, bool]: Whether the array should be in scaled or 
+        scale: [optional, bool] Whether the array should be in scaled or 
                                 true space.
 
     Returns:
-        chain_array [np.array]: The numpy array of all state parameters. 
+        chain_array: [np.array] The numpy array of all state parameters. 
                                 Columns are states, rows are parameters 
                                 for all states.
     &#34;&#34;&#34;
@@ -1240,6 +1338,251 @@ for all states.</dd>
 </dd>
 </dl>
 </dd>
+<dt id="sampling.Model"><code class="flex name class">
+<span>class <span class="ident">Model</span></span>
+<span>(</span><span>m, D, centre, priors, covariance, data, log_likelihood_fnc)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A model to describe a probability distribution.</p>
+<p>Contains a chain of states from this model, as well as information
+from this. Adapts a covariance matrix iteratively with each new state,
+and stores a guess at a maximum posterior density estimate.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>m</code></strong></dt>
+<dd>[int] Model index.</dd>
+<dt><strong><code>D</code></strong></dt>
+<dd>[int] Dimensionality of a state in the model.</dd>
+<dt><strong><code>priors</code></strong></dt>
+<dd>[list] Prior distribution objects for state parameter values.</dd>
+<dt><strong><code>sampled</code></strong></dt>
+<dd>[chain] States sampled from the model's distribution.</dd>
+<dt><strong><code>scaled_average_state</code></strong></dt>
+<dd>[list] The scaled average parameter values of the chain.</dd>
+<dt><strong><code>centre</code></strong></dt>
+<dd>[state] Best guess at maximum posterior density.</dd>
+<dt><strong><code>covariance</code></strong></dt>
+<dd>[array] Current covariance matrix, based on all states.</dd>
+<dt><strong><code>covariances</code></strong></dt>
+<dd>[list] All previous covariance matrices.</dd>
+<dt><strong><code>acc</code></strong></dt>
+<dd>[list] Binary values, 1 if the state proposed was accepted,
+0 if it was rejected.</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>[mulensdata] Object for photometry readings from the
+microlensing event.</dd>
+<dt><strong><code>log_likelihood</code></strong></dt>
+<dd>[function] Method to calculate the log likelihood a state is
+from this model.</dd>
+<dt><strong><code>I</code></strong></dt>
+<dd>[np.array] Identity matrix the size of D.</dd>
+<dt><strong><code>s</code></strong></dt>
+<dd>[float] Mixing parameter (see Haario et al 2001).</dd>
+</dl>
+<p>Initialises the model.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Model(object):
+    &#34;&#34;&#34;A model to describe a probability distribution.
+
+    Contains a chain of states from this model, as well as information
+    from this. Adapts a covariance matrix iteratively with each new state,
+    and stores a guess at a maximum posterior density estimate.
+
+    Attributes:
+        m: [int] Model index.
+        D: [int] Dimensionality of a state in the model.
+        priors: [list] Prior distribution objects for state parameter values.
+        sampled: [chain] States sampled from the model&#39;s distribution.
+        scaled_average_state: [list] The scaled average parameter values of the chain.
+        centre: [state] Best guess at maximum posterior density.
+        covariance: [array] Current covariance matrix, based on all states.
+        covariances: [list] All previous covariance matrices.
+        acc: [list] Binary values, 1 if the state proposed was accepted,
+                    0 if it was rejected.
+        data: [mulensdata] Object for photometry readings from the 
+            microlensing event.
+        log_likelihood: [function] Method to calculate the log likelihood a state is
+                                    from this model.
+        I: [np.array] Identity matrix the size of D.
+        s: [float] Mixing parameter (see Haario et al 2001).
+    &#34;&#34;&#34;
+
+    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc):
+        &#34;&#34;&#34;Initialises the model.&#34;&#34;&#34;
+        self.m = m
+        self.D = D
+        self.priors = priors
+        self.centre = centre
+        self.sampled = Chain(m, centre)
+        self.scaled_avg_state = centre.scaled
+        self.acc = [1] # First state always accepted.
+        self.covariance = covariance
+        self.covariances = [covariance]
+
+        self.data = data
+        
+        # Model&#39;s custom likelihood function.
+        self.log_likelihood = MethodType(log_likelihood_fnc, self)
+
+        self.I = np.identity(D)
+        self.s = 2.4**2 / D # Arbitrary(ish), good value from Haario et al 2001.
+    
+    def add_state(self, theta, adapt = True):
+        &#34;&#34;&#34;Adds a sampled state to the model.
+
+        Args:
+            theta: [state] Parameters to add.
+            adapt: [optional, bool] Whether or not to adjust the covariance 
+                                    matrix based on the new state.
+        &#34;&#34;&#34;
+        self.sampled.n += 1
+        self.sampled.states.append(theta)
+
+        if adapt:
+            self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
+
+        self.covariances.append(self.covariance)
+        self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
+        self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
+
+        return
+
+    def log_prior_density(self, theta, v = None, v_D = None):
+        &#34;&#34;&#34;Calculates the log prior density of a state in the model.
+
+        Optionally adjusts this log density when using auxilliary vriables.
+
+        Args:
+            theta: [state] Parameters to calculate the log prior density for.
+            v: [optional, state] The values of all auxiliary variables.
+            v_D: [optional, int] The dimensionality to use with auxilliary variables.
+
+        Returns:
+            log_prior_product: [float] The log prior probability density.
+        &#34;&#34;&#34;    
+        log_prior_product = 0.
+
+        # cycle through parameters
+        for p in range(self.D):
+
+            # product using log rules
+            log_prior_product += (self.priors[p].log_pdf(theta.truth[p]))
+
+        # cycle through auxiliary parameters if v and v_D passed
+        if v is not None or v_D is not None:
+            if v is not None and v_D is not None:
+                for p in range(self.D, v_D):
+                    
+                    # product using log rules
+                    log_prior_product += (self.priors[p].log_pdf(v.truth[p]))
+
+            else: raise ValueError(&#34;Only one of v or v_D passed.&#34;)
+
+        return log_prior_product</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="sampling.Model.add_state"><code class="name flex">
+<span>def <span class="ident">add_state</span></span>(<span>self, theta, adapt=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Adds a sampled state to the model.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>theta</code></strong></dt>
+<dd>[state] Parameters to add.</dd>
+<dt><strong><code>adapt</code></strong></dt>
+<dd>[optional, bool] Whether or not to adjust the covariance
+matrix based on the new state.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_state(self, theta, adapt = True):
+    &#34;&#34;&#34;Adds a sampled state to the model.
+
+    Args:
+        theta: [state] Parameters to add.
+        adapt: [optional, bool] Whether or not to adjust the covariance 
+                                matrix based on the new state.
+    &#34;&#34;&#34;
+    self.sampled.n += 1
+    self.sampled.states.append(theta)
+
+    if adapt:
+        self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
+
+    self.covariances.append(self.covariance)
+    self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
+    self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="sampling.Model.log_prior_density"><code class="name flex">
+<span>def <span class="ident">log_prior_density</span></span>(<span>self, theta, v=None, v_D=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates the log prior density of a state in the model.</p>
+<p>Optionally adjusts this log density when using auxilliary vriables.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>theta</code></strong></dt>
+<dd>[state] Parameters to calculate the log prior density for.</dd>
+<dt><strong><code>v</code></strong></dt>
+<dd>[optional, state] The values of all auxiliary variables.</dd>
+<dt><strong><code>v_D</code></strong></dt>
+<dd>[optional, int] The dimensionality to use with auxilliary variables.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>log_prior_product</code></dt>
+<dd>[float] The log prior probability density.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def log_prior_density(self, theta, v = None, v_D = None):
+    &#34;&#34;&#34;Calculates the log prior density of a state in the model.
+
+    Optionally adjusts this log density when using auxilliary vriables.
+
+    Args:
+        theta: [state] Parameters to calculate the log prior density for.
+        v: [optional, state] The values of all auxiliary variables.
+        v_D: [optional, int] The dimensionality to use with auxilliary variables.
+
+    Returns:
+        log_prior_product: [float] The log prior probability density.
+    &#34;&#34;&#34;    
+    log_prior_product = 0.
+
+    # cycle through parameters
+    for p in range(self.D):
+
+        # product using log rules
+        log_prior_product += (self.priors[p].log_pdf(theta.truth[p]))
+
+    # cycle through auxiliary parameters if v and v_D passed
+    if v is not None or v_D is not None:
+        if v is not None and v_D is not None:
+            for p in range(self.D, v_D):
+                
+                # product using log rules
+                log_prior_product += (self.priors[p].log_pdf(v.truth[p]))
+
+        else: raise ValueError(&#34;Only one of v or v_D passed.&#34;)
+
+    return log_prior_product</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
 <dt id="sampling.State"><code class="flex name class">
 <span>class <span class="ident">State</span></span>
 <span>(</span><span>truth=None, scaled=None)</span>
@@ -1251,10 +1594,15 @@ hardcoded but can be extended per application. Currently log10 scaling
 the fourth parameter. In microlensing applications, this is q,
 the mass ratio.</p>
 <h2 id="attributes">Attributes</h2>
-<p>truth [list]: Parameter values for the state, in true space.
-scaled [list]: Parameter values for the state, in scaled space.
-D [int]: The dimensionality of the state.
-Initialises state with truth, scaled, and D values.</p>
+<dl>
+<dt><strong><code>truth</code></strong></dt>
+<dd>[list] Parameter values for the state, in true space.</dd>
+<dt><strong><code>scaled</code></strong></dt>
+<dd>[list] Parameter values for the state, in scaled space.</dd>
+<dt><strong><code>D</code></strong></dt>
+<dd>[int] The dimensionality of the state.</dd>
+</dl>
+<p>Initialises state with truth, scaled, and D values.</p>
 <p>Only one of truth or scaled is needed.</p></div>
 <details class="source">
 <summary>
@@ -1269,9 +1617,9 @@ Initialises state with truth, scaled, and D values.</p>
     the mass ratio.
 
     Attributes:
-        truth [list]: Parameter values for the state, in true space.
-        scaled [list]: Parameter values for the state, in scaled space.
-        D [int]: The dimensionality of the state.
+        truth: [list] Parameter values for the state, in true space.
+        scaled: [list] Parameter values for the state, in scaled space.
+        D: [int] The dimensionality of the state.
     &#34;&#34;&#34;
 
     def __init__(self, truth = None, scaled = None):
@@ -1300,224 +1648,6 @@ Initialises state with truth, scaled, and D values.</p>
         else:   raise ValueError(&#34;Assigned null state&#34;)</code></pre>
 </details>
 </dd>
-<dt id="sampling.model"><code class="flex name class">
-<span>class <span class="ident">model</span></span>
-<span>(</span><span>m, D, center, priors, covariance, data, log_likelihood_fnc)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>A model to describe a probability distribution.</p>
-<p>Contains a chain of states from this model, as well as information
-from this. Adapts a covariance matrix iteratively with each new state,
-and stores a guess at a maximum posterior density estimate.</p>
-<h2 id="attributes">Attributes</h2>
-<p>m [int]: model index.
-D [int]: Dimensionality of a state in the model.
-priors [list]: Prior distribution objects for state parameter values.
-sampled [chain]: States sampled from the model's distribution.
-scaled_average_state [list]: The scaled average parameter values of the chain.
-center [state]: Best guess at maximum posterior density.
-covariance [array]: Current covariance matrix, based on all states.
-covariances [list]: All previous covariance matrices.
-acc [list]: Binary values, 1 if the state proposed was accepted,
-0 if it was rejected.
-data [mulensdata]: Object for photometry readings from the
-microlensing event.
-log_likelihood [function]: Method to calculate the log likelihood a state is
-from this model.
-I [np.array]: Identity matrix the size of D.
-s [float]: Mixing parameter (see Haario et al 2001).
-Initialises the model.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class model(object):
-    &#34;&#34;&#34;A model to describe a probability distribution.
-
-    Contains a chain of states from this model, as well as information
-    from this. Adapts a covariance matrix iteratively with each new state,
-    and stores a guess at a maximum posterior density estimate.
-
-    Attributes:
-        m [int]: model index.
-        D [int]: Dimensionality of a state in the model.
-        priors [list]: Prior distribution objects for state parameter values.
-        sampled [chain]: States sampled from the model&#39;s distribution.
-        scaled_average_state [list]: The scaled average parameter values of the chain.
-        center [state]: Best guess at maximum posterior density.
-        covariance [array]: Current covariance matrix, based on all states.
-        covariances [list]: All previous covariance matrices.
-        acc [list]: Binary values, 1 if the state proposed was accepted,
-            0 if it was rejected.
-        data [mulensdata]: Object for photometry readings from the 
-            microlensing event.
-        log_likelihood [function]: Method to calculate the log likelihood a state is
-            from this model.
-        I [np.array]: Identity matrix the size of D.
-        s [float]: Mixing parameter (see Haario et al 2001).
-    &#34;&#34;&#34;
-
-    def __init__(self, m, D, center, priors, covariance, data, log_likelihood_fnc):
-        &#34;&#34;&#34;Initialises the model.&#34;&#34;&#34;
-        self.m = m
-        self.D = D
-        self.priors = priors
-        self.center = center
-        self.sampled = Chain(m, center)
-        self.scaled_avg_state = center.scaled
-        self.acc = [1] # First state always accepted
-        self.covariance = covariance
-        self.covariances = [covariance]
-
-        self.data = data
-        # model&#39;s custom likelihood function
-        self.log_likelihood = MethodType(log_likelihood_fnc, self)
-
-        self.I = np.identity(D)
-        self.s = 2.4**2 / D # Arbitrary(ish), good value from Haario et al 2001.
-    
-    def add_state(self, theta, adapt = True):
-        &#34;&#34;&#34;Adds a sampled state to the model.
-
-        Args:
-            theta [state]: Parameters to add.
-            adapt [optional, bool]: Whether or not to adjust the covariance 
-                                    matrix based on the new state.
-        &#34;&#34;&#34;
-        self.sampled.n += 1
-        self.sampled.states.append(theta)
-
-        if adapt:
-            self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
-
-        self.covariances.append(self.covariance)
-        self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
-
-        return
-
-    def log_prior_density(self, theta, v = None, v_D = None):
-        &#34;&#34;&#34;Calculates the log prior density of a state in the model.
-
-        Optionally adjusts this log density when using auxilliary vriables.
-
-        Args:
-            theta [state]: Parameters to calculate the log prior density for.
-            v [optional, state]: The values of all auxiliary variables.
-            v_D [optional, int]: The dimensionality to use with auxilliary variables.
-
-        Returns:
-            log_prior_product [float]: The log prior probability density.
-        &#34;&#34;&#34;    
-        log_prior_product = 0.
-
-        # cycle through parameters
-        for p in range(self.D):
-
-            # product using log rules
-            log_prior_product += (self.priors[p].log_pdf(theta.truth[p]))
-
-        # cycle through auxiliary parameters if v and v_D passed
-        if v is not None or v_D is not None:
-            if v is not None and v_D is not None:
-                for p in range(self.D, v_D):
-                    
-                    # product using log rules
-                    log_prior_product += (self.priors[p].log_pdf(v.truth[p]))
-
-            else: raise ValueError(&#34;Only one of v or v_D passed.&#34;)
-
-        return log_prior_product</code></pre>
-</details>
-<h3>Methods</h3>
-<dl>
-<dt id="sampling.model.add_state"><code class="name flex">
-<span>def <span class="ident">add_state</span></span>(<span>self, theta, adapt=True)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Adds a sampled state to the model.</p>
-<h2 id="args">Args</h2>
-<p>theta [state]: Parameters to add.
-adapt [optional, bool]: Whether or not to adjust the covariance
-matrix based on the new state.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def add_state(self, theta, adapt = True):
-    &#34;&#34;&#34;Adds a sampled state to the model.
-
-    Args:
-        theta [state]: Parameters to add.
-        adapt [optional, bool]: Whether or not to adjust the covariance 
-                                matrix based on the new state.
-    &#34;&#34;&#34;
-    self.sampled.n += 1
-    self.sampled.states.append(theta)
-
-    if adapt:
-        self.covariance = iterative_covariance(self.covariance, theta.scaled, self.scaled_avg_state, self.sampled.n, self.s, self.I)
-
-    self.covariances.append(self.covariance)
-    self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
-
-    return</code></pre>
-</details>
-</dd>
-<dt id="sampling.model.log_prior_density"><code class="name flex">
-<span>def <span class="ident">log_prior_density</span></span>(<span>self, theta, v=None, v_D=None)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Calculates the log prior density of a state in the model.</p>
-<p>Optionally adjusts this log density when using auxilliary vriables.</p>
-<h2 id="args">Args</h2>
-<p>theta [state]: Parameters to calculate the log prior density for.
-v [optional, state]: The values of all auxiliary variables.
-v_D [optional, int]: The dimensionality to use with auxilliary variables.</p>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>log_prior_product [float]</code></dt>
-<dd>The log prior probability density.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def log_prior_density(self, theta, v = None, v_D = None):
-    &#34;&#34;&#34;Calculates the log prior density of a state in the model.
-
-    Optionally adjusts this log density when using auxilliary vriables.
-
-    Args:
-        theta [state]: Parameters to calculate the log prior density for.
-        v [optional, state]: The values of all auxiliary variables.
-        v_D [optional, int]: The dimensionality to use with auxilliary variables.
-
-    Returns:
-        log_prior_product [float]: The log prior probability density.
-    &#34;&#34;&#34;    
-    log_prior_product = 0.
-
-    # cycle through parameters
-    for p in range(self.D):
-
-        # product using log rules
-        log_prior_product += (self.priors[p].log_pdf(theta.truth[p]))
-
-    # cycle through auxiliary parameters if v and v_D passed
-    if v is not None or v_D is not None:
-        if v is not None and v_D is not None:
-            for p in range(self.D, v_D):
-                
-                # product using log rules
-                log_prior_product += (self.priors[p].log_pdf(v.truth[p]))
-
-        else: raise ValueError(&#34;Only one of v or v_D passed.&#34;)
-
-    return log_prior_product</code></pre>
-</details>
-</dd>
-</dl>
-</dd>
 </dl>
 </section>
 </article>
@@ -1529,15 +1659,16 @@ v_D [optional, int]: The dimensionality to use with auxilliary variables.</p>
 <ul id="index">
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="sampling.adapt_MH" href="#sampling.adapt_MH">adapt_MH</a></code></li>
-<li><code><a title="sampling.adapt_RJMH" href="#sampling.adapt_RJMH">adapt_RJMH</a></code></li>
-<li><code><a title="sampling.adapt_RJMH_proposal" href="#sampling.adapt_RJMH_proposal">adapt_RJMH_proposal</a></code></li>
+<li><code><a title="sampling.AMH" href="#sampling.AMH">AMH</a></code></li>
+<li><code><a title="sampling.ARJMH" href="#sampling.ARJMH">ARJMH</a></code></li>
+<li><code><a title="sampling.ARJMH_proposal" href="#sampling.ARJMH_proposal">ARJMH_proposal</a></code></li>
 <li><code><a title="sampling.check_symmetric" href="#sampling.check_symmetric">check_symmetric</a></code></li>
 <li><code><a title="sampling.gaussian_proposal" href="#sampling.gaussian_proposal">gaussian_proposal</a></code></li>
-<li><code><a title="sampling.initialise_RJMH_model" href="#sampling.initialise_RJMH_model">initialise_RJMH_model</a></code></li>
 <li><code><a title="sampling.iterative_covariance" href="#sampling.iterative_covariance">iterative_covariance</a></code></li>
 <li><code><a title="sampling.iterative_mean" href="#sampling.iterative_mean">iterative_mean</a></code></li>
 <li><code><a title="sampling.output_file" href="#sampling.output_file">output_file</a></code></li>
+<li><code><a title="sampling.schur_complement" href="#sampling.schur_complement">schur_complement</a></code></li>
+<li><code><a title="sampling.warm_up_model" href="#sampling.warm_up_model">warm_up_model</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
@@ -1550,14 +1681,14 @@ v_D [optional, int]: The dimensionality to use with auxilliary variables.</p>
 </ul>
 </li>
 <li>
-<h4><code><a title="sampling.State" href="#sampling.State">State</a></code></h4>
+<h4><code><a title="sampling.Model" href="#sampling.Model">Model</a></code></h4>
+<ul class="">
+<li><code><a title="sampling.Model.add_state" href="#sampling.Model.add_state">add_state</a></code></li>
+<li><code><a title="sampling.Model.log_prior_density" href="#sampling.Model.log_prior_density">log_prior_density</a></code></li>
+</ul>
 </li>
 <li>
-<h4><code><a title="sampling.model" href="#sampling.model">model</a></code></h4>
-<ul class="">
-<li><code><a title="sampling.model.add_state" href="#sampling.model.add_state">add_state</a></code></li>
-<li><code><a title="sampling.model.log_prior_density" href="#sampling.model.log_prior_density">log_prior_density</a></code></li>
-</ul>
+<h4><code><a title="sampling.State" href="#sampling.State">State</a></code></h4>
 </li>
 </ul>
 </li>

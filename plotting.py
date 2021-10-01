@@ -177,20 +177,20 @@ def adjust_view(axis, frame, samples, base_sample, bounds, view_size):
     """
     
     # Adjust viweing axis.
-    Lower = np.min(samples)
-    Upper = np.max(samples)
+    Lower = np.min([np.min(samples), base_sample])
+    Upper = np.max([np.max(samples), base_sample])
     Width = Upper - Lower
     Upper += (view_size * Width) / 2
     Lower -= (view_size * Width) / 2
 
     # Check for scaling (hacky).
-    #if not(bounds.lb <= density_base <= bounds.rb):
-    #    rb = np.log10(bounds.rb)
-    #    lb = np.log10(bounds.lb)
+    if not(bounds.lb <= base_sample <= bounds.rb):
+        rb = np.log10(bounds.rb)
+        lb = np.log10(bounds.lb)
 
-    #else: # No scaling.
-    rb = bounds.rb
-    lb = bounds.lb
+    else: # No scaling.
+        rb = bounds.rb
+        lb = bounds.lb
 
     # Limits within prior bounds.
     if Upper > rb:

@@ -32,11 +32,11 @@ use_surrogate_posterior = False#True
 
 # Warm up parameters.
 fixed_warm_up_iterations = 25#25
-adaptive_warm_up_iterations = 75#975
-warm_up_repititions = 1#2
+adaptive_warm_up_iterations = 975#975
+warm_up_repititions = 2#2
 
 # Algorithm parameters.
-iterations = 100#20000
+iterations = 20000#20000
 
 # Output parameters.
 n_pixels = 5#25 # Density for posterior contour plot.
@@ -82,7 +82,7 @@ if use_surrogate_posterior == True:
     # Remove finite source size parameter from neural network.
     binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
 
-else: # Use known values for centres.
+else: # Use known values from previous maximising of posterior for centres.
     single_centres = [
     [15.0245, 0.1035, 10**1.0063], # 0
     [15.0245, 0.1035, 10**1.0063], # 1
@@ -147,6 +147,6 @@ plt.locator_params(axis = "y", nbins = 2) # only two ticks
 plt.savefig('results/'+name+'-mtrace.png', bbox_inches = 'tight', dpi = dpi, transparent=True)
 plt.clf()
 
-pltf.density_heatmaps(binary_Model, n_pixels, data, event_params, symbols, 1, name, dpi)
+pltf.density_heatmaps(binary_Model, n_pixels, data, symbols, event_params, 1, name, dpi)
 pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
 #pltf.centre_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)

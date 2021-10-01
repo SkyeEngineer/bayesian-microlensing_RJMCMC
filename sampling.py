@@ -4,7 +4,7 @@ Implements algorithms for bayesian sampling. Uses the main
 classes: State, Chain, and model.
 """
 
-import MulensModel as mm 
+#import MulensModel as mm 
 import math
 import random
 import numpy as np
@@ -560,7 +560,7 @@ def output_file(models, warm_up_iterations, joint_model_chain, total_acc, n_epoc
         for model in models:
             
             # Models.
-            P_model = (model.sampled.n-burn_in)/joint_model_chain.n
+            P_model = (model.sampled.n-warm_up_iterations)/joint_model_chain.n
             sde_model = np.std(np.array(joint_model_chain.model_indices))/(joint_model_chain.n**0.5)
             file.write("\n"+str(model.m)+"\nP(m|y): "+str(P_model)+r"\pm"+str(sde_model)+"\n")
 

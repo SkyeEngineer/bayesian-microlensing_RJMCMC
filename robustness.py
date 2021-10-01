@@ -35,10 +35,7 @@ def P_m2(event_params, sn_base, n_epochs):
 
     """User Settings"""
 
-    # Synthetic light curve to generate.
-    n_suite = 0
-
-    use_surrogate_posterior = False#True
+    #use_surrogate_posterior = True
 
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
@@ -68,26 +65,10 @@ def P_m2(event_params, sn_base, n_epochs):
 
 
     # Get initial centre points.
-    if use_surrogate_posterior == True:
-        single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
-        fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
-        # Remove finite source size parameter from neural network.
-        binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
-
-    else: # Use known values for centres.
-        single_centres = [
-        [15.0245, 0.1035, 10**1.0063], # 0
-        [15.0245, 0.1035, 10**1.0063], # 1
-        [15.0245, 0.1035, 10**1.0063], # 2
-        [15.0245, 0.1035, 10**1.0063]] # 3
-        single_centre = sampling.State(truth = np.array(single_centres[n_suite]))
-
-        binary_centres = [
-        [1.50424747e+01, 1.04854599e-01, 1.00131283e+01, 4.51699379e-05, 9.29979384e-01, 6.72737579e+01], # 0
-        [15.0245, 0.1035, 10**1.0063, 10**-2.3083, 10**0.5614, 161.0036],    # 1
-        [15.0186, 0.1015, 10**1.0050, 10**-1.9734, 10**-0.3049, 60.4598],  # 2
-        [14.9966, 0.1020, 10**1.0043, 10**-1.9825, 10**-0.1496, 60.2111]]   # 3
-        binary_centre = sampling.State(truth = np.array(binary_centres[n_suite]))
+    single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
+    fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
+    # Remove finite source size parameter from neural network.
+    binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
 
     # Initial diagonal covariances.
     covariance_scale = 0.001 # Reduce values by scalar
