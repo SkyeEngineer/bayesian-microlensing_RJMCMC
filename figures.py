@@ -1,8 +1,10 @@
-# Author: Dominic Keehan
-# Part 4 Project, RJMCMC for Microlensing
-# [Lightcurve plotting]
+"""Adaptive Reversible-Jump Metropolis Hastings for microlensing.
 
-#from interfaceing import get_model_centers, get_posteriors
+Implements algorithms for bayesian sampling. Uses the main 
+classes: State, Chain, and model.
+"""
+
+#from interfaceing import get_model_centres, get_posteriors
 from os import error
 from types import LambdaType
 from numpy.core.defchararray import title
@@ -31,7 +33,7 @@ pltf.style()
 #    data = f.Synthetic_Light_Curve(theta, 1, n_epochs, 2300)
 #    plt.plot(data.time, data.flux, linewidth = 0.99, label = a)
 
-#theta = get_model_centers(get_posteriors(1), data.flux)
+#theta = get_model_centres(get_posteriors(1), data.flux)
 #data = f.Synthetic_Light_Curve(theta, 1, n_epochs, 230.0)
 #plt.plot(data.time, data.flux, linestyle = "dashed", label = theta[-1])
 #plt.legend()

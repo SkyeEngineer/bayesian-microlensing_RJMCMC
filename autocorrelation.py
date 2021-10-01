@@ -19,10 +19,10 @@ def attempt_truncation(joint_model_chain):
     autocorrelation times, for a joint model space.
 
     Args:
-        joint_model_chain [chain]: Collection of models parameter states.
+        joint_model_chain: [chain] Collection of models parameter states.
 
     Returns:
-        truncated [int]: Number of truncated states.
+        truncated: [int] Number of truncated states.
     """
     n_samples = joint_model_chain.n
     
@@ -36,17 +36,18 @@ def attempt_truncation(joint_model_chain):
     for i, n in enumerate(N):
         act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
         
-        if act_m_indices[i] < N[i]/50: # stepwise interpolate truncation point
-            truncated = N[i]
+        if i>0:
+            if N[i-1] - N[i-1]/50 < act_m_indices[i] < N[i-1] + N[i-1]/50: # IACT stabilises.
+                truncated = N[i]
 
-            # Remove stored states and update count.
-            joint_model_chain.model_indices = joint_model_chain.model_indices[truncated:]
-            joint_model_chain.states = joint_model_chain.states[truncated:]
-            joint_model_chain.n = joint_model_chain.n - truncated
+                # Remove stored states and update count.
+                joint_model_chain.model_indices = joint_model_chain.model_indices[truncated:]
+                joint_model_chain.states = joint_model_chain.states[truncated:]
+                joint_model_chain.n = joint_model_chain.n - truncated
 
-            return truncated
+                return truncated
 
-    print("Did not have a low enough autocorrelation time.")
+    print("Integrated autocorrelation time did not converge.")
     return 0
 
 
@@ -54,17 +55,17 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
     """Plot parameter autocorrelation times.
         
     Args:
-        joint_model_chain [chain]: Collection of states from any model.
-        symbols [list]: Variable name strings.
-        name [optional, string]: File ouptut name.
-        dpi [optional, int]: File output dpi.
+        joint_model_chain: [chain] Collection of states from any model.
+        symbols: [list] Variable name strings.
+        name: [optional, string] File ouptut name.
+        dpi: [optional, int] File output dpi.
     """
     pltf.style()
 
     n_samples = joint_model_chain.n
     states = joint_model_chain.states_array()
 
-    # Points to compute act.
+    # Points to compute IACT.
     n_act = 10
     N = np.exp(np.linspace(np.log(int(n_samples/n_act)), np.log(n_samples), n_act)).astype(int)
 

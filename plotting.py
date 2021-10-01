@@ -2,15 +2,15 @@
 
 
 import math
-from numpy.core.defchararray import array
-from numpy.core.fromnumeric import mean, ndim
-from numpy.core.function_base import linspace
+#from numpy.core.defchararray import array
+#from numpy.core.fromnumeric import mean, ndim
+#from numpy.core.function_base import linspace
 from copy import deepcopy
 import MulensModel as mm
 import sampling
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
+#import matplotlib.patches as mpatches
 from scipy.stats import chi2
 import scipy
 import corner
@@ -18,7 +18,7 @@ import matplotlib as mpl
 import light_curve_simulation
 
 
-def adaption_contraction(model, iterations, name = '', dpi = 100):
+def adaption_contraction(model, total_iterations, name = '', dpi = 100):
 
     acc = model.acc
     covs = np.array(model.covariances)
@@ -46,11 +46,11 @@ def adaption_contraction(model, iterations, name = '', dpi = 100):
     normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
     normed_stable_trace = (stable_trace - np.min(stable_trace))/(np.max(stable_trace)-np.min(stable_trace))
 
-    rate_colour = 'steelblue'
+    rate_colour = 'blue'
     trace_colour = 'purple'
 
     a1 = plt.axes()
-    a1.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, "o-", c = rate_colour, linewidth = 2, markersize = 5)
+    a1.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, "o-", c = rate_colour, linewidth = 2, markersize = 5)
 
     a1.set_ylabel(r'Average $\alpha(\theta_i, \theta_j)$')
     a1.set_ylim((0.0, 1.0))
@@ -62,9 +62,9 @@ def adaption_contraction(model, iterations, name = '', dpi = 100):
     a1.locator_params(axis="x", nbins=5)
     a2 = a1.twinx()
 
-    a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, "o-", c = trace_colour, linewidth = 2, markersize = 5)
+    a2.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, "o-", c = trace_colour, linewidth = 2, markersize = 5)
     if len(covs[0][:]) == 6:
-        a2.plot(int(iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
+        a2.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_stable_trace, c = trace_colour, linestyle = 'dashed')
     a2.set_ylabel(r'Normalised Average $Tr(C)$')
     a2.tick_params(axis="both", which="major", labelsize=12)
     
@@ -72,14 +72,14 @@ def adaption_contraction(model, iterations, name = '', dpi = 100):
     a2.set_yticks([0.0, 1.0])
     a2.set_yticklabels(['Min', 'Max'])
 
-    a1.spines['left'].set_color(rate_colour)
-    a2.spines['left'].set_color(rate_colour)
+    #a1.spines['left'].set_color(rate_colour)
+    #a2.spines['left'].set_color(rate_colour)
 
     a1.yaxis.label.set_color(rate_colour)
     a1.tick_params(axis = 'y', colors = rate_colour)
 
-    a2.spines['right'].set_color(trace_colour)
-    a1.spines['right'].set_color(trace_colour)
+    #a2.spines['right'].set_color(trace_colour)
+    #a1.spines['right'].set_color(trace_colour)
 
     a2.yaxis.label.set_color(trace_colour)
     a2.tick_params(axis = 'y', colors = trace_colour)
@@ -197,10 +197,10 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
 
     # params to evaluate 2d slices at
     #if event_params is not None:
-    #    model.center = event_params
+    #    model.centre = event_params
 
     #else:
-    #model.center = model.center
+    #model.centre = model.centre
 
     fit_mu = np.zeros((model.D))
 
@@ -237,7 +237,7 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
             ax.axes.get_xaxis().set_ticklabels([])
             ax.axes.get_yaxis().set_ticklabels([])
 
-        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], model.center.scaled[i], model.priors[i], view_size)
+        xUpper, xLower = adjust_viewing_axis('x', ax, states[i, :], model.centre.scaled[i], model.priors[i], view_size)
 
 
     # loop over lower triangular 
@@ -262,22 +262,22 @@ def density_heatmaps(model, n_pixels, data, event_params, symbols, view_size = 1
                 for j in xaxis:
                     y += 1
 
-                    center_temp = deepcopy(model.center.scaled)
+                    centre_temp = deepcopy(model.centre.scaled)
                     event_temp = deepcopy(event_params.scaled)
 
-                    center_temp[xi] = j
+                    centre_temp[xi] = j
                     event_temp[xi] = j
 
-                    center_temp[yi] = i
+                    centre_temp[yi] = i
                     event_temp[yi] = i
 
-                    center_theta = sampling.State(scaled=center_temp)
+                    centre_theta = sampling.State(scaled=centre_temp)
                     event_theta = sampling.State(scaled=event_temp)
 
-                    center_density = np.exp(model.log_likelihood(center_theta)) #+ model.log_prior_density(center_theta))
+                    centre_density = np.exp(model.log_likelihood(centre_theta)) #+ model.log_prior_density(centre_theta))
                     event_density = np.exp(model.log_likelihood(event_theta)) #+ model.log_prior_density(event_theta))
 
-                    density[x][y] = center_density*0.5 + 0.5*event_density
+                    density[x][y] = centre_density*0.5 + 0.5*event_density
 
             density = (np.flip(density, 0)) # so lower bounds meet. sqrt to get better definition between high vs low posterior 
             ax.imshow(density, interpolation = 'quadric', extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower), cmap = plt.cm.PuBu.reversed())
@@ -471,10 +471,10 @@ def joint_samples_pointilism(supset_model, subset_model, joint_model_chain, symb
     return
 
 
-def center_offsets_pointilism(supset_model, subset_model, symbols, name = '', dpi = 100):
+def centre_offsets_pointilism(supset_model, subset_model, symbols, name = '', dpi = 100):
 
-    supset_offsets = (supset_model.sampled.states_array(scaled = True) - supset_model.center.scaled[:, np.newaxis])
-    subset_offsets = (subset_model.sampled.states_array(scaled = True) - subset_model.center.scaled[:, np.newaxis])
+    supset_offsets = (supset_model.sampled.states_array(scaled = True) - supset_model.centre.scaled[:, np.newaxis])
+    subset_offsets = (subset_model.sampled.states_array(scaled = True) - subset_model.centre.scaled[:, np.newaxis])
     n_dim = subset_model.D
 
     style()
@@ -524,7 +524,7 @@ def center_offsets_pointilism(supset_model, subset_model, symbols, name = '', dp
             else:    
                 ax.axes.get_yaxis().set_ticklabels([])
 
-    figure.savefig('results/' + name + '-centered-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
+    figure.savefig('results/' + name + '-centreed-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
     figure.clf()
 
     return

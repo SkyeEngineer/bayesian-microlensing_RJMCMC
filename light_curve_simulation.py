@@ -15,10 +15,10 @@ def read_light_curve(file_name):
     photometry data with three columns: time, flux, and error.
     
     Args:
-        file_name [str]: CSV file name.
+        file_name: [str] CSV file name.
 
     Returns:
-        data [mulensdata]: Object for light curve.
+        data: [mulensdata] Object for light curve.
     """
     with open(file_name) as file:
         array = np.loadtxt(file, delimiter = ",")
@@ -37,13 +37,13 @@ def synthetic_single(theta, n_epochs, sn, seed = 42):
     Otherwise based on ROMAN photometric specifications.
 
     Args:
-        theta [state]: Single lens model parameters.
-        n_epochs [int]: The number of flux observations.
-        sn [float]: The signal to noise baseline.
-        seed [optional, int]: A random seed.
+        theta: [state] Single lens model parameters.
+        n_epochs: [int] The number of flux observations.
+        sn: [float] The signal to noise baseline.
+        seed: [optional, int] A random seed.
 
     Returns:
-        data [mulensdata]: Object for a synthetic lightcurve.
+        data: [mulensdata] Object for a synthetic lightcurve.
     """
     # Create MulensModel.
     model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
@@ -74,13 +74,13 @@ def synthetic_binary(theta, n_epochs, sn, seed = 42):
     Otherwise based on ROMAN photometric specifications.
 
     Args:
-        theta [state]: Binary lens model parameters.
-        n_epochs [int]: The number of flux observations.
-        sn [float]: The signal to noise baseline.
-        seed [optional, int]: A random seed.
+        theta: [state] Binary lens model parameters.
+        n_epochs: [int] The number of flux observations.
+        sn: [float] The signal to noise baseline.
+        seed: [optional, int] A random seed.
 
     Returns:
-        data [mulensdata]: Object for a synthetic lightcurve.
+        data: [mulensdata] Object for a synthetic lightcurve.
     """
     # Create MulensModel.
     model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
@@ -111,10 +111,10 @@ def binary_log_likelihood(self, theta):
     Data must be over the range 0 to 72 days.
 
     Args:
-        theta [state]: Binary model parameters.
+        theta: [state] Binary model parameters.
 
     Returns:
-        log_likelihood [float]: The resulting log likelihood.
+        log_likelihood: [float] The resulting log likelihood.
     """
     try: # MulensModel may throw errors
         model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
@@ -149,10 +149,10 @@ def single_log_likelihood(self, theta):
     Data must be over the range 0 to 72 days.
 
     Args:
-        theta [state]: Single model parameters.
+        theta: [state] Single model parameters.
 
     Returns:
-        log_likelihood [float]: The resulting log likelihood.
+        log_likelihood: [float] The resulting log likelihood.
     """
     try: # MulensModel may throw errors
         model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))

@@ -9,8 +9,8 @@ class Uniform(object):
     """A uniform distribution.
 
     Attributes:
-        lb [float]: Lower bound for support.
-        rb [float]: Upper bound for support.
+        lb: [float] Lower bound for support.
+        rb: [float] Upper bound for support.
     """
 
     def __init__(self, left, right):
@@ -35,8 +35,8 @@ class Log_Uniform(object):
     The log of the data is uniformly distributed.
 
     Attributes:
-        lb [float]: Lower bound for support.
-        rb [float]: Upper bound for support.
+        lb: [float] Lower bound for support.
+        rb: [float] Upper bound for support.
     """
 
     def __init__(self, left, right):
@@ -61,8 +61,8 @@ class Truncated_Log_Normal(object):
     The log of the data is normally distributed, and the data is constrained.
 
     Attributes:
-        lb [float]: Lower bound for support.
-        rb [float]: Upper bound for support.
+        lb: [float] Lower bound for support.
+        rb: [float] Upper bound for support.
     """
 
     def __init__(self, left, right, mu, sd):
