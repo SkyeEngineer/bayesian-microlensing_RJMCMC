@@ -21,7 +21,7 @@ import time
 
 
 def P_m2(event_params, sn_base, n_epochs):
-    """Calculates the marginalised binary model probability for a specefic light curve.
+    """Calculate the marginalised binary model probability of a specific light curve.
 
     Args:
         event_params: [list] Single lens model parameters.

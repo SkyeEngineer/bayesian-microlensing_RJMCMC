@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 def read_light_curve(file_name):
-    """Read in lightcurve data.
+    """Read in light curve data.
     
     Observations must be between 0 and 72 days. Expects 
     photometry data with three columns: time, flux, and error.
@@ -29,7 +29,7 @@ def read_light_curve(file_name):
 
 
 def synthetic_single(theta, n_epochs, sn, seed = 42):
-    """Generate a synthetic single lens lightcurve.
+    """Generate a synthetic single lens light curve.
     
     Simulates noise based on guassian flux process.
     Produces equispaced observations from 0 to 72 days.
@@ -43,7 +43,7 @@ def synthetic_single(theta, n_epochs, sn, seed = 42):
         seed: [optional, int] A random seed.
 
     Returns:
-        data: [mulensdata] Object for a synthetic lightcurve.
+        data: [mulensdata] Object for a synthetic light curve.
     """
     # Create MulensModel.
     model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
@@ -66,7 +66,7 @@ def synthetic_single(theta, n_epochs, sn, seed = 42):
 
 
 def synthetic_binary(theta, n_epochs, sn, seed = 42):
-    """Generate a synthetic single lens lightcurve.
+    """Generate a synthetic single lens light curve.
     
     Simulates noise based on guassian flux process.
     In this simplified case, amplification = flux.
@@ -80,7 +80,7 @@ def synthetic_binary(theta, n_epochs, sn, seed = 42):
         seed: [optional, int] A random seed.
 
     Returns:
-        data: [mulensdata] Object for a synthetic lightcurve.
+        data: [mulensdata] Object for a synthetic light curve.
     """
     # Create MulensModel.
     model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))

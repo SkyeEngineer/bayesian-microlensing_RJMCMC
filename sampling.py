@@ -123,7 +123,7 @@ class Model(object):
     and stores a guess at a maximum posterior density estimate.
 
     Attributes:
-        m: [int] model index.
+        m: [int] Model index.
         D: [int] Dimensionality of a state in the model.
         priors: [list] Prior distribution objects for state parameter values.
         sampled: [chain] States sampled from the model's distribution.
@@ -149,12 +149,13 @@ class Model(object):
         self.centre = centre
         self.sampled = Chain(m, centre)
         self.scaled_avg_state = centre.scaled
-        self.acc = [1] # First state always accepted
+        self.acc = [1] # First state always accepted.
         self.covariance = covariance
         self.covariances = [covariance]
 
         self.data = data
-        # model's custom likelihood function
+        
+        # Model's custom likelihood function.
         self.log_likelihood = MethodType(log_likelihood_fnc, self)
 
         self.I = np.identity(D)

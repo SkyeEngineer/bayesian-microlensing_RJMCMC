@@ -73,3 +73,65 @@ plt.legend(title='Entries')#, framealpha=1.0, edgecolor='0.0')  #
 plt.tight_layout()
 plt.grid()
 plt.savefig('Plots/pdf-test.png')
+
+
+
+
+
+def centre_offsets_pointilism(supset_model, subset_model, symbols, name = '', dpi = 100):
+
+    supset_offsets = (supset_model.sampled.states_array(scaled = True) - supset_model.centre.scaled[:, np.newaxis])
+    subset_offsets = (subset_model.sampled.states_array(scaled = True) - subset_model.centre.scaled[:, np.newaxis])
+    n_dim = subset_model.D
+
+    style()
+    # construct shape with corner
+    figure = corner.corner(subset_offsets.T)
+
+    # font/visibility
+    plt.rcParams['font.size'] = 8
+    plt.rcParams['axes.titlesize'] = 14
+    plt.rcParams['axes.labelsize'] = 14
+
+    # extract the axes
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+
+
+    # Loop over the diagonal to remove from plot
+    for i in range(n_dim):
+        ax = axes[i, i]
+        ax.cla()
+        ax.patch.set_alpha(0.0)
+        ax.axis('off')
+        ax.axes.get_xaxis().set_ticklabels([])
+        ax.axes.get_yaxis().set_ticklabels([])
+        
+
+    # loop over lower triangle
+    for yi in range(n_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            
+            # overlay points
+            ax.scatter(subset_offsets[xi, :], subset_offsets[yi, :], c = np.linspace(0.0, 1.0, subset_model.sampled.n), cmap = 'winter', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+            ax.scatter(supset_offsets[xi, :], supset_offsets[yi, :], c = np.linspace(0.0, 1.0, supset_model.sampled.n), cmap = 'spring', alpha = 0.15, marker = ".", s = 20, linewidth = 0.0)
+
+            if yi == n_dim - 1: # last row
+                ax.set_xlabel(symbols[xi])
+                ax.tick_params(axis = 'x', labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0: # first column
+                ax.set_ylabel(symbols[yi])
+                ax.tick_params(axis = 'y', labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+    figure.savefig('results/' + name + '-centreed-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
+    figure.clf()
+
+    return
