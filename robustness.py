@@ -12,7 +12,7 @@ import plotting as pltf
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import surrogate_posterior
+import surrogate_posteriors
 from copy import deepcopy
 
 import time
@@ -69,8 +69,8 @@ def P_m2(event_params, sn_base, n_epochs):
 
     # Get initial centre points.
     if use_surrogate_posterior == True:
-        single_centre = sampling.State(truth = surrogate_posterior.maximise_posterior(surrogate_posterior.posterior(0), data.flux))
-        fin_rho = surrogate_posterior.maximise_posterior(surrogate_posterior.posterior(1), data.flux)
+        single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
+        fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
         # Remove finite source size parameter from neural network.
         binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
 
