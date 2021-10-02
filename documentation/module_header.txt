@@ -1,0 +1,7 @@
+<h1 class="title">Module <code>bayelens</code></h1>
+</header>
+<section id="section-intro">
+<p>Infer gravitational microlensing marginal model probabilities.</p>
+<p>Implements the adaptive reversible-jump metropolis-hastings algorithm, 
+with a neural network surrogate posterior for initialisation. Uses the 
+key module <b>bayelens.sampling</b>.</p>
