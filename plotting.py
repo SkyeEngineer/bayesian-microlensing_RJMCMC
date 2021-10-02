@@ -1,24 +1,19 @@
-"""Plotting tools for microlensing distribution sampling analysis."""
+"""Plot posterior distributions of microlensing events.
 
-__pdoc__ = {
-    'MulensModel': False,
-}
+Creates "pointilism" plots which show the discrete posterior,
+and heatmap plots which show the true posterior.
+"""
 
 import MulensModel as mm
 
 import math
-#from numpy.core.defchararray import array
-#from numpy.core.fromnumeric import mean, ndim
-#from numpy.core.function_base import linspace
 from copy import deepcopy
 import sampling
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib.patches as mpatches
-from scipy.stats import chi2
 import scipy
+from scipy.stats import chi2
 import corner
-import matplotlib as mpl
 import light_curve_simulation
 
 

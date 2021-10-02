@@ -3,10 +3,7 @@
 Calculates the expected marginalised binary model probability of some ambiguous light curves.
 """
 
-__pdoc__ = {
-    'MulensModel': False,
-    'robustness' : False,
-}
+
 
 
 import sampling

@@ -1,4 +1,4 @@
-"""Some basic probability distributions."""
+"""Basic probability distributions."""
 
 import math
 import numpy as np

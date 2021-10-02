@@ -1,8 +1,5 @@
 """Plotting tools for microlensing distribution sampling analysis."""
 
-__pdoc__ = {
-    'MulensModel': False,
-}
 
 import MulensModel as mm
 

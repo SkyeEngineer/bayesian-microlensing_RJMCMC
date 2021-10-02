@@ -1,14 +1,7 @@
-"""A suite of light curves to run ARJMH on.
+"""Library of light curves from Evans, 2019.
 
-Takes the light curves from Evans, 2019 to test the ARJMH algorithm on.
-Plots slices of the posterior and behavioural diagnostics.
+Tests the ARJMH algorithm. Plots slices of the posterior and behavioural diagnostics.
 """
-
-__pdoc__ = {
-    'MulensModel': False,
-    'examples' : False,
-}
-
 
 import sampling
 import light_curve_simulation
@@ -40,11 +33,11 @@ if __name__ == "__main__":
 
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
-    adaptive_warm_up_iterations = 975#975
-    warm_up_repititions = 2#2
+    adaptive_warm_up_iterations = 75#975
+    warm_up_repititions = 1#2
 
     # Algorithm parameters.
-    iterations = 20000#20000
+    iterations = 100#20000
 
     # Output parameters.
     n_pixels = 5#25 # Density for posterior contour plot.

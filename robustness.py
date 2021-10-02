@@ -1,13 +1,8 @@
-"""Analyses the robustness of the ARJMH algorithm.
+"""Analyse the robustness of the ARJMH algorithm.
 
-Calculates the expected marginalised binary model probability of some ambiguous light curves.
+Calculates the expected marginalised binary model probability of some ambiguous 
+light curves.
 """
-
-__pdoc__ = {
-    'MulensModel': False,
-    'robustness' : False,
-}
-
 
 import sampling
 import light_curve_simulation

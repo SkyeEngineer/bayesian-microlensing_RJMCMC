@@ -4,11 +4,6 @@ Takes the light curves from Evans, 2019 to test the ARJMH algorithm on.
 Plots slices of the posterior and behavioural diagnostics.
 """
 
-__pdoc__ = {
-    'MulensModel': False,
-    'examples' : False,
-}
-
 
 import sampling
 import light_curve_simulation

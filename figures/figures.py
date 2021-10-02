@@ -1,9 +1,5 @@
 """Figures for project report."""
 
-__pdoc__ = {
-    'MulensModel': False,
-}
-
 #from interfaceing import get_model_centres, get_posteriors
 from os import error
 from types import LambdaType

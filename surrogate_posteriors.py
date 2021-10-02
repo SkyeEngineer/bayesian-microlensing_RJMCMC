@@ -1,4 +1,4 @@
-"""Interfaces with surrogate posteriors produced by a neural network."""
+"""Interface with neural network surrogate posteriors."""
 
 
 import pickle

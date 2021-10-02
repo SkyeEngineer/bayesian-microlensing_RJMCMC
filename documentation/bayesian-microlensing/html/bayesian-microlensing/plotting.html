@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>bayesian-microlensing.plotting API documentation</title>
+<meta name="description" content="Plotting tools for microlensing distribution sampling analysis." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>bayesian-microlensing.plotting</code></h1>
+</header>
+<section id="section-intro">
+<p>Plotting tools for microlensing distribution sampling analysis.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Plotting tools for microlensing distribution sampling analysis.&#34;&#34;&#34;
+
+
+import MulensModel as mm
+
+import math
+#from numpy.core.defchararray import array
+#from numpy.core.fromnumeric import mean, ndim
+#from numpy.core.function_base import linspace
+from copy import deepcopy
+import sampling
+import numpy as np
+import matplotlib.pyplot as plt
+#import matplotlib.patches as mpatches
+from scipy.stats import chi2
+import scipy
+import corner
+import matplotlib as mpl
+import light_curve_simulation
+
+
+def adaption_contraction(model, total_iterations, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the size of proposals and acceptance rate in bins.
+
+    Args:
+        model: [model] Collection of states and covariances.
+        total_iterations: [int] Number of states in joint model chain.
+        name: [optional, string] File ouptut name.
+        dpi: [optional, int] File output dpi.
+    &#34;&#34;&#34;
+
+    N = model.sampled.n
+    size = int(N/25) # 25 bins.
+    # Ensure data exists.
+    if N &lt;= size or size == 0:
+        plt.scatter(0, 0)
+        plt.savefig(&#39;results/&#39;+name+&#39;-acc-trace-prog.png&#39;, transparent=True)
+        plt.clf()
+        return
+
+    # Initialise.
+    acc = model.acc
+    covs = np.array(model.covariances)
+    acc_rate = []
+    trace = []
+    bins = int(np.ceil(N/size))
+
+    # Average rate and trace for each bin.
+    for bin in range(bins - 1):
+        acc_rate.append(np.sum(acc[size*bin:size*(bin+1)]) / size)
+        trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
+
+    normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
+
+    rate_colour = &#39;blue&#39;
+    trace_colour = &#39;purple&#39;
+
+    # Acceptance rate.
+    a1 = plt.axes()
+    a1.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, &#34;o-&#34;, c = rate_colour, linewidth = 2, markersize = 5)
+    a1.set_ylabel(r&#39;Average $\alpha(\theta_i, \theta_j)$&#39;)
+    a1.set_ylim((0.0, 1.0))
+    a1.set_xlabel(r&#39;Iterations&#39;)
+    a1.tick_params(axis=&#34;both&#34;, which=&#34;major&#34;, labelsize=12)
+    #xmin, xmax = a1.get_xlim()
+    #a1.set_xticks
+    a1.locator_params(axis=&#34;x&#34;, nbins=5)
+
+    # Trace.    
+    a2 = a1.twinx()
+    a2.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, &#34;o-&#34;, c = trace_colour, linewidth = 2, markersize = 5)
+    a2.set_ylabel(r&#39;Normalised Average $Tr(C)$&#39;)
+    a2.tick_params(axis=&#34;both&#34;, which=&#34;major&#34;, labelsize=12)
+    a2.set_ylim((0.0, 1.0))
+    a2.set_yticks([0.0, 1.0])
+    a2.set_yticklabels([&#39;Min&#39;, &#39;Max&#39;])
+
+    # Apply axis colourings.
+    #a1.spines[&#39;left&#39;].set_color(rate_colour)
+    #a2.spines[&#39;left&#39;].set_color(rate_colour)
+    a1.yaxis.label.set_color(rate_colour)
+    a1.tick_params(axis = &#39;y&#39;, colors = rate_colour)
+    #a2.spines[&#39;right&#39;].set_color(trace_colour)
+    #a1.spines[&#39;right&#39;].set_color(trace_colour)
+    a2.yaxis.label.set_color(trace_colour)
+    a2.tick_params(axis = &#39;y&#39;, colors = trace_colour)
+
+    plt.savefig(&#39;results/&#39;+name+&#39;-acc-trace-prog.png&#39;, bbox_inches=&#34;tight&#34;, dpi=dpi, transparent=True)
+    plt.clf()
+
+    return
+
+
+
+
+def magnification(m, theta, ts, caustics = None, label = None, color = None, alpha = None):
+    &#34;&#34;&#34;Plot the magnification produced by a microlensing event.
+
+    Args:
+        m: [int] Model index.
+        theta: [state] Model parameters.
+        ts: [list] Range to plot over.
+        caustics: [optional, bool] Whether the plot should be of the caustic curves.
+    &#34;&#34;&#34;
+    if m == 0:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;], theta.truth)))
+    if m == 1:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;, &#39;q&#39;, &#39;s&#39;, &#39;alpha&#39;], theta.truth)))
+    model.set_magnification_methods([ts[0], &#39;point_source&#39;, ts[1]])
+
+    epochs = np.linspace(ts[0], ts[1], 720)
+
+    if caustics is not None:
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {&#39;width&#39;: 0.006})
+        model.plot_caustics(color = color, s = 1, marker = &#39;o&#39;, n_points = 10000)
+
+    else:
+        A = model.magnification(epochs)
+        plt.plot(epochs, A, color = color, label = label, alpha = alpha)
+
+    return
+
+
+
+def fitted_flux(m, theta, data, ts, label = None, color = None, alpha = None):
+    &#34;&#34;&#34;Plot the flux produced by fitted microlensing parameters.
+
+    Args:
+        m: [int] Model index.
+        theta: [state] Model parameters.
+        ts: [list] Range to plot over.
+    &#34;&#34;&#34;
+    if m == 0:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;], theta.truth)))
+    if m == 1:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;, &#39;q&#39;, &#39;s&#39;, &#39;alpha&#39;], theta.truth)))
+    model.set_magnification_methods([ts[0], &#39;point_source&#39;, ts[1]])
+
+    epochs = np.linspace(ts[0], ts[1], 720)
+
+    a = model.magnification(epochs)
+    # Fit proposed flux as least squares solution.
+    F = light_curve_simulation.least_squares_signal(a, data.flux)
+    plt.plot(epochs, F, color = color, label = label, alpha = alpha)
+
+    return
+
+
+def style():
+    plt.rcParams[&#34;font.family&#34;] = &#34;sans-serif&#34;
+    plt.rcParams[&#39;font.size&#39;] = 15 #12
+    plt.style.use(&#39;seaborn-bright&#39;)
+    plt.rcParams[&#34;legend.edgecolor&#34;] = &#39;0&#39;
+    plt.rcParams[&#34;legend.framealpha&#34;] = 1
+    plt.rcParams[&#34;legend.title_fontsize&#34;] = 10
+    plt.rcParams[&#34;legend.fontsize&#34;] = 9
+    plt.rcParams[&#34;grid.linestyle&#34;] = &#39;dashed&#39; 
+    plt.rcParams[&#34;grid.alpha&#34;] = 0.25
+    plt.rc(&#39;axes.formatter&#39;, useoffset=False)
+    return
+
+
+
+def adjust_view(axis, frame, samples, base_sample, bounds, view_size):
+    &#34;&#34;&#34;Adjust the bounds of an axis.
+
+    Args:
+        axis: [str] The &#39;x&#39; or &#39;y&#39; axis.
+        frame: [axis] The axis object.
+        samples: [list] Samples in the frame.
+        base_sample: [list] Additional sample in the frame.
+        bounds: [distribution] Prior bounds for frame.
+        view_size: [float] Factor to scale the size of the axis by.
+
+    Returns:
+        Upper: [float] New upper bound of frame axis.
+        Lower: [float] New lower bound of frame axis.
+    &#34;&#34;&#34;
+    
+    # Adjust viweing axis.
+    Lower = np.min([np.min(samples), base_sample])
+    Upper = np.max([np.max(samples), base_sample])
+    Width = Upper - Lower
+    Upper += (view_size * Width) / 2
+    Lower -= (view_size * Width) / 2
+
+    # Check for scaling (hacky).
+    if not(bounds.lb &lt;= base_sample &lt;= bounds.rb):
+        rb = np.log10(bounds.rb)
+        lb = np.log10(bounds.lb)
+
+    else: # No scaling.
+        rb = bounds.rb
+        lb = bounds.lb
+
+    # Limits within prior bounds.
+    if Upper &gt; rb:
+        Upper = rb
+    if Lower &lt; lb:
+        Lower = lb
+
+    if axis == &#39;x&#39;: frame.set_xlim((Lower, Upper))
+    if axis == &#39;y&#39;: frame.set_ylim((Lower, Upper))
+
+    return Upper, Lower
+
+
+def density_heatmaps(model, n_pixels, data, symbols, event_params = None, view_size = 1, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the posterior surface and proposal structure.
+
+    Args:
+        model: [model] Collection of states and covariances.
+        n_pixels: [int] Number of points to evaluate posterior density at.
+        data: [mulensdata] Light curve which creates posterior.
+        symbols: [list] Strings to label plots with.
+        event_params: [optional, state] The true event parameters.
+        view_size: [optional, float] Factor to scale the size of the axes by.
+    &#34;&#34;&#34;
+
+    n_dim = model.D
+    states = model.sampled.states_array(scaled=True)
+
+    # Build off of corner&#39;s spacing and other styling.
+    style()
+    figure = corner.corner(states.T)
+
+    # Font visibility.
+    label_size = 20
+    plt.rcParams[&#39;font.size&#39;] = 15
+    plt.rcParams[&#39;axes.titlesize&#39;] = 15
+    plt.rcParams[&#39;axes.labelsize&#39;] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+
+    fit_mu = np.zeros((model.D))
+
+    # Loop over the diagonal.
+    for i in range(n_dim):
+        ax = axes[i, i]
+        ax.cla()
+
+        # Distribution plots.
+        fit_mu[i] = np.average(states[i, :])
+        sd = np.std(states[i, :], ddof = 1)
+        ax.axvspan(fit_mu[i] - sd, fit_mu[i] + sd, alpha = 1.0, color = &#39;plum&#39;, label = r&#39;$\bar{\mu}\pm\bar{\sigma}$&#39;)
+
+        ax.hist(states[i, :], bins = 10, density = False, color = &#39;black&#39;, alpha = 1.0)
+
+        if event_params is not None:
+            ax.axvline(event_params.scaled[i], label = r&#39;$\theta$&#39;, color = &#39;orangered&#39;)
+
+        ax.set_title(r&#39;$\bar{\mu} = $&#39;+f&#39;{fit_mu[i]:.4}&#39;+&#39;,\n&#39;+r&#39;$\bar{\sigma} = \pm$&#39;+f&#39;{sd:.4}&#39;)
+
+        if i == 0: # First diagonal.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([]) # Don&#39;t view frequency axis.
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        elif i == n_dim - 1: # Last diagonal.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.tick_params(axis = &#39;x&#39;, labelrotation = 45)
+            ax.axes.get_yaxis().set_ticklabels([])
+        
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        xUpper, xLower = adjust_view(&#39;x&#39;, ax, states[i, :], model.centre.scaled[i], model.priors[i], view_size)
+
+
+    # Loop over lower triangular. 
+    for yi in range(n_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            
+            # Posterior heat map sizing.
+            xUpper, xLower = adjust_view(&#39;x&#39;, ax, states[xi, :], event_params.scaled[xi], model.priors[xi], view_size)
+            yUpper, yLower = adjust_view(&#39;y&#39;, ax, states[yi, :], event_params.scaled[yi], model.priors[yi], view_size)
+
+            yaxis = np.linspace(yLower, yUpper, n_pixels)
+            xaxis = np.linspace(xLower, xUpper, n_pixels)
+            density = np.zeros((n_pixels, n_pixels))
+            x = -1
+            y = -1
+
+            for i in yaxis:
+                x += 1
+                y = -1
+                for j in xaxis:
+                    y += 1
+
+                    centre_temp = deepcopy(model.centre.scaled)
+                    event_temp = deepcopy(event_params.scaled)
+
+                    centre_temp[xi] = j
+                    event_temp[xi] = j
+
+                    centre_temp[yi] = i
+                    event_temp[yi] = i
+
+                    centre_theta = sampling.State(scaled=centre_temp)
+                    event_theta = sampling.State(scaled=event_temp)
+
+                    centre_density = np.exp(model.log_likelihood(centre_theta)) #+ model.log_prior_density(centre_theta))
+                    event_density = np.exp(model.log_likelihood(event_theta)) #+ model.log_prior_density(event_theta))
+
+                    density[x][y] = centre_density*0.5 + 0.5*event_density
+
+            density = (np.flip(density, 0)) # So lower bounds meet. sqrt to get better definition between high vs low posterior.
+            ax.imshow(density, interpolation = &#39;quadric&#39;, extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower), cmap = plt.cm.PuBu.reversed())
+
+            # the fit normal distribution&#39;s contours
+            # https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
+
+            mu = [np.mean(states[xi, :]), np.mean(states[yi, :])]
+            row = np.array([xi, yi])
+            col = np.array([xi, yi])
+            K = model.covariance[row[:, np.newaxis], col] 
+            angles = np.linspace(0, 2*math.pi - 2*2*math.pi/720, 720)
+            R = [np.cos(angles), np.sin(angles)]
+            R = np.transpose(np.array(R))
+
+            # Keep bounds before sigma contours.
+            ylim = ax.get_ylim()
+            xlim = ax.get_xlim()
+
+            for level in [1 - 0.989, 1 - 0.865, 1 - 0.393]: # 1,2,3 sigma levels.
+                rad = np.sqrt(chi2.isf(level, 2))
+                level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
+                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = &#39;white&#39;)
+
+            ax.set_ylim(ylim)
+            ax.set_xlim(xlim)
+
+            # Plot true values as crosshairs if they exist.
+            if event_params is not None:
+                ax.scatter(event_params.scaled[xi], event_params.scaled[yi], marker = &#39;s&#39;, s = 25, c = &#39;orangered&#39;, alpha = 1)
+                ax.axvline(event_params.scaled[xi], color = &#39;orangered&#39;)
+                ax.axhline(event_params.scaled[yi], color = &#39;orangered&#39;)
+
+            # Labels if on edge.
+            if yi == n_dim - 1:
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis=&#39;x&#39;, labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            # Labels if on edge.
+            if xi == 0:
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;y&#39;, labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+
+    # Inset light curve plot. 
+    axes = figure.get_axes()[4].get_gridspec()
+    inset_ax = figure.add_subplot(axes[:2, n_dim-3:])
+    inset_ax.set_ylabel(&#39;Flux&#39;)
+    inset_ax.set_xlabel(&#39;Time [days]&#39;)
+    ts = [0, 72]
+    epochs = np.linspace(0, 72, 720)
+    lower = data.flux - 3*data.err_flux
+    upper = data.flux + 3*data.err_flux
+    inset_ax.fill_between(epochs, lower, upper, alpha = 1.0, label = r&#39;$F \pm 3\sigma$&#39;, color = &#39;black&#39;, linewidth=0.0)
+
+    fitted_params = sampling.State(scaled = fit_mu)
+    fitted_flux(model.m, fitted_params, data, ts, label = &#39;Inferred&#39;, color = &#39;plum&#39;)
+    inset_ax.legend(fontsize = 20, handlelength=0.7, frameon = False)
+
+    # Tight layout destroys spacing.
+    figure.savefig(&#39;results/&#39; + name + &#39;-density-heatmap.png&#39;, bbox_inches = &#34;tight&#34;, dpi = dpi, transparent=True)
+    figure.clf()
+
+    return
+
+
+def joint_samples_pointilism(supset_model, subset_model, joint_model_chain, symbols, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the joint posterior surface of two models.
+
+    Args:
+        supset_model: [model] Larger parameter space model.
+        subset_model: [model] Smaller parameter space model.
+        joint_model_chain: [chain] Generalised chain with states from both models.
+        symbols: [list] Strings to label plots with.
+    &#34;&#34;&#34;
+
+    # Fonts/visibility.
+    label_size = 20
+    #lr = 45 # label rotation
+    #n_lb = 3 # tick labels
+
+    # Model sizing.
+    N_dim = supset_model.D
+    n_dim = subset_model.D
+
+    # Extract points.
+    supset_states = supset_model.sampled.states_array(scaled = True)
+    subset_states = subset_model.sampled.states_array(scaled = True)
+
+    style()
+    figure = corner.corner(supset_states.T) # Use corner for layout/sizing.
+
+    # Fonts/visibility.
+    plt.rcParams[&#39;font.size&#39;] = 15
+    #plt.rcParams[&#39;axes.titlesize&#39;] = 20
+    plt.rcParams[&#39;axes.labelsize&#39;] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((N_dim, N_dim))
+
+
+    # Loop diagonal.
+    for i in range(N_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+        ax.plot(np.linspace(1, joint_model_chain.n, joint_model_chain.n), joint_model_chain.states_array(scaled = True)[i, :], linewidth = 0.5, color=&#39;black&#39;)
+
+        if i == 0: # First diagonal tile.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.tick_params(axis=&#39;y&#39;,  labelrotation = 45)
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        elif i == N_dim - 1: # Last diagonal tile.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        #ax.locator_params(nbins = n_lb) # 3 ticks max.
+        #ax.xaxis.tick_top()
+        #ax.yaxis.tick_right()
+        #ax.set_title(symbols[i])
+        
+
+    # Loop lower triangular.
+    for yi in range(N_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            ax.scatter(supset_states[xi, :], supset_states[yi, :], c = np.linspace(0.0, 1.0, supset_model.sampled.n), cmap = &#39;spring&#39;, alpha = 0.25, marker = &#34;.&#34;, s = 25, linewidth = 0.0)
+                
+            if yi == N_dim - 1: # Bottom row.
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;x&#39;,  labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0: # First column.
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;y&#39;,  labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+            #ax.locator_params(nbins = n_lb) # 3 ticks max
+
+
+            # Add upper triangular plots.
+            if xi &lt; n_dim and yi &lt; n_dim:
+                
+                # Acquire axes and plot.
+                axs = figure.get_axes()[4].get_gridspec()
+                axt = figure.add_subplot(axs[xi, yi])
+                axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, subset_model.sampled.n), cmap = &#39;winter&#39;, alpha = 0.25, marker = &#34;.&#34;, s = 25, linewidth = 0.0)
+                
+                if yi == n_dim - 1: # Last column.
+                    axt.set_ylabel(symbols[xi])
+                    #ax.yaxis.label.set_size(label_size)
+                    axt.yaxis.tick_right()
+                    axt.yaxis.set_label_position(&#34;right&#34;)
+                    axt.tick_params(axis = &#39;y&#39;,  labelrotation = 45)
+                
+                else:
+                    axt.axes.get_yaxis().set_ticklabels([])
+                
+                if xi == 0: # First row.
+                    axt.set_xlabel(symbols[yi])
+                    axt.tick_params(axis = &#39;x&#39;,  labelrotation = 45)
+                    #ax.xaxis.label.set_size(label_size)
+                    axt.xaxis.tick_top()
+                    axt.xaxis.set_label_position(&#34;top&#34;) 
+                
+                else:
+                    axt.axes.get_xaxis().set_ticklabels([])
+
+                #axt.locator_params(nbins = n_lb) # 3 ticks max
+
+    figure.savefig(&#39;results/&#39; + name + &#39;-joint-pointilism.png&#39;, bbox_inches = &#34;tight&#34;, dpi = dpi, transparent=True)
+    figure.clf()
+
+    return</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="bayesian-microlensing.plotting.adaption_contraction"><code class="name flex">
+<span>def <span class="ident">adaption_contraction</span></span>(<span>model, total_iterations, name='', dpi=100)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the size of proposals and acceptance rate in bins.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>model</code></strong></dt>
+<dd>[model] Collection of states and covariances.</dd>
+<dt><strong><code>total_iterations</code></strong></dt>
+<dd>[int] Number of states in joint model chain.</dd>
+<dt><strong><code>name</code></strong></dt>
+<dd>[optional, string] File ouptut name.</dd>
+<dt><strong><code>dpi</code></strong></dt>
+<dd>[optional, int] File output dpi.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def adaption_contraction(model, total_iterations, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the size of proposals and acceptance rate in bins.
+
+    Args:
+        model: [model] Collection of states and covariances.
+        total_iterations: [int] Number of states in joint model chain.
+        name: [optional, string] File ouptut name.
+        dpi: [optional, int] File output dpi.
+    &#34;&#34;&#34;
+
+    N = model.sampled.n
+    size = int(N/25) # 25 bins.
+    # Ensure data exists.
+    if N &lt;= size or size == 0:
+        plt.scatter(0, 0)
+        plt.savefig(&#39;results/&#39;+name+&#39;-acc-trace-prog.png&#39;, transparent=True)
+        plt.clf()
+        return
+
+    # Initialise.
+    acc = model.acc
+    covs = np.array(model.covariances)
+    acc_rate = []
+    trace = []
+    bins = int(np.ceil(N/size))
+
+    # Average rate and trace for each bin.
+    for bin in range(bins - 1):
+        acc_rate.append(np.sum(acc[size*bin:size*(bin+1)]) / size)
+        trace.append(np.sum(np.trace(covs[size*bin:size*(bin+1)], 0, 2)) / size)
+
+    normed_trace = (trace - np.min(trace))/(np.max(trace)-np.min(trace))
+
+    rate_colour = &#39;blue&#39;
+    trace_colour = &#39;purple&#39;
+
+    # Acceptance rate.
+    a1 = plt.axes()
+    a1.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), acc_rate, &#34;o-&#34;, c = rate_colour, linewidth = 2, markersize = 5)
+    a1.set_ylabel(r&#39;Average $\alpha(\theta_i, \theta_j)$&#39;)
+    a1.set_ylim((0.0, 1.0))
+    a1.set_xlabel(r&#39;Iterations&#39;)
+    a1.tick_params(axis=&#34;both&#34;, which=&#34;major&#34;, labelsize=12)
+    #xmin, xmax = a1.get_xlim()
+    #a1.set_xticks
+    a1.locator_params(axis=&#34;x&#34;, nbins=5)
+
+    # Trace.    
+    a2 = a1.twinx()
+    a2.plot(int(total_iterations/(bins-1)) * (np.linspace(0, bins - 1, num = bins - 1)), normed_trace, &#34;o-&#34;, c = trace_colour, linewidth = 2, markersize = 5)
+    a2.set_ylabel(r&#39;Normalised Average $Tr(C)$&#39;)
+    a2.tick_params(axis=&#34;both&#34;, which=&#34;major&#34;, labelsize=12)
+    a2.set_ylim((0.0, 1.0))
+    a2.set_yticks([0.0, 1.0])
+    a2.set_yticklabels([&#39;Min&#39;, &#39;Max&#39;])
+
+    # Apply axis colourings.
+    #a1.spines[&#39;left&#39;].set_color(rate_colour)
+    #a2.spines[&#39;left&#39;].set_color(rate_colour)
+    a1.yaxis.label.set_color(rate_colour)
+    a1.tick_params(axis = &#39;y&#39;, colors = rate_colour)
+    #a2.spines[&#39;right&#39;].set_color(trace_colour)
+    #a1.spines[&#39;right&#39;].set_color(trace_colour)
+    a2.yaxis.label.set_color(trace_colour)
+    a2.tick_params(axis = &#39;y&#39;, colors = trace_colour)
+
+    plt.savefig(&#39;results/&#39;+name+&#39;-acc-trace-prog.png&#39;, bbox_inches=&#34;tight&#34;, dpi=dpi, transparent=True)
+    plt.clf()
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.adjust_view"><code class="name flex">
+<span>def <span class="ident">adjust_view</span></span>(<span>axis, frame, samples, base_sample, bounds, view_size)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Adjust the bounds of an axis.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>axis</code></strong></dt>
+<dd>[str] The 'x' or 'y' axis.</dd>
+<dt><strong><code>frame</code></strong></dt>
+<dd>[axis] The axis object.</dd>
+<dt><strong><code>samples</code></strong></dt>
+<dd>[list] Samples in the frame.</dd>
+<dt><strong><code>base_sample</code></strong></dt>
+<dd>[list] Additional sample in the frame.</dd>
+<dt><strong><code>bounds</code></strong></dt>
+<dd>[distribution] Prior bounds for frame.</dd>
+<dt><strong><code>view_size</code></strong></dt>
+<dd>[float] Factor to scale the size of the axis by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Upper</code></dt>
+<dd>[float] New upper bound of frame axis.</dd>
+<dt><code>Lower</code></dt>
+<dd>[float] New lower bound of frame axis.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def adjust_view(axis, frame, samples, base_sample, bounds, view_size):
+    &#34;&#34;&#34;Adjust the bounds of an axis.
+
+    Args:
+        axis: [str] The &#39;x&#39; or &#39;y&#39; axis.
+        frame: [axis] The axis object.
+        samples: [list] Samples in the frame.
+        base_sample: [list] Additional sample in the frame.
+        bounds: [distribution] Prior bounds for frame.
+        view_size: [float] Factor to scale the size of the axis by.
+
+    Returns:
+        Upper: [float] New upper bound of frame axis.
+        Lower: [float] New lower bound of frame axis.
+    &#34;&#34;&#34;
+    
+    # Adjust viweing axis.
+    Lower = np.min([np.min(samples), base_sample])
+    Upper = np.max([np.max(samples), base_sample])
+    Width = Upper - Lower
+    Upper += (view_size * Width) / 2
+    Lower -= (view_size * Width) / 2
+
+    # Check for scaling (hacky).
+    if not(bounds.lb &lt;= base_sample &lt;= bounds.rb):
+        rb = np.log10(bounds.rb)
+        lb = np.log10(bounds.lb)
+
+    else: # No scaling.
+        rb = bounds.rb
+        lb = bounds.lb
+
+    # Limits within prior bounds.
+    if Upper &gt; rb:
+        Upper = rb
+    if Lower &lt; lb:
+        Lower = lb
+
+    if axis == &#39;x&#39;: frame.set_xlim((Lower, Upper))
+    if axis == &#39;y&#39;: frame.set_ylim((Lower, Upper))
+
+    return Upper, Lower</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.density_heatmaps"><code class="name flex">
+<span>def <span class="ident">density_heatmaps</span></span>(<span>model, n_pixels, data, symbols, event_params=None, view_size=1, name='', dpi=100)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the posterior surface and proposal structure.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>model</code></strong></dt>
+<dd>[model] Collection of states and covariances.</dd>
+<dt><strong><code>n_pixels</code></strong></dt>
+<dd>[int] Number of points to evaluate posterior density at.</dd>
+<dt><strong><code>data</code></strong></dt>
+<dd>[mulensdata] Light curve which creates posterior.</dd>
+<dt><strong><code>symbols</code></strong></dt>
+<dd>[list] Strings to label plots with.</dd>
+<dt><strong><code>event_params</code></strong></dt>
+<dd>[optional, state] The true event parameters.</dd>
+<dt><strong><code>view_size</code></strong></dt>
+<dd>[optional, float] Factor to scale the size of the axes by.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def density_heatmaps(model, n_pixels, data, symbols, event_params = None, view_size = 1, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the posterior surface and proposal structure.
+
+    Args:
+        model: [model] Collection of states and covariances.
+        n_pixels: [int] Number of points to evaluate posterior density at.
+        data: [mulensdata] Light curve which creates posterior.
+        symbols: [list] Strings to label plots with.
+        event_params: [optional, state] The true event parameters.
+        view_size: [optional, float] Factor to scale the size of the axes by.
+    &#34;&#34;&#34;
+
+    n_dim = model.D
+    states = model.sampled.states_array(scaled=True)
+
+    # Build off of corner&#39;s spacing and other styling.
+    style()
+    figure = corner.corner(states.T)
+
+    # Font visibility.
+    label_size = 20
+    plt.rcParams[&#39;font.size&#39;] = 15
+    plt.rcParams[&#39;axes.titlesize&#39;] = 15
+    plt.rcParams[&#39;axes.labelsize&#39;] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+
+    fit_mu = np.zeros((model.D))
+
+    # Loop over the diagonal.
+    for i in range(n_dim):
+        ax = axes[i, i]
+        ax.cla()
+
+        # Distribution plots.
+        fit_mu[i] = np.average(states[i, :])
+        sd = np.std(states[i, :], ddof = 1)
+        ax.axvspan(fit_mu[i] - sd, fit_mu[i] + sd, alpha = 1.0, color = &#39;plum&#39;, label = r&#39;$\bar{\mu}\pm\bar{\sigma}$&#39;)
+
+        ax.hist(states[i, :], bins = 10, density = False, color = &#39;black&#39;, alpha = 1.0)
+
+        if event_params is not None:
+            ax.axvline(event_params.scaled[i], label = r&#39;$\theta$&#39;, color = &#39;orangered&#39;)
+
+        ax.set_title(r&#39;$\bar{\mu} = $&#39;+f&#39;{fit_mu[i]:.4}&#39;+&#39;,\n&#39;+r&#39;$\bar{\sigma} = \pm$&#39;+f&#39;{sd:.4}&#39;)
+
+        if i == 0: # First diagonal.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([]) # Don&#39;t view frequency axis.
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        elif i == n_dim - 1: # Last diagonal.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.tick_params(axis = &#39;x&#39;, labelrotation = 45)
+            ax.axes.get_yaxis().set_ticklabels([])
+        
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        xUpper, xLower = adjust_view(&#39;x&#39;, ax, states[i, :], model.centre.scaled[i], model.priors[i], view_size)
+
+
+    # Loop over lower triangular. 
+    for yi in range(n_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            
+            # Posterior heat map sizing.
+            xUpper, xLower = adjust_view(&#39;x&#39;, ax, states[xi, :], event_params.scaled[xi], model.priors[xi], view_size)
+            yUpper, yLower = adjust_view(&#39;y&#39;, ax, states[yi, :], event_params.scaled[yi], model.priors[yi], view_size)
+
+            yaxis = np.linspace(yLower, yUpper, n_pixels)
+            xaxis = np.linspace(xLower, xUpper, n_pixels)
+            density = np.zeros((n_pixels, n_pixels))
+            x = -1
+            y = -1
+
+            for i in yaxis:
+                x += 1
+                y = -1
+                for j in xaxis:
+                    y += 1
+
+                    centre_temp = deepcopy(model.centre.scaled)
+                    event_temp = deepcopy(event_params.scaled)
+
+                    centre_temp[xi] = j
+                    event_temp[xi] = j
+
+                    centre_temp[yi] = i
+                    event_temp[yi] = i
+
+                    centre_theta = sampling.State(scaled=centre_temp)
+                    event_theta = sampling.State(scaled=event_temp)
+
+                    centre_density = np.exp(model.log_likelihood(centre_theta)) #+ model.log_prior_density(centre_theta))
+                    event_density = np.exp(model.log_likelihood(event_theta)) #+ model.log_prior_density(event_theta))
+
+                    density[x][y] = centre_density*0.5 + 0.5*event_density
+
+            density = (np.flip(density, 0)) # So lower bounds meet. sqrt to get better definition between high vs low posterior.
+            ax.imshow(density, interpolation = &#39;quadric&#39;, extent=[xLower, xUpper, yLower, yUpper], aspect = (xUpper-xLower) / (yUpper-yLower), cmap = plt.cm.PuBu.reversed())
+
+            # the fit normal distribution&#39;s contours
+            # https://stats.stackexchange.com/questions/60011/how-to-find-the-level-curves-of-a-multivariate-normal
+
+            mu = [np.mean(states[xi, :]), np.mean(states[yi, :])]
+            row = np.array([xi, yi])
+            col = np.array([xi, yi])
+            K = model.covariance[row[:, np.newaxis], col] 
+            angles = np.linspace(0, 2*math.pi - 2*2*math.pi/720, 720)
+            R = [np.cos(angles), np.sin(angles)]
+            R = np.transpose(np.array(R))
+
+            # Keep bounds before sigma contours.
+            ylim = ax.get_ylim()
+            xlim = ax.get_xlim()
+
+            for level in [1 - 0.989, 1 - 0.865, 1 - 0.393]: # 1,2,3 sigma levels.
+                rad = np.sqrt(chi2.isf(level, 2))
+                level_curve = rad * R.dot(scipy.linalg.sqrtm(K))
+                ax.plot(level_curve[:, 0] + mu[0], level_curve[:, 1] + mu[1], color = &#39;white&#39;)
+
+            ax.set_ylim(ylim)
+            ax.set_xlim(xlim)
+
+            # Plot true values as crosshairs if they exist.
+            if event_params is not None:
+                ax.scatter(event_params.scaled[xi], event_params.scaled[yi], marker = &#39;s&#39;, s = 25, c = &#39;orangered&#39;, alpha = 1)
+                ax.axvline(event_params.scaled[xi], color = &#39;orangered&#39;)
+                ax.axhline(event_params.scaled[yi], color = &#39;orangered&#39;)
+
+            # Labels if on edge.
+            if yi == n_dim - 1:
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis=&#39;x&#39;, labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            # Labels if on edge.
+            if xi == 0:
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;y&#39;, labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+
+    # Inset light curve plot. 
+    axes = figure.get_axes()[4].get_gridspec()
+    inset_ax = figure.add_subplot(axes[:2, n_dim-3:])
+    inset_ax.set_ylabel(&#39;Flux&#39;)
+    inset_ax.set_xlabel(&#39;Time [days]&#39;)
+    ts = [0, 72]
+    epochs = np.linspace(0, 72, 720)
+    lower = data.flux - 3*data.err_flux
+    upper = data.flux + 3*data.err_flux
+    inset_ax.fill_between(epochs, lower, upper, alpha = 1.0, label = r&#39;$F \pm 3\sigma$&#39;, color = &#39;black&#39;, linewidth=0.0)
+
+    fitted_params = sampling.State(scaled = fit_mu)
+    fitted_flux(model.m, fitted_params, data, ts, label = &#39;Inferred&#39;, color = &#39;plum&#39;)
+    inset_ax.legend(fontsize = 20, handlelength=0.7, frameon = False)
+
+    # Tight layout destroys spacing.
+    figure.savefig(&#39;results/&#39; + name + &#39;-density-heatmap.png&#39;, bbox_inches = &#34;tight&#34;, dpi = dpi, transparent=True)
+    figure.clf()
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.fitted_flux"><code class="name flex">
+<span>def <span class="ident">fitted_flux</span></span>(<span>m, theta, data, ts, label=None, color=None, alpha=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the flux produced by fitted microlensing parameters.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>m</code></strong></dt>
+<dd>[int] Model index.</dd>
+<dt><strong><code>theta</code></strong></dt>
+<dd>[state] Model parameters.</dd>
+<dt><strong><code>ts</code></strong></dt>
+<dd>[list] Range to plot over.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fitted_flux(m, theta, data, ts, label = None, color = None, alpha = None):
+    &#34;&#34;&#34;Plot the flux produced by fitted microlensing parameters.
+
+    Args:
+        m: [int] Model index.
+        theta: [state] Model parameters.
+        ts: [list] Range to plot over.
+    &#34;&#34;&#34;
+    if m == 0:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;], theta.truth)))
+    if m == 1:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;, &#39;q&#39;, &#39;s&#39;, &#39;alpha&#39;], theta.truth)))
+    model.set_magnification_methods([ts[0], &#39;point_source&#39;, ts[1]])
+
+    epochs = np.linspace(ts[0], ts[1], 720)
+
+    a = model.magnification(epochs)
+    # Fit proposed flux as least squares solution.
+    F = light_curve_simulation.least_squares_signal(a, data.flux)
+    plt.plot(epochs, F, color = color, label = label, alpha = alpha)
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.joint_samples_pointilism"><code class="name flex">
+<span>def <span class="ident">joint_samples_pointilism</span></span>(<span>supset_model, subset_model, joint_model_chain, symbols, name='', dpi=100)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the joint posterior surface of two models.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>supset_model</code></strong></dt>
+<dd>[model] Larger parameter space model.</dd>
+<dt><strong><code>subset_model</code></strong></dt>
+<dd>[model] Smaller parameter space model.</dd>
+<dt><strong><code>joint_model_chain</code></strong></dt>
+<dd>[chain] Generalised chain with states from both models.</dd>
+<dt><strong><code>symbols</code></strong></dt>
+<dd>[list] Strings to label plots with.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def joint_samples_pointilism(supset_model, subset_model, joint_model_chain, symbols, name = &#39;&#39;, dpi = 100):
+    &#34;&#34;&#34;Plot the joint posterior surface of two models.
+
+    Args:
+        supset_model: [model] Larger parameter space model.
+        subset_model: [model] Smaller parameter space model.
+        joint_model_chain: [chain] Generalised chain with states from both models.
+        symbols: [list] Strings to label plots with.
+    &#34;&#34;&#34;
+
+    # Fonts/visibility.
+    label_size = 20
+    #lr = 45 # label rotation
+    #n_lb = 3 # tick labels
+
+    # Model sizing.
+    N_dim = supset_model.D
+    n_dim = subset_model.D
+
+    # Extract points.
+    supset_states = supset_model.sampled.states_array(scaled = True)
+    subset_states = subset_model.sampled.states_array(scaled = True)
+
+    style()
+    figure = corner.corner(supset_states.T) # Use corner for layout/sizing.
+
+    # Fonts/visibility.
+    plt.rcParams[&#39;font.size&#39;] = 15
+    #plt.rcParams[&#39;axes.titlesize&#39;] = 20
+    plt.rcParams[&#39;axes.labelsize&#39;] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((N_dim, N_dim))
+
+
+    # Loop diagonal.
+    for i in range(N_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+        ax.plot(np.linspace(1, joint_model_chain.n, joint_model_chain.n), joint_model_chain.states_array(scaled = True)[i, :], linewidth = 0.5, color=&#39;black&#39;)
+
+        if i == 0: # First diagonal tile.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.tick_params(axis=&#39;y&#39;,  labelrotation = 45)
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        elif i == N_dim - 1: # Last diagonal tile.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        #ax.locator_params(nbins = n_lb) # 3 ticks max.
+        #ax.xaxis.tick_top()
+        #ax.yaxis.tick_right()
+        #ax.set_title(symbols[i])
+        
+
+    # Loop lower triangular.
+    for yi in range(N_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            ax.scatter(supset_states[xi, :], supset_states[yi, :], c = np.linspace(0.0, 1.0, supset_model.sampled.n), cmap = &#39;spring&#39;, alpha = 0.25, marker = &#34;.&#34;, s = 25, linewidth = 0.0)
+                
+            if yi == N_dim - 1: # Bottom row.
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;x&#39;,  labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0: # First column.
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = &#39;y&#39;,  labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+            #ax.locator_params(nbins = n_lb) # 3 ticks max
+
+
+            # Add upper triangular plots.
+            if xi &lt; n_dim and yi &lt; n_dim:
+                
+                # Acquire axes and plot.
+                axs = figure.get_axes()[4].get_gridspec()
+                axt = figure.add_subplot(axs[xi, yi])
+                axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, subset_model.sampled.n), cmap = &#39;winter&#39;, alpha = 0.25, marker = &#34;.&#34;, s = 25, linewidth = 0.0)
+                
+                if yi == n_dim - 1: # Last column.
+                    axt.set_ylabel(symbols[xi])
+                    #ax.yaxis.label.set_size(label_size)
+                    axt.yaxis.tick_right()
+                    axt.yaxis.set_label_position(&#34;right&#34;)
+                    axt.tick_params(axis = &#39;y&#39;,  labelrotation = 45)
+                
+                else:
+                    axt.axes.get_yaxis().set_ticklabels([])
+                
+                if xi == 0: # First row.
+                    axt.set_xlabel(symbols[yi])
+                    axt.tick_params(axis = &#39;x&#39;,  labelrotation = 45)
+                    #ax.xaxis.label.set_size(label_size)
+                    axt.xaxis.tick_top()
+                    axt.xaxis.set_label_position(&#34;top&#34;) 
+                
+                else:
+                    axt.axes.get_xaxis().set_ticklabels([])
+
+                #axt.locator_params(nbins = n_lb) # 3 ticks max
+
+    figure.savefig(&#39;results/&#39; + name + &#39;-joint-pointilism.png&#39;, bbox_inches = &#34;tight&#34;, dpi = dpi, transparent=True)
+    figure.clf()
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.magnification"><code class="name flex">
+<span>def <span class="ident">magnification</span></span>(<span>m, theta, ts, caustics=None, label=None, color=None, alpha=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the magnification produced by a microlensing event.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>m</code></strong></dt>
+<dd>[int] Model index.</dd>
+<dt><strong><code>theta</code></strong></dt>
+<dd>[state] Model parameters.</dd>
+<dt><strong><code>ts</code></strong></dt>
+<dd>[list] Range to plot over.</dd>
+<dt><strong><code>caustics</code></strong></dt>
+<dd>[optional, bool] Whether the plot should be of the caustic curves.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def magnification(m, theta, ts, caustics = None, label = None, color = None, alpha = None):
+    &#34;&#34;&#34;Plot the magnification produced by a microlensing event.
+
+    Args:
+        m: [int] Model index.
+        theta: [state] Model parameters.
+        ts: [list] Range to plot over.
+        caustics: [optional, bool] Whether the plot should be of the caustic curves.
+    &#34;&#34;&#34;
+    if m == 0:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;], theta.truth)))
+    if m == 1:
+        model = mm.Model(dict(zip([&#39;t_0&#39;, &#39;u_0&#39;, &#39;t_E&#39;, &#39;q&#39;, &#39;s&#39;, &#39;alpha&#39;], theta.truth)))
+    model.set_magnification_methods([ts[0], &#39;point_source&#39;, ts[1]])
+
+    epochs = np.linspace(ts[0], ts[1], 720)
+
+    if caustics is not None:
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {&#39;width&#39;: 0.006})
+        model.plot_caustics(color = color, s = 1, marker = &#39;o&#39;, n_points = 10000)
+
+    else:
+        A = model.magnification(epochs)
+        plt.plot(epochs, A, color = color, label = label, alpha = alpha)
+
+    return</code></pre>
+</details>
+</dd>
+<dt id="bayesian-microlensing.plotting.style"><code class="name flex">
+<span>def <span class="ident">style</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def style():
+    plt.rcParams[&#34;font.family&#34;] = &#34;sans-serif&#34;
+    plt.rcParams[&#39;font.size&#39;] = 15 #12
+    plt.style.use(&#39;seaborn-bright&#39;)
+    plt.rcParams[&#34;legend.edgecolor&#34;] = &#39;0&#39;
+    plt.rcParams[&#34;legend.framealpha&#34;] = 1
+    plt.rcParams[&#34;legend.title_fontsize&#34;] = 10
+    plt.rcParams[&#34;legend.fontsize&#34;] = 9
+    plt.rcParams[&#34;grid.linestyle&#34;] = &#39;dashed&#39; 
+    plt.rcParams[&#34;grid.alpha&#34;] = 0.25
+    plt.rc(&#39;axes.formatter&#39;, useoffset=False)
+    return</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="bayesian-microlensing" href="index.html">bayesian-microlensing</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="bayesian-microlensing.plotting.adaption_contraction" href="#bayesian-microlensing.plotting.adaption_contraction">adaption_contraction</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.adjust_view" href="#bayesian-microlensing.plotting.adjust_view">adjust_view</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.density_heatmaps" href="#bayesian-microlensing.plotting.density_heatmaps">density_heatmaps</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.fitted_flux" href="#bayesian-microlensing.plotting.fitted_flux">fitted_flux</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.joint_samples_pointilism" href="#bayesian-microlensing.plotting.joint_samples_pointilism">joint_samples_pointilism</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.magnification" href="#bayesian-microlensing.plotting.magnification">magnification</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting.style" href="#bayesian-microlensing.plotting.style">style</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
