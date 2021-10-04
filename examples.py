@@ -33,14 +33,14 @@ if __name__ == "__main__":
 
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
-    adaptive_warm_up_iterations = 75#975
+    adaptive_warm_up_iterations = 975#975
     warm_up_repititions = 1#2
 
     # Algorithm parameters.
-    iterations = 100#20000
+    iterations = 20000#20000
 
     # Output parameters.
-    n_pixels = 5#25 # Density for posterior contour plot.
+    n_pixels = 2#25 # Density for posterior contour plot.
     dpi = 250
     user_feedback = True
 

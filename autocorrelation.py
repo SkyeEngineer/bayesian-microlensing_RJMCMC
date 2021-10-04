@@ -86,7 +86,7 @@ def plot_act(joint_model_chain, symbols, name='', dpi=100):
     m_indices_signal = np.array(joint_model_chain.model_indices)
     for i, n in enumerate(N):
         act_m_indices[i] = mc.autocorr.integrated_time(m_indices_signal[:n], c = 5, tol = 5, quiet = True)
-    plt.loglog(N, act_m_indices, "o-", label=r"$m$",  linewidth = 3, markersize = 7.5, color='steelblue')
+    plt.loglog(N, act_m_indices, "o-", label=r"$m$",  linewidth = 3, markersize = 7.5, color='blue')
 
     # Plotting details.
     ylim = plt.gca().get_ylim()

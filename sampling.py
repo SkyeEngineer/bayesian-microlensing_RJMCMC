@@ -223,10 +223,7 @@ def iterative_covariance(cov, x, x_mu, n, s, I, eps = 1e-12):
 def check_symmetric(A, tol = 1e-16):
     return np.all(np.abs(A-A.T) < tol)
 
-
-
 def gaussian_proposal(theta, covariance):
-    """Samples a gaussian move."""
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
 def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False):
@@ -389,7 +386,7 @@ def schur_complement(cov, s):
 def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repetitions = 1, user_feedback = False):
     """Prepares a model for the ARJMH algorithm.
     
-    Repeats the adaptive MH warmup process for a model, storing the best run.
+    Repeats the AMH warmup process for a model, storing the best run.
 
     Args:
         empty_model: [model] Initial model object.
@@ -411,8 +408,8 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
 
         model = deepcopy(empty_model) # Fresh model.
 
-        # Run adaptive MH.
-        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations = fixed_iterations, user_feedback = user_feedback)
+        # Run AMH.
+        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations, user_feedback)
 
         # Keep the best posterior density run.
         if inc_log_best_posterior < log_best_posterior:
@@ -425,8 +422,8 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
 def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterations = 25, warm_up_repititions = 1, user_feedback = False):
     """Samples from a joint distribution of models.
     
-    Initialises each model with multiple adaptive MH runs. Then uses the resulting
-    covariances to run adaptive RJMH on all models.
+    Initialises each model with multiple AMH runs. Then uses the resulting
+    covariances to run ARJMH on all models.
 
     Args:
         models: [list] Model objects to sample from. 
