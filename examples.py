@@ -25,7 +25,7 @@ if __name__ == "__main__":
     """User Settings"""
 
     # Synthetic light curve to generate.
-    n_suite = 0
+    n_suite = 3
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
     adaptive_warm_up_iterations = 975#975
-    warm_up_repititions = 1#2
+    warm_up_repititions = 2#2
 
     # Algorithm parameters.
     iterations = 20000#20000
@@ -85,14 +85,14 @@ if __name__ == "__main__":
 
     else: # Use known values from previous maximising of posterior for centres.
         single_centres = [
-        [15.0245, 0.1035, 10**1.0063], # 0
+        [15.0424, 0.1048, 10**1.0068], # 0
         [15.0245, 0.1035, 10**1.0063], # 1
-        [15.0245, 0.1035, 10**1.0063], # 2
-        [15.0245, 0.1035, 10**1.0063]] # 3
+        [15.0186, 0.1015, 10**1.0050], # 2
+        [14.9966, 0.1020, 10**1.0043]] # 3
         single_centre = sampling.State(truth = np.array(single_centres[n_suite]))
 
         binary_centres = [
-        [1.50424747e+01, 1.04854599e-01, 1.00131283e+01, 4.51699379e-05, 9.29979384e-01, 6.72737579e+01], # 0
+        [15.0424, 0.1048, 10**1.0068, 10**-2.4101, 10**-0.0311, 67.2737], # 0
         [15.0245, 0.1035, 10**1.0063, 10**-2.3083, 10**0.5614, 161.0036],    # 1
         [15.0186, 0.1015, 10**1.0050, 10**-1.9734, 10**-0.3049, 60.4598],  # 2
         [14.9966, 0.1020, 10**1.0043, 10**-1.9825, 10**-0.1496, 60.2111]]   # 3

@@ -39,20 +39,17 @@ def P_m2(event_params, sn_base, n_epochs):
 
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
-    adaptive_warm_up_iterations = 75#975
+    adaptive_warm_up_iterations = 975#975
     warm_up_repititions = 1#2
 
     # Algorithm parameters.
-    iterations = 100#20000
+    iterations = 10000#20000
 
     # Output parameters.
     truncate = False # Truncate a burn in period based on IACT.
     user_feedback = True
 
     """Sampling Process"""
-
-    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
-    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Informative priors in true space (Zhang et al).
     t0_pi = distributions.Uniform(0, 72)
@@ -63,12 +60,17 @@ def P_m2(event_params, sn_base, n_epochs):
     alpha_pi = distributions.Uniform(0, 360)
     priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 
+    # Generate synthetic light curve for SP. Could otherwise use f.Read_Light_Curve(file_name).
+    sp_data = light_curve_simulation.synthetic_single(event_params, 720, sn_base)
 
     # Get initial centre points.
-    single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
-    fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
+    single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), sp_data.flux))
+    fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), sp_data.flux)
     # Remove finite source size parameter from neural network.
     binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+
+    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
+    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Initial diagonal covariances.
     covariance_scale = 0.001 # Reduce values by scalar
@@ -103,7 +105,7 @@ if __name__ == "__main__":
     # Parameter range to vary.
     theta = [36, 1.0, 5.5]
     tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
-    tE_range = np.linspace(5, 10, n)
+    tE_range = np.linspace(1, 5, n)
 
     with open("results/robustness-run.txt", "w") as file:
 

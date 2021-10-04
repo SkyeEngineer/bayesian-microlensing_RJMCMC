@@ -108,7 +108,7 @@ if __name__ == "__main__":
         n_epochs = 720
         epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
 
-        noisy_data = light_curve_simulation.synthetic_single(sampling.State(truth=[36, 1.0, 5.5]), n_epochs, 23)
+        noisy_data = light_curve_simulation.synthetic_single(sampling.State(truth=[36, 1.0, 5.0]), n_epochs, 23)
         noisy_lower = noisy_data.flux - noisy_data.err_flux
         noisy_upper = noisy_data.flux + noisy_data.err_flux
 
