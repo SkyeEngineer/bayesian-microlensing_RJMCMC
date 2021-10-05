@@ -38,10 +38,10 @@ def P_m2(event_params, single_centre, binary_centre, sn_base, n_epochs):
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
     adaptive_warm_up_iterations = 975#975
-    warm_up_repititions = 1#2
+    warm_up_repititions = 2#2
 
     # Algorithm parameters.
-    iterations = 5000#20000
+    iterations = 10000#20000
 
     # Output parameters.
     truncate = False # Truncate a burn in period based on IACT.
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     n_epochs = [720, 360, 72]  # Cadence to calculate expectations at.
     sn_bases = [23, 126.5, 230]  # Noise to calculate expectations at.
     
-    write_surrogate_centers = True
+    write_surrogate_centers = False
 
     if write_surrogate_centers == True:
         single_centres = np.zeros((n*3*3,3))
@@ -142,35 +142,36 @@ if __name__ == "__main__":
         single_centres = np.load(centre_file)
         binary_centres = np.load(centre_file)
 
-    print(single_centres)
+    #print(single_centres)
 
-    with open("results/robustness-run.txt", "w") as out_file:
-                for sn_base in sn_bases:
-                    for n_epoch in n_epochs:
-                        
-                        # Initialise for current expectation.
-                        prior_density = []
-                        binary_probability =[]
+    if write_surrogate_centers == False:
+        with open("results/robustness-run.txt", "w") as out_file:
+                    for sn_base in sn_bases:
+                        for n_epoch in n_epochs:
+                            
+                            # Initialise for current expectation.
+                            prior_density = []
+                            binary_probability =[]
 
-                        for i in range(n): # Samples in expectation.
-                            tE = tE_range[i]
-                            prior_density.append(np.exp(tE_pi.log_pdf(tE)))
+                            for i in range(n): # Samples in expectation.
+                                tE = tE_range[i]
+                                prior_density.append(np.exp(tE_pi.log_pdf(tE)))
 
-                            # Create new light curve and run ARJMH.                
-                            theta_tE = deepcopy(theta)
-                            theta_tE[2] = tE
-                            event_params = sampling.State(truth = theta_tE)
+                                # Create new light curve and run ARJMH.                
+                                theta_tE = deepcopy(theta)
+                                theta_tE[2] = tE
+                                event_params = sampling.State(truth = theta_tE)
 
-                            single_centre = sampling.State(truth=single_centres[global_i])
-                            binary_centre = sampling.State(truth=binary_centres[global_i])
+                                single_centre = sampling.State(truth=single_centres[global_i])
+                                binary_centre = sampling.State(truth=binary_centres[global_i])
 
-                            binary_probability.append(P_m2(event_params, single_centre, binary_centre, sn_base, n_epoch))
+                                binary_probability.append(P_m2(event_params, single_centre, binary_centre, sn_base, n_epoch))
 
-                            # Prior density weighted expectation and standard deviation. 
-                            EPM2 = sum([a*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density)
-                            sdEPM2 = (sum([(a-EPM2)**2*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density))**0.5
+                                # Prior density weighted expectation and standard deviation. 
+                                EPM2 = sum([a*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density)
+                                sdEPM2 = (sum([(a-EPM2)**2*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density))**0.5
 
-                            global_i += 1
-                        
-                        # Store expectation.
-                        out_file.write("n_epochs: "+str(n_epochs)+" sn_base: "+str(sn_base)+" E: "+str(EPM2)+" sd+-: "+str(sdEPM2)+"\n")
+                                global_i += 1
+                            
+                            # Store expectation.
+                            out_file.write("n_epochs: "+str(n_epochs)+" sn_base: "+str(sn_base)+" E: "+str(EPM2)+" sd+-: "+str(sdEPM2)+"\n")
