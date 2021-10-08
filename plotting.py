@@ -109,7 +109,7 @@ def magnification(m, theta, ts, caustics = None, label = None, color = None, alp
     epochs = np.linspace(ts[0], ts[1], 720)
 
     if caustics is not None:
-        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.006})
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': caustics})
         model.plot_caustics(color = color, s = 1, marker = 'o', n_points = 10000)
 
     else:

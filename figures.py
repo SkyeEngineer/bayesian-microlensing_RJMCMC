@@ -14,9 +14,9 @@ if __name__ == "__main__":
         
     plotting.style()
 
-    if True:
+    if False:
 
-        theta_r = sampling.State(truth=[50, 0.3, 25, 0.1, 1.2, 100])
+        theta_r = sampling.State(truth=[50, 0.5, 25, 0.5, 1.0, 295])
         ts = [0, 72]
 
         plotting.magnification(1, theta_r, ts, color="black")
@@ -26,56 +26,33 @@ if __name__ == "__main__":
         plt.tick_params(axis="both", which="major", labelsize=12)
         plt.tight_layout()
 
-        plt.axes([0.155, 0.605, 0.3, 0.3])
-        plotting.magnification(1, theta_r, [30, 72], caustics=True, color="purple")
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [30, 62], caustics=0.02, color="purple")
         ax = plt.gca()
         ax.axes.xaxis.set_visible(False)
         ax.axes.yaxis.set_visible(False)
 
-        plt.savefig('figures/binary.png', bbox_inches="tight", dpi=50, transparent=True)
+        plt.savefig('figures/binary.png', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
 
 
 
-    if False:
+        theta_r = sampling.State(truth=[50, 0.5, 10])
+        ts = [0, 72]
 
-        theta_r = sampling.State(truth=[36, 0.133, 61.5, 0.009, 1.10, 180])
-        ts = [10, 72-10]
-
-        theta_q = copy.deepcopy(theta_r)
-        theta_q.truth[3] = theta_q.truth[3] + 0.0015
-        plotting.magnification(1, theta_q, ts, label=r"$\uparrow q$", color="purple")
-        
-        theta_s = copy.deepcopy(theta_r)
-        theta_s.truth[4] = theta_s.truth[4] + 0.04
-        plotting.magnification(1, theta_s, ts, label=r"$\uparrow s$", color="orange")
-
-        theta_a = copy.deepcopy(theta_r)
-        theta_a.truth[5] = theta_a.truth[5] + 135
-        plotting.magnification(1, theta_a, [33, 72-10], label=r"$\uparrow \alpha$", color="blue")
-
-        plotting.magnification(1, theta_r, ts, color="black")
+        plotting.magnification(0, theta_r, ts, color="black")
 
         plt.xlabel('Time [days]')
         plt.ylabel('Magnification')
         plt.tick_params(axis="both", which="major", labelsize=12)
-        plt.legend(fontsize = 12, frameon = False, handlelength=0.7, labelspacing=0.25)
         plt.tight_layout()
 
-        plt.axes([0.155, 0.505, 0.4, 0.4])
-        plotting.magnification(1, theta_q, [5+10, 45-10], caustics=True, color="purple")
-        plotting.magnification(1, theta_s, [5+10, 45-10], caustics=True, color="orange")
-        plotting.magnification(1, theta_a, [25+10, 65-10], caustics=True, color="blue")
-        plotting.magnification(1, theta_r, [5+10, 45-10], caustics=True, color="black")
-        ax = plt.gca()
-        ax.axes.xaxis.set_visible(False)
-        ax.axes.yaxis.set_visible(False)
-
-        plt.savefig('figures/binary-params.png', bbox_inches="tight", dpi=250, transparent=True)
+        plt.savefig('figures/single.png', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
 
 
     if False:
+
 
         theta_r = sampling.State(truth=[36, 0.133, 61.5])
         ts = [10, 72-10]
@@ -86,7 +63,7 @@ if __name__ == "__main__":
         
         theta_u0 = copy.deepcopy(theta_r)
         theta_u0.truth[1] = theta_u0.truth[1] - 0.02
-        plotting.magnification(0, theta_u0, ts, label=r"$\downarrow u_0$", color="orange")
+        plotting.magnification(0, theta_u0, ts, label=r"$\downarrow u_0$", color="orangered")
 
         theta_tE = copy.deepcopy(theta_r)
         theta_tE.truth[2] = theta_tE.truth[2] - 25
@@ -94,12 +71,53 @@ if __name__ == "__main__":
 
         plotting.magnification(0, theta_r, ts, color="black")
 
+        size = plt.gcf().get_size_inches()
+
         plt.xlabel('Time [days]')
         plt.ylabel('Magnification')
         plt.tick_params(axis="both", which="major", labelsize=12)
-        plt.legend(fontsize = 12, frameon = False, handlelength=0.7, labelspacing=0.25)
+        plt.legend(fontsize = 17, frameon = False, handlelength=0.7, labelspacing=0.25)
 
         plt.savefig('figures/single-params.png', bbox_inches="tight", dpi=250, transparent=True)
+        plt.clf()
+
+
+
+        theta_r = sampling.State(truth=[36, 0.133, 61.5, 0.009, 1.10, 180])
+        ts = [10, 72-10]
+
+        theta_q = copy.deepcopy(theta_r)
+        theta_q.truth[3] = theta_q.truth[3] + 0.0015
+        plotting.magnification(1, theta_q, ts, label=r"$\uparrow q$", color="purple")
+        
+        theta_s = copy.deepcopy(theta_r)
+        theta_s.truth[4] = theta_s.truth[4] + 0.04
+        plotting.magnification(1, theta_s, ts, label=r"$\uparrow s$", color="orangered")
+
+        theta_a = copy.deepcopy(theta_r)
+        theta_a.truth[5] = theta_a.truth[5] + 135
+        plotting.magnification(1, theta_a, [33, 72-10], label=r"$\uparrow \alpha$", color="blue")
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.legend(fontsize = 17, frameon = False, handlelength=0.7, labelspacing=0.25)
+        plt.tight_layout()
+
+        plt.axes([0.155, 0.515, 0.4, 0.4])
+        plotting.magnification(1, theta_q, [5+10, 45-10], caustics=0.001, color="purple")
+        plotting.magnification(1, theta_s, [5+10, 45-10], caustics=0.001, color="orangered")
+        plotting.magnification(1, theta_a, [25+10, 65-10], caustics=0.006, color="blue")
+        plotting.magnification(1, theta_r, [5+10, 45-10], caustics=0.006, color="black")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.gcf().set_size_inches(size)
+
+        plt.savefig('figures/binary-params.png', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
 
     if False:
@@ -112,10 +130,10 @@ if __name__ == "__main__":
         noisy_lower = noisy_data.flux - noisy_data.err_flux
         noisy_upper = noisy_data.flux + noisy_data.err_flux
 
-        #plt.fill_between(epochs, noisy_lower, noisy_upper, alpha = 0.5, label = r'$\pm3\sigma$', color = 'purple', linewidth=0.0)
-        plt.plot(epochs, noisy_data.flux, c='black')#, label=r'Signal', s=1)
+        plt.fill_between(epochs, noisy_lower, noisy_upper, alpha = 1.0, label = r'$\pm\sigma$', color = 'plum', linewidth=0.0)
+        plt.scatter(epochs, noisy_data.flux, c='black', label=r'Signal', s=1)
 
-        #clean_data = light_curve_simulation.synthetic_single(sampling.State([36, 1.0, 5.5]), n_epochs, 230, )
+        #clean_data = light_curve_simulation.synthetic_single(sampling.State([36, 1.0, 5.0]), n_epochs, 230, )
         #clean_lower = clean_data.flux - clean_data.err_flux
         #clean_upper = clean_data.flux + clean_data.err_flux
 
@@ -123,16 +141,16 @@ if __name__ == "__main__":
         #plt.scatter(epochs, clean_data.flux, c='lime', label=r'$s=0.2$', s=1)
         
         #legend
-        #main_leg = plt.legend(frameon=False, loc='lower right', handlelength=0.7)
-        #shapes = iter(main_leg.legendHandles)
-        #next(shapes)
-        #for handle in shapes:
-        #    handle.set_sizes([15.0])
+        main_leg = plt.legend(frameon=False, loc='upper right', handlelength=0.7)
+        shapes = iter(main_leg.legendHandles)
+        next(shapes)
+        for handle in shapes:
+            handle.set_sizes([15.0])
 
         plt.xlabel('Time [days]')
         plt.ylabel('Observed Flux')
         plt.tick_params(axis="both", which="major", labelsize=12)
-        #plt.legend(fontsize = 12, frameon = False, handlelength=0.7, labelspacing=0.25)
+        plt.legend(fontsize = 15, frameon = False, handlelength=0.7, labelspacing=0.25)
 
         plt.savefig('figures/dirty-curves.png', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
@@ -155,9 +173,9 @@ if __name__ == "__main__":
         upper = data_1.flux + 3*data_1.err_flux
 
         #main
-        #plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 1.0, label = r'$\pm3\sigma$', color = 'black', linewidth=0.0)
-        plt.plot(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='blue', label=r'$s=0.2$')
-        plt.plot(epochs[0:w+t_del], data_3.flux[0:w+t_del], c='purple', label=r'$s=0.7$')
+        #plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 1.0, color = 'plum', linewidth=0.0)
+        plt.scatter(epochs[0:w+t_del], data_1.flux[0:w+t_del], c='black', label=r'$s=0.2$', s=1)
+        plt.scatter(epochs[0:w+t_del], data_3.flux[0:w+t_del], c='blue', label=r'$s=0.7$', s=1)
         
         #legend
         #main_leg = plt.legend(frameon=False, loc='lower right', handlelength=0.7)
@@ -174,9 +192,9 @@ if __name__ == "__main__":
         #inset
         inset = plt.axes([0.395, 0.37, 0.49, 0.49])
         #inset.fill_between(epochs[v:w], lower[v:w], upper[v:w], alpha = 1.0, label = r'$\pm3\sigma$', color = 'black', linewidth=0.0)
-        inset.plot(epochs[v:w], data_1.flux[v:w], c='blue', label = r'$s=0.2$')
-        inset.plot(epochs[v:w], data_3.flux[v:w], c='purple', label = r'$s=0.7$')
-        plt.legend(fontsize = 12, frameon = False, handlelength=0.7, labelspacing=0.25)
+        inset.scatter(epochs[v:w], data_1.flux[v:w], c='black', label = r'$s=0.2$', s=1)
+        inset.scatter(epochs[v:w], data_3.flux[v:w], c='blue', label = r'$s=0.7$', s=1)
+        plt.legend(fontsize = 13.5, frameon = False, handlelength=0.7, labelspacing=0.25, loc='upper left')
         plt.tick_params(axis="both", which="major", labelsize=12)
 
         #inset.axes.get_yaxis().set_ticklabels([])
@@ -187,12 +205,12 @@ if __name__ == "__main__":
         residuals = data_1.flux[0:w+t_del]-data_3.flux[0:w+t_del]
         lower = -3*data_1.err_flux[0:w+t_del]
         upper = 3*data_1.err_flux[0:w+t_del]
-        plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 1, label = r'$\pm3\sigma$', color = 'orange', linewidth=0.0)
+        plt.fill_between(epochs[0:w+t_del], lower[0:w+t_del], upper[0:w+t_del], alpha = 1, label = r'$\pm3\sigma$', color = 'plum', linewidth=0.0)
         plt.plot(epochs[0:w+t_del], residuals, c="black")
         frame_resid.set_xticklabels([])
         frame_resid.xaxis.tick_top()
         frame_resid.set_ylabel('Residual')
-        plt.legend(fontsize = 12, frameon = False, handlelength=0.7, labelspacing=0.25)
+        plt.legend(fontsize = 13.5, frameon = False, handlelength=0.7, labelspacing=0.25, loc='upper right')
         plt.tick_params(axis="both", which="major", labelsize=12)
 
         plt.savefig('figures/evans-curves.png', bbox_inches="tight", dpi=250, transparent=True)

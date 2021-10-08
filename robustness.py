@@ -89,7 +89,11 @@ def P_m2(event_params, single_centre, binary_centre, sn_base, n_epochs):
 
 
 if __name__ == "__main__":
-    """Expectation Process"""
+    """Expectation Process
+    
+    This runs in two stages, first calculating the centre for every light curve
+    and writing this to a file, then reading that file to calculate each expectation.
+    """
 
     n = 5 # Number of samples in expectation.
     global_i = 0
@@ -174,4 +178,4 @@ if __name__ == "__main__":
                                 global_i += 1
                             
                             # Store expectation.
-                            out_file.write("n_epochs: "+str(n_epochs)+" sn_base: "+str(sn_base)+" E: "+str(EPM2)+" sd+-: "+str(sdEPM2)+"\n")
+                            out_file.write("n_epochs: "+str(n_epoch)+" sn_base: "+str(sn_base)+" E: "+str(EPM2)+" sd+-: "+str(sdEPM2)+"\n")
