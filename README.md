@@ -47,7 +47,8 @@ To sample from a joint single (1L1S)/binary (2L1S) model posterior:
 Models = [single_Model, binary_Model]
 
 # Sample from the joint posterior.
-joint_model_chain, total_acc_history, inter_model_acc_history = sampling.ARJMH(Models, iterations, warm_up_iterations)
+joint_model_chain, total_acc_history, inter_model_acc_history = \
+                               sampling.ARJMH(Models, iterations, warm_up_iterations)
 ```
 For more detailed use cases, see **examples.py** and **robustness.py**.
 
