@@ -1,4 +1,4 @@
-"""Some basic probability distributions."""
+"""Basic probability distributions."""
 
 import math
 import numpy as np
@@ -69,9 +69,9 @@ class Truncated_Log_Normal(object):
         """Initialises Truncated log normal with bounds and sampler.
 
         Args:
-            mu [float]: The scalar mean of the underlying normal distrubtion in 
+            mu: [float] The scalar mean of the underlying normal distrubtion in 
                 true space.
-            sd [float]: The scalar standard deviation of the underlying normal 
+            sd: [float] The scalar standard deviation of the underlying normal 
                 distribution in true space.
         """
         self.lb = left

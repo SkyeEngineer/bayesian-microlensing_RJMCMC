@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>bayelens.robustness API documentation</title>
-<meta name="description" content="Analyses the robustness of the ARJMH algorithm …" />
+<title>bayesian-microlensing.robustness API documentation</title>
+<meta name="description" content="Analyse the robustness of the ARJMH algorithm …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,22 +19,21 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>bayelens.robustness</code></h1>
+<h1 class="title">Module <code>bayesian-microlensing.robustness</code></h1>
 </header>
 <section id="section-intro">
-<p>Analyses the robustness of the ARJMH algorithm.</p>
-<p>Calculates the expected marginalised binary model probability of some ambiguous light curves.</p>
+<p>Analyse the robustness of the ARJMH algorithm.</p>
+<p>Calculates the expected marginalised binary model probability of some ambiguous
+light curves.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;Analyses the robustness of the ARJMH algorithm.
+<pre><code class="python">&#34;&#34;&#34;Analyse the robustness of the ARJMH algorithm.
 
-Calculates the expected marginalised binary model probability of some ambiguous light curves.
+Calculates the expected marginalised binary model probability of some ambiguous 
+light curves.
 &#34;&#34;&#34;
-
-
-
 
 import sampling
 import light_curve_simulation
@@ -52,7 +51,7 @@ import time
 
 
 
-def P_m2(event_params, sn_base, n_epochs):
+def P_m2(event_params, single_centre, binary_centre, sn_base, n_epochs):
     &#34;&#34;&#34;Calculate the marginalised binary model probability of a specific light curve.
 
     Args:
@@ -67,24 +66,19 @@ def P_m2(event_params, sn_base, n_epochs):
 
     &#34;&#34;&#34;User Settings&#34;&#34;&#34;
 
-    #use_surrogate_posterior = True
-
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
-    adaptive_warm_up_iterations = 75#975
-    warm_up_repititions = 1#2
+    adaptive_warm_up_iterations = 975#975
+    warm_up_repititions = 2#2
 
     # Algorithm parameters.
-    iterations = 100#20000
+    iterations = 10000#20000
 
     # Output parameters.
     truncate = False # Truncate a burn in period based on IACT.
     user_feedback = True
 
     &#34;&#34;&#34;Sampling Process&#34;&#34;&#34;
-
-    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
-    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Informative priors in true space (Zhang et al).
     t0_pi = distributions.Uniform(0, 72)
@@ -96,11 +90,9 @@ def P_m2(event_params, sn_base, n_epochs):
     priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 
 
-    # Get initial centre points.
-    single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
-    fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
-    # Remove finite source size parameter from neural network.
-    binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+
+    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
+    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Initial diagonal covariances.
     covariance_scale = 0.001 # Reduce values by scalar
@@ -128,40 +120,96 @@ def P_m2(event_params, sn_base, n_epochs):
 
 
 if __name__ == &#34;__main__&#34;:
-    &#34;&#34;&#34;Expectation Process&#34;&#34;&#34;
+    &#34;&#34;&#34;Expectation Process
+    
+    This runs in two stages, first calculating the centre for every light curve
+    and writing this to a file, then reading that file to calculate each expectation.
+    &#34;&#34;&#34;
 
     n = 5 # Number of samples in expectation.
+    global_i = 0
 
     # Parameter range to vary.
     theta = [36, 1.0, 5.5]
     tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
-    tE_range = np.linspace(5, 10, n)
+    tE_range = np.linspace(2, 10, n)
+    n_epochs = [720, 360, 72]  # Cadence to calculate expectations at.
+    sn_bases = [23, 126.5, 230]  # Noise to calculate expectations at.
+    
+    write_surrogate_centers = False
 
-    with open(&#34;results/robustness-run.txt&#34;, &#34;w&#34;) as file:
+    if write_surrogate_centers == True:
+        single_centres = np.zeros((n*3*3,3))
+        binary_centres = np.zeros((n*3*3,6))
+        with open(&#34;results/robustness-centers.npy&#34;, &#34;wb&#34;) as centre_file:
+                for sn_base in sn_bases:
+                    for i in range(n): # Samples in expectation.
+                        tE = tE_range[i]
 
-        for n_epochs in [720, 360, 72]: # Cadence to calculate expectations at.
-            for sn_base in [23, 126.5, 230]: # Noise to calculate expectations at.
-                
-                # Initialise for current expectation.
-                prior_density = []
-                binary_probability =[]
+                        # Create new light curve.                
+                        theta_tE = deepcopy(theta)
+                        theta_tE[2] = tE
+                        event_params = sampling.State(truth = theta_tE)
 
-                for i in range(n): # Samples in expectation.
-                    tE = tE_range[i]
-                    prior_density.append(np.exp(tE_pi.log_pdf(tE)))
+                        # Generate synthetic light curve for SP. Could otherwise use f.Read_Light_Curve(file_name).
+                        sp_data = light_curve_simulation.synthetic_single(event_params, 720, sn_base)
 
-                    # Create new light curve and run ARJMH.                
-                    theta_tE = deepcopy(theta)
-                    theta_tE[2] = tE
-                    event_params = sampling.State(truth = theta_tE)
-                    binary_probability.append(P_m2(event_params, sn_base, n_epochs))
+                        # Get initial centre points.
+                        single_centre = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), sp_data.flux)
+                        for sn_i in range(3):
+                            single_centres[global_i+sn_i*n][:] = single_centre
 
-                    # Prior density weighted expectation and standard deviation. 
-                    EPM2 = sum([a*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density)
-                    sdEPM2 = (sum([(a-EPM2)**2*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density))**0.5
-                
-                # Store expectation.
-                file.write(&#34;n_epochs: &#34;+str(n_epochs)+&#34; sn_base: &#34;+str(sn_base)+&#34; E: &#34;+str(EPM2)+&#34; sd+-: &#34;+str(sdEPM2)+&#34;\n&#34;)</code></pre>
+                        fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), sp_data.flux)
+                        # Remove finite source size parameter from neural network.
+                        binary_centre = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]])
+                        for sn_i in range(3):
+                            binary_centres[global_i+sn_i*n][:] = binary_centre
+
+                        global_i += 1
+                    global_i += (3-1)*n
+
+                np.save(centre_file, single_centres)
+                np.save(centre_file, binary_centres)
+
+    global_i = 0
+
+    with open(&#34;results/robustness-centers.npy&#34;, &#34;rb&#34;) as centre_file:
+        single_centres = np.load(centre_file)
+        binary_centres = np.load(centre_file)
+
+    #print(single_centres)
+
+    if write_surrogate_centers == False:
+        with open(&#34;results/robustness-run.txt&#34;, &#34;w&#34;) as out_file:
+                    for sn_base in sn_bases:
+                        for n_epoch in n_epochs:
+                            
+                            # Initialise for current expectation.
+                            prior_density = []
+                            binary_probability =[]
+
+                            for i in range(n): # Samples in expectation.
+                                tE = tE_range[i]
+                                prior_density.append(np.exp(tE_pi.log_pdf(tE)))
+
+                                # Create new light curve and run ARJMH.                
+                                theta_tE = deepcopy(theta)
+                                theta_tE[2] = tE
+                                event_params = sampling.State(truth = theta_tE)
+
+                                single_centre = sampling.State(truth=single_centres[global_i])
+                                binary_centre = sampling.State(truth=binary_centres[global_i])
+
+                                binary_probability.append(P_m2(event_params, single_centre, binary_centre, sn_base, n_epoch))
+
+                                # Prior density weighted expectation and standard deviation. 
+                                EPM2 = sum([a*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density)
+                                sdEPM2 = (sum([(a-EPM2)**2*b for a,b in zip(binary_probability, prior_density)])/sum(prior_density))**0.5
+
+                                global_i += 1
+                            
+                            # Store expectation.
+                            out_file.write(&#34;n_epochs: &#34;+str(n_epoch)+&#34; sn_base: &#34;+str(sn_base)+&#34; E: &#34;+str(EPM2)+&#34; sd+-: &#34;+str(sdEPM2)+&#34;\n&#34;)</code></pre>
 </details>
 </section>
 <section>
@@ -171,8 +219,8 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="bayelens.robustness.P_m2"><code class="name flex">
-<span>def <span class="ident">P_m2</span></span>(<span>event_params, sn_base, n_epochs)</span>
+<dt id="bayesian-microlensing.robustness.P_m2"><code class="name flex">
+<span>def <span class="ident">P_m2</span></span>(<span>event_params, single_centre, binary_centre, sn_base, n_epochs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Calculate the marginalised binary model probability of a specific light curve.</p>
@@ -187,14 +235,14 @@ if __name__ == &#34;__main__&#34;:
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
-<dt><code><a title="bayelens.robustness.P_m2" href="#bayelens.robustness.P_m2">P_m2()</a></code></dt>
+<dt><code><a title="bayesian-microlensing.robustness.P_m2" href="#bayesian-microlensing.robustness.P_m2">P_m2()</a></code></dt>
 <dd>[float] Marginalised binary model probability.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def P_m2(event_params, sn_base, n_epochs):
+<pre><code class="python">def P_m2(event_params, single_centre, binary_centre, sn_base, n_epochs):
     &#34;&#34;&#34;Calculate the marginalised binary model probability of a specific light curve.
 
     Args:
@@ -209,24 +257,19 @@ if __name__ == &#34;__main__&#34;:
 
     &#34;&#34;&#34;User Settings&#34;&#34;&#34;
 
-    #use_surrogate_posterior = True
-
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
-    adaptive_warm_up_iterations = 75#975
-    warm_up_repititions = 1#2
+    adaptive_warm_up_iterations = 975#975
+    warm_up_repititions = 2#2
 
     # Algorithm parameters.
-    iterations = 100#20000
+    iterations = 10000#20000
 
     # Output parameters.
     truncate = False # Truncate a burn in period based on IACT.
     user_feedback = True
 
     &#34;&#34;&#34;Sampling Process&#34;&#34;&#34;
-
-    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
-    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Informative priors in true space (Zhang et al).
     t0_pi = distributions.Uniform(0, 72)
@@ -238,11 +281,9 @@ if __name__ == &#34;__main__&#34;:
     priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
 
 
-    # Get initial centre points.
-    single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
-    fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
-    # Remove finite source size parameter from neural network.
-    binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+
+    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
+    data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
 
     # Initial diagonal covariances.
     covariance_scale = 0.001 # Reduce values by scalar
@@ -282,12 +323,12 @@ if __name__ == &#34;__main__&#34;:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="bayelens" href="index.html">bayelens</a></code></li>
+<li><code><a title="bayesian-microlensing" href="index.html">bayesian-microlensing</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="bayelens.robustness.P_m2" href="#bayelens.robustness.P_m2">P_m2</a></code></li>
+<li><code><a title="bayesian-microlensing.robustness.P_m2" href="#bayesian-microlensing.robustness.P_m2">P_m2</a></code></li>
 </ul>
 </li>
 </ul>

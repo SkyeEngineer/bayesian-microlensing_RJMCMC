@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>bayelens.surrogate_posteriors API documentation</title>
-<meta name="description" content="Interfaces with surrogate posteriors produced by a neural network." />
+<title>bayesian-microlensing API documentation</title>
+<meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,158 +19,54 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>bayelens.surrogate_posteriors</code></h1>
+<h1 class="title">Module <code>bayesian-microlensing</code></h1>
 </header>
 <section id="section-intro">
-<p>Interfaces with surrogate posteriors produced by a neural network.</p>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">&#34;&#34;&#34;Interfaces with surrogate posteriors produced by a neural network.&#34;&#34;&#34;
-
-
-import pickle
-import numpy as np
-
-# File access. 
-import os
-import os.path
-from pathlib import Path
-
-
-def posterior(m):
-    &#34;&#34;&#34;Get a single or binary model posterior.
-        
-    Args:
-        m: [int] Model index, single or binary, 0 or 1.
-
-    Returns:
-        posterior: [pickle] Posterior object.
-    &#34;&#34;&#34;
-    path = os.getcwd()
-    #path = (str(Path(path).parents[0]))
-
-    if m == 0:
-        with open(path+&#34;/surrogate_posteriors/single_25K_720.pkl&#34;, &#34;rb&#34;) as handle: posterior = pickle.load(handle)
-
-    if m == 1:
-        with open(path+&#34;/surrogate_posteriors/binary_100K_720.pkl&#34;, &#34;rb&#34;) as handle: posterior = pickle.load(handle)
-    
-    return posterior
-
-
-
-def maximise_posterior(posterior, signal_data):
-    &#34;&#34;&#34;Maximise a posterior.
-        
-    The input signal_data conditions the posterior to data.
-
-    Args:
-        posterior: [pickle] Posterior object.
-        signal_data: [list] Measured flux signals at discrete times.
-
-    Returns:
-        centre: [list] Estimated parameter values of maximum.
-    &#34;&#34;&#34;
-    centre = np.array(np.float64(posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)))
-    
-    
-    print(centre)
-
-    return centre</code></pre>
-</details>
+<p>Infer gravitational microlensing marginal model probabilities.</p>
+<p>Implements the adaptive reversible-jump metropolis-hastings algorithm, 
+with a neural network surrogate posterior for initialisation. Uses the 
+key module <b>bayesian-microlensing.sampling</b>.</p>
 </section>
 <section>
-</section>
-<section>
-</section>
-<section>
-<h2 class="section-title" id="header-functions">Functions</h2>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
-<dt id="bayelens.surrogate_posteriors.maximise_posterior"><code class="name flex">
-<span>def <span class="ident">maximise_posterior</span></span>(<span>posterior, signal_data)</span>
-</code></dt>
+<dt><code class="name"><a title="bayesian-microlensing.autocorrelation" href="autocorrelation.html">bayesian-microlensing.autocorrelation</a></code></dt>
 <dd>
-<div class="desc"><p>Maximise a posterior.</p>
-<p>The input signal_data conditions the posterior to data.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>posterior</code></strong></dt>
-<dd>[pickle] Posterior object.</dd>
-<dt><strong><code>signal_data</code></strong></dt>
-<dd>[list] Measured flux signals at discrete times.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>centre</code></dt>
-<dd>[list] Estimated parameter values of maximum.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def maximise_posterior(posterior, signal_data):
-    &#34;&#34;&#34;Maximise a posterior.
-        
-    The input signal_data conditions the posterior to data.
-
-    Args:
-        posterior: [pickle] Posterior object.
-        signal_data: [list] Measured flux signals at discrete times.
-
-    Returns:
-        centre: [list] Estimated parameter values of maximum.
-    &#34;&#34;&#34;
-    centre = np.array(np.float64(posterior.map(signal_data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)))
-    
-    
-    print(centre)
-
-    return centre</code></pre>
-</details>
+<div class="desc"><p>Autocorrelation tools for convergence analysis …</p></div>
 </dd>
-<dt id="bayelens.surrogate_posteriors.posterior"><code class="name flex">
-<span>def <span class="ident">posterior</span></span>(<span>m)</span>
-</code></dt>
+<dt><code class="name"><a title="bayesian-microlensing.distributions" href="distributions.html">bayesian-microlensing.distributions</a></code></dt>
 <dd>
-<div class="desc"><p>Get a single or binary model posterior.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>m</code></strong></dt>
-<dd>[int] Model index, single or binary, 0 or 1.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code><a title="bayelens.surrogate_posteriors.posterior" href="#bayelens.surrogate_posteriors.posterior">posterior()</a></code></dt>
-<dd>[pickle] Posterior object.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def posterior(m):
-    &#34;&#34;&#34;Get a single or binary model posterior.
-        
-    Args:
-        m: [int] Model index, single or binary, 0 or 1.
-
-    Returns:
-        posterior: [pickle] Posterior object.
-    &#34;&#34;&#34;
-    path = os.getcwd()
-    #path = (str(Path(path).parents[0]))
-
-    if m == 0:
-        with open(path+&#34;/surrogate_posteriors/single_25K_720.pkl&#34;, &#34;rb&#34;) as handle: posterior = pickle.load(handle)
-
-    if m == 1:
-        with open(path+&#34;/surrogate_posteriors/binary_100K_720.pkl&#34;, &#34;rb&#34;) as handle: posterior = pickle.load(handle)
-    
-    return posterior</code></pre>
-</details>
+<div class="desc"><p>Basic probability distributions.</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.examples" href="examples.html">bayesian-microlensing.examples</a></code></dt>
+<dd>
+<div class="desc"><p>Library of light curves from Evans, 2019 …</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.light_curve_simulation" href="light_curve_simulation.html">bayesian-microlensing.light_curve_simulation</a></code></dt>
+<dd>
+<div class="desc"><p>Light curve simulation for microlensing …</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.plotting" href="plotting.html">bayesian-microlensing.plotting</a></code></dt>
+<dd>
+<div class="desc"><p>Plot posterior distributions of microlensing events …</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.robustness" href="robustness.html">bayesian-microlensing.robustness</a></code></dt>
+<dd>
+<div class="desc"><p>Analyse the robustness of the ARJMH algorithm …</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.sampling" href="sampling.html">bayesian-microlensing.sampling</a></code></dt>
+<dd>
+<div class="desc"><p>Adaptive Reversible-Jump Metropolis Hastings for microlensing …</p></div>
+</dd>
+<dt><code class="name"><a title="bayesian-microlensing.surrogate_posteriors" href="surrogate_posteriors.html">bayesian-microlensing.surrogate_posteriors</a></code></dt>
+<dd>
+<div class="desc"><p>Interface with neural network surrogate posteriors.</p></div>
 </dd>
 </dl>
+</section>
+<section>
+</section>
+<section>
 </section>
 <section>
 </section>
@@ -181,15 +77,16 @@ def maximise_posterior(posterior, signal_data):
 <ul></ul>
 </div>
 <ul id="index">
-<li><h3>Super-module</h3>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
-<li><code><a title="bayelens" href="index.html">bayelens</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-functions">Functions</a></h3>
-<ul class="">
-<li><code><a title="bayelens.surrogate_posteriors.maximise_posterior" href="#bayelens.surrogate_posteriors.maximise_posterior">maximise_posterior</a></code></li>
-<li><code><a title="bayelens.surrogate_posteriors.posterior" href="#bayelens.surrogate_posteriors.posterior">posterior</a></code></li>
+<li><code><a title="bayesian-microlensing.autocorrelation" href="autocorrelation.html">bayesian-microlensing.autocorrelation</a></code></li>
+<li><code><a title="bayesian-microlensing.distributions" href="distributions.html">bayesian-microlensing.distributions</a></code></li>
+<li><code><a title="bayesian-microlensing.examples" href="examples.html">bayesian-microlensing.examples</a></code></li>
+<li><code><a title="bayesian-microlensing.light_curve_simulation" href="light_curve_simulation.html">bayesian-microlensing.light_curve_simulation</a></code></li>
+<li><code><a title="bayesian-microlensing.plotting" href="plotting.html">bayesian-microlensing.plotting</a></code></li>
+<li><code><a title="bayesian-microlensing.robustness" href="robustness.html">bayesian-microlensing.robustness</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling" href="sampling.html">bayesian-microlensing.sampling</a></code></li>
+<li><code><a title="bayesian-microlensing.surrogate_posteriors" href="surrogate_posteriors.html">bayesian-microlensing.surrogate_posteriors</a></code></li>
 </ul>
 </li>
 </ul>

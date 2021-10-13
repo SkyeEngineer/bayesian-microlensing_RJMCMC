@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>bayelens.examples API documentation</title>
-<meta name="description" content="A suite of light curves to run ARJMH on …" />
+<title>bayesian-microlensing.examples API documentation</title>
+<meta name="description" content="Library of light curves from Evans, 2019 …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,22 +19,19 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>bayelens.examples</code></h1>
+<h1 class="title">Module <code>bayesian-microlensing.examples</code></h1>
 </header>
 <section id="section-intro">
-<p>A suite of light curves to run ARJMH on.</p>
-<p>Takes the light curves from Evans, 2019 to test the ARJMH algorithm on.
-Plots slices of the posterior and behavioural diagnostics.</p>
+<p>Library of light curves from Evans, 2019.</p>
+<p>Tests the ARJMH algorithm. Plots slices of the posterior and behavioural diagnostics.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;A suite of light curves to run ARJMH on.
+<pre><code class="python">&#34;&#34;&#34;Library of light curves from Evans, 2019.
 
-Takes the light curves from Evans, 2019 to test the ARJMH algorithm on.
-Plots slices of the posterior and behavioural diagnostics.
+Tests the ARJMH algorithm. Plots slices of the posterior and behavioural diagnostics.
 &#34;&#34;&#34;
-
 
 import sampling
 import light_curve_simulation
@@ -58,7 +55,7 @@ if __name__ == &#34;__main__&#34;:
     &#34;&#34;&#34;User Settings&#34;&#34;&#34;
 
     # Synthetic light curve to generate.
-    n_suite = 0
+    n_suite = 3
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
@@ -73,7 +70,7 @@ if __name__ == &#34;__main__&#34;:
     iterations = 20000#20000
 
     # Output parameters.
-    n_pixels = 5#25 # Density for posterior contour plot.
+    n_pixels = 2#25 # Density for posterior contour plot.
     dpi = 250
     user_feedback = True
 
@@ -118,14 +115,14 @@ if __name__ == &#34;__main__&#34;:
 
     else: # Use known values from previous maximising of posterior for centres.
         single_centres = [
-        [15.0245, 0.1035, 10**1.0063], # 0
+        [15.0424, 0.1048, 10**1.0068], # 0
         [15.0245, 0.1035, 10**1.0063], # 1
-        [15.0245, 0.1035, 10**1.0063], # 2
-        [15.0245, 0.1035, 10**1.0063]] # 3
+        [15.0186, 0.1015, 10**1.0050], # 2
+        [14.9966, 0.1020, 10**1.0043]] # 3
         single_centre = sampling.State(truth = np.array(single_centres[n_suite]))
 
         binary_centres = [
-        [1.50424747e+01, 1.04854599e-01, 1.00131283e+01, 4.51699379e-05, 9.29979384e-01, 6.72737579e+01], # 0
+        [15.0424, 0.1048, 10**1.0068, 10**-2.4101, 10**-0.0311, 67.2737], # 0
         [15.0245, 0.1035, 10**1.0063, 10**-2.3083, 10**0.5614, 161.0036],    # 1
         [15.0186, 0.1015, 10**1.0050, 10**-1.9734, 10**-0.3049, 60.4598],  # 2
         [14.9966, 0.1020, 10**1.0043, 10**-1.9825, 10**-0.1496, 60.2111]]   # 3
@@ -203,7 +200,7 @@ if __name__ == &#34;__main__&#34;:
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="bayelens" href="index.html">bayelens</a></code></li>
+<li><code><a title="bayesian-microlensing" href="index.html">bayesian-microlensing</a></code></li>
 </ul>
 </li>
 </ul>

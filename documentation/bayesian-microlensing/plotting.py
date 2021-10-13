@@ -1,21 +1,19 @@
-"""Plotting tools for microlensing distribution sampling analysis."""
+"""Plot posterior distributions of microlensing events.
 
+Creates "pointilism" plots which show the discrete posterior,
+and heatmap plots which show the true posterior.
+"""
 
 import MulensModel as mm
 
 import math
-#from numpy.core.defchararray import array
-#from numpy.core.fromnumeric import mean, ndim
-#from numpy.core.function_base import linspace
 from copy import deepcopy
 import sampling
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib.patches as mpatches
-from scipy.stats import chi2
 import scipy
+from scipy.stats import chi2
 import corner
-import matplotlib as mpl
 import light_curve_simulation
 
 
@@ -111,7 +109,7 @@ def magnification(m, theta, ts, caustics = None, label = None, color = None, alp
     epochs = np.linspace(ts[0], ts[1], 720)
 
     if caustics is not None:
-        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': 0.006})
+        model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = color, linewidth = 1, alpha = alpha, arrow_kwargs = {'width': caustics})
         model.plot_caustics(color = color, s = 1, marker = 'o', n_points = 10000)
 
     else:

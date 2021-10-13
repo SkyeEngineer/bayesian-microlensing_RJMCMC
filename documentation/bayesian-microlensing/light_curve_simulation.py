@@ -4,7 +4,6 @@ Functions to generate simple synthetic light curves, accurate in the context
 of ROMAN. Functions to calculate likelihood given a lensing model.
 """
 
-
 import MulensModel as mm 
 import math
 import numpy as np

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>bayelens.sampling API documentation</title>
+<title>bayesian-microlensing.sampling API documentation</title>
 <meta name="description" content="Adaptive Reversible-Jump Metropolis Hastings for microlensing …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>bayelens.sampling</code></h1>
+<h1 class="title">Module <code>bayesian-microlensing.sampling</code></h1>
 </header>
 <section id="section-intro">
 <p>Adaptive Reversible-Jump Metropolis Hastings for microlensing.</p>
@@ -254,10 +254,7 @@ def iterative_covariance(cov, x, x_mu, n, s, I, eps = 1e-12):
 def check_symmetric(A, tol = 1e-16):
     return np.all(np.abs(A-A.T) &lt; tol)
 
-
-
 def gaussian_proposal(theta, covariance):
-    &#34;&#34;&#34;Samples a gaussian move.&#34;&#34;&#34;
     return multivariate_normal.rvs(mean = theta, cov = covariance)
 
 def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False):
@@ -420,7 +417,7 @@ def schur_complement(cov, s):
 def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repetitions = 1, user_feedback = False):
     &#34;&#34;&#34;Prepares a model for the ARJMH algorithm.
     
-    Repeats the adaptive MH warmup process for a model, storing the best run.
+    Repeats the AMH warmup process for a model, storing the best run.
 
     Args:
         empty_model: [model] Initial model object.
@@ -442,8 +439,8 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
 
         model = deepcopy(empty_model) # Fresh model.
 
-        # Run adaptive MH.
-        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations = fixed_iterations, user_feedback = user_feedback)
+        # Run AMH.
+        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations, user_feedback)
 
         # Keep the best posterior density run.
         if inc_log_best_posterior &lt; log_best_posterior:
@@ -456,8 +453,8 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
 def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterations = 25, warm_up_repititions = 1, user_feedback = False):
     &#34;&#34;&#34;Samples from a joint distribution of models.
     
-    Initialises each model with multiple adaptive MH runs. Then uses the resulting
-    covariances to run adaptive RJMH on all models.
+    Initialises each model with multiple AMH runs. Then uses the resulting
+    covariances to run ARJMH on all models.
 
     Args:
         models: [list] Model objects to sample from. 
@@ -618,7 +615,7 @@ def output_file(models, warm_up_iterations, joint_model_chain, total_acc, n_epoc
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="bayelens.sampling.AMH"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.AMH"><code class="name flex">
 <span>def <span class="ident">AMH</span></span>(<span>model, adaptive_iterations, fixed_iterations=25, user_feedback=False)</span>
 </code></dt>
 <dd>
@@ -743,13 +740,13 @@ one model, as described in Haario et al (2001).</p>
     return best_theta, log_best_posterior</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.ARJMH"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.ARJMH"><code class="name flex">
 <span>def <span class="ident">ARJMH</span></span>(<span>models, iterations, adaptive_warm_up_iterations, fixed_warm_up_iterations=25, warm_up_repititions=1, user_feedback=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Samples from a joint distribution of models.</p>
-<p>Initialises each model with multiple adaptive MH runs. Then uses the resulting
-covariances to run adaptive RJMH on all models.</p>
+<p>Initialises each model with multiple AMH runs. Then uses the resulting
+covariances to run ARJMH on all models.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>models</code></strong></dt>
@@ -783,8 +780,8 @@ Should be sorted by increasing dimensionality.</dd>
 <pre><code class="python">def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterations = 25, warm_up_repititions = 1, user_feedback = False):
     &#34;&#34;&#34;Samples from a joint distribution of models.
     
-    Initialises each model with multiple adaptive MH runs. Then uses the resulting
-    covariances to run adaptive RJMH on all models.
+    Initialises each model with multiple AMH runs. Then uses the resulting
+    covariances to run ARJMH on all models.
 
     Args:
         models: [list] Model objects to sample from. 
@@ -895,7 +892,7 @@ Should be sorted by increasing dimensionality.</dd>
     return joint_model_chain, total_acc, inter_model_history</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.ARJMH_proposal"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.ARJMH_proposal"><code class="name flex">
 <span>def <span class="ident">ARJMH_proposal</span></span>(<span>model, proposed_model, theta, lv)</span>
 </code></dt>
 <dd>
@@ -973,7 +970,7 @@ Should be sorted by increasing dimensionality.</dd>
             return proposed_theta</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.check_symmetric"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.check_symmetric"><code class="name flex">
 <span>def <span class="ident">check_symmetric</span></span>(<span>A, tol=1e-16)</span>
 </code></dt>
 <dd>
@@ -986,21 +983,20 @@ Should be sorted by increasing dimensionality.</dd>
     return np.all(np.abs(A-A.T) &lt; tol)</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.gaussian_proposal"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.gaussian_proposal"><code class="name flex">
 <span>def <span class="ident">gaussian_proposal</span></span>(<span>theta, covariance)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Samples a gaussian move.</p></div>
+<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def gaussian_proposal(theta, covariance):
-    &#34;&#34;&#34;Samples a gaussian move.&#34;&#34;&#34;
     return multivariate_normal.rvs(mean = theta, cov = covariance)</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.iterative_covariance"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.iterative_covariance"><code class="name flex">
 <span>def <span class="ident">iterative_covariance</span></span>(<span>cov, x, x_mu, n, s, I, eps=1e-12)</span>
 </code></dt>
 <dd>
@@ -1013,7 +1009,7 @@ Should be sorted by increasing dimensionality.</dd>
     return (n-1)/n * cov + s/(n+1) * np.outer(x - x_mu, x - x_mu) + s*eps*I/n</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.iterative_mean"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.iterative_mean"><code class="name flex">
 <span>def <span class="ident">iterative_mean</span></span>(<span>x_mu, x, n)</span>
 </code></dt>
 <dd>
@@ -1026,7 +1022,7 @@ Should be sorted by increasing dimensionality.</dd>
     return (x_mu * n + x)/(n + 1)</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.output_file"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.output_file"><code class="name flex">
 <span>def <span class="ident">output_file</span></span>(<span>models, warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn, letters, name='', event_params=None)</span>
 </code></dt>
 <dd>
@@ -1077,7 +1073,7 @@ Should be sorted by increasing dimensionality.</dd>
     return</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.schur_complement"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.schur_complement"><code class="name flex">
 <span>def <span class="ident">schur_complement</span></span>(<span>cov, s)</span>
 </code></dt>
 <dd>
@@ -1096,12 +1092,12 @@ Should be sorted by increasing dimensionality.</dd>
     return c_11 - c_12.dot(c_22_inv).dot(c_21)</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.warm_up_model"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.warm_up_model"><code class="name flex">
 <span>def <span class="ident">warm_up_model</span></span>(<span>empty_model, adaptive_iterations, fixed_iterations=25, repetitions=1, user_feedback=False)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Prepares a model for the ARJMH algorithm.</p>
-<p>Repeats the adaptive MH warmup process for a model, storing the best run.</p>
+<p>Repeats the AMH warmup process for a model, storing the best run.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>empty_model</code></strong></dt>
@@ -1127,7 +1123,7 @@ Should be sorted by increasing dimensionality.</dd>
 <pre><code class="python">def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repetitions = 1, user_feedback = False):
     &#34;&#34;&#34;Prepares a model for the ARJMH algorithm.
     
-    Repeats the adaptive MH warmup process for a model, storing the best run.
+    Repeats the AMH warmup process for a model, storing the best run.
 
     Args:
         empty_model: [model] Initial model object.
@@ -1149,8 +1145,8 @@ Should be sorted by increasing dimensionality.</dd>
 
         model = deepcopy(empty_model) # Fresh model.
 
-        # Run adaptive MH.
-        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations = fixed_iterations, user_feedback = user_feedback)
+        # Run AMH.
+        best_theta, log_best_posterior = AMH(model, adaptive_iterations, fixed_iterations, user_feedback)
 
         # Keep the best posterior density run.
         if inc_log_best_posterior &lt; log_best_posterior:
@@ -1165,7 +1161,7 @@ Should be sorted by increasing dimensionality.</dd>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="bayelens.sampling.Chain"><code class="flex name class">
+<dt id="bayesian-microlensing.sampling.Chain"><code class="flex name class">
 <span>class <span class="ident">Chain</span></span>
 <span>(</span><span>m, state)</span>
 </code></dt>
@@ -1256,7 +1252,7 @@ Should be sorted by increasing dimensionality.</dd>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="bayelens.sampling.Chain.add_general_state"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.Chain.add_general_state"><code class="name flex">
 <span>def <span class="ident">add_general_state</span></span>(<span>self, m, state)</span>
 </code></dt>
 <dd>
@@ -1285,7 +1281,7 @@ Should be sorted by increasing dimensionality.</dd>
     return</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.Chain.states_array"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.Chain.states_array"><code class="name flex">
 <span>def <span class="ident">states_array</span></span>(<span>self, scaled=True)</span>
 </code></dt>
 <dd>
@@ -1337,7 +1333,7 @@ for all states.</dd>
 </dd>
 </dl>
 </dd>
-<dt id="bayelens.sampling.Model"><code class="flex name class">
+<dt id="bayesian-microlensing.sampling.Model"><code class="flex name class">
 <span>class <span class="ident">Model</span></span>
 <span>(</span><span>m, D, centre, priors, covariance, data, log_likelihood_fnc)</span>
 </code></dt>
@@ -1484,7 +1480,7 @@ from this model.</dd>
 </details>
 <h3>Methods</h3>
 <dl>
-<dt id="bayelens.sampling.Model.add_state"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.Model.add_state"><code class="name flex">
 <span>def <span class="ident">add_state</span></span>(<span>self, theta, adapt=True)</span>
 </code></dt>
 <dd>
@@ -1522,7 +1518,7 @@ matrix based on the new state.</dd>
     return</code></pre>
 </details>
 </dd>
-<dt id="bayelens.sampling.Model.log_prior_density"><code class="name flex">
+<dt id="bayesian-microlensing.sampling.Model.log_prior_density"><code class="name flex">
 <span>def <span class="ident">log_prior_density</span></span>(<span>self, theta, v=None, v_D=None)</span>
 </code></dt>
 <dd>
@@ -1582,7 +1578,7 @@ matrix based on the new state.</dd>
 </dd>
 </dl>
 </dd>
-<dt id="bayelens.sampling.State"><code class="flex name class">
+<dt id="bayesian-microlensing.sampling.State"><code class="flex name class">
 <span>class <span class="ident">State</span></span>
 <span>(</span><span>truth=None, scaled=None)</span>
 </code></dt>
@@ -1658,41 +1654,41 @@ the mass ratio.</p>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="bayelens" href="index.html">bayelens</a></code></li>
+<li><code><a title="bayesian-microlensing" href="index.html">bayesian-microlensing</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="bayelens.sampling.AMH" href="#bayelens.sampling.AMH">AMH</a></code></li>
-<li><code><a title="bayelens.sampling.ARJMH" href="#bayelens.sampling.ARJMH">ARJMH</a></code></li>
-<li><code><a title="bayelens.sampling.ARJMH_proposal" href="#bayelens.sampling.ARJMH_proposal">ARJMH_proposal</a></code></li>
-<li><code><a title="bayelens.sampling.check_symmetric" href="#bayelens.sampling.check_symmetric">check_symmetric</a></code></li>
-<li><code><a title="bayelens.sampling.gaussian_proposal" href="#bayelens.sampling.gaussian_proposal">gaussian_proposal</a></code></li>
-<li><code><a title="bayelens.sampling.iterative_covariance" href="#bayelens.sampling.iterative_covariance">iterative_covariance</a></code></li>
-<li><code><a title="bayelens.sampling.iterative_mean" href="#bayelens.sampling.iterative_mean">iterative_mean</a></code></li>
-<li><code><a title="bayelens.sampling.output_file" href="#bayelens.sampling.output_file">output_file</a></code></li>
-<li><code><a title="bayelens.sampling.schur_complement" href="#bayelens.sampling.schur_complement">schur_complement</a></code></li>
-<li><code><a title="bayelens.sampling.warm_up_model" href="#bayelens.sampling.warm_up_model">warm_up_model</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.AMH" href="#bayesian-microlensing.sampling.AMH">AMH</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.ARJMH" href="#bayesian-microlensing.sampling.ARJMH">ARJMH</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.ARJMH_proposal" href="#bayesian-microlensing.sampling.ARJMH_proposal">ARJMH_proposal</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.check_symmetric" href="#bayesian-microlensing.sampling.check_symmetric">check_symmetric</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.gaussian_proposal" href="#bayesian-microlensing.sampling.gaussian_proposal">gaussian_proposal</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.iterative_covariance" href="#bayesian-microlensing.sampling.iterative_covariance">iterative_covariance</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.iterative_mean" href="#bayesian-microlensing.sampling.iterative_mean">iterative_mean</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.output_file" href="#bayesian-microlensing.sampling.output_file">output_file</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.schur_complement" href="#bayesian-microlensing.sampling.schur_complement">schur_complement</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.warm_up_model" href="#bayesian-microlensing.sampling.warm_up_model">warm_up_model</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="bayelens.sampling.Chain" href="#bayelens.sampling.Chain">Chain</a></code></h4>
+<h4><code><a title="bayesian-microlensing.sampling.Chain" href="#bayesian-microlensing.sampling.Chain">Chain</a></code></h4>
 <ul class="">
-<li><code><a title="bayelens.sampling.Chain.add_general_state" href="#bayelens.sampling.Chain.add_general_state">add_general_state</a></code></li>
-<li><code><a title="bayelens.sampling.Chain.states_array" href="#bayelens.sampling.Chain.states_array">states_array</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.Chain.add_general_state" href="#bayesian-microlensing.sampling.Chain.add_general_state">add_general_state</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.Chain.states_array" href="#bayesian-microlensing.sampling.Chain.states_array">states_array</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="bayelens.sampling.Model" href="#bayelens.sampling.Model">Model</a></code></h4>
+<h4><code><a title="bayesian-microlensing.sampling.Model" href="#bayesian-microlensing.sampling.Model">Model</a></code></h4>
 <ul class="">
-<li><code><a title="bayelens.sampling.Model.add_state" href="#bayelens.sampling.Model.add_state">add_state</a></code></li>
-<li><code><a title="bayelens.sampling.Model.log_prior_density" href="#bayelens.sampling.Model.log_prior_density">log_prior_density</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.Model.add_state" href="#bayesian-microlensing.sampling.Model.add_state">add_state</a></code></li>
+<li><code><a title="bayesian-microlensing.sampling.Model.log_prior_density" href="#bayesian-microlensing.sampling.Model.log_prior_density">log_prior_density</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="bayelens.sampling.State" href="#bayelens.sampling.State">State</a></code></h4>
+<h4><code><a title="bayesian-microlensing.sampling.State" href="#bayesian-microlensing.sampling.State">State</a></code></h4>
 </li>
 </ul>
 </li>
