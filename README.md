@@ -53,7 +53,7 @@ joint_model_chain, total_acc_history, inter_model_acc_history = \
 For more detailed use cases, see **examples.py** and **robustness.py**.
 
 ## Documentation
-For generated documentation, see **\documentation\bayesian-microlensing\html\bayesian-microlensing\index.html**
+For detailed documentation, see https://dominicck.github.io/bayesian-microlensing/.
 
 ## Authors and Acknowledgements
 Created by Dominic Keehan.
