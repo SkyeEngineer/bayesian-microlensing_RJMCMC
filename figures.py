@@ -14,7 +14,7 @@ if __name__ == "__main__":
         
     plotting.style()
 
-    if False:
+    if True:
 
         theta_r = sampling.State(truth=[50, 0.5, 25, 0.5, 1.0, 295])
         ts = [0, 72]
@@ -32,9 +32,122 @@ if __name__ == "__main__":
         ax.axes.xaxis.set_visible(False)
         ax.axes.yaxis.set_visible(False)
 
-        plt.savefig('figures/binary.png', bbox_inches="tight", dpi=250, transparent=True)
+        #plt.savefig('figures/binary.png', bbox_inches="tight", dpi=100, transparent=True)
         plt.clf()
 
+        theta_r = sampling.State(truth=[50, 0.5, 25, 0.5, 1.0, 295])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 55], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary1.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r = sampling.State(truth=[50, 0.45, 25, 0.5, 1.0, 287])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 55], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary2.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r = sampling.State(truth=[50, 0.4, 25, 0.5, 1.0, 282])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 60], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary3.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r = sampling.State(truth=[50, 0.35, 25, 0.5, 1.0, 277])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 65], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary4.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r = sampling.State(truth=[50, 0.3, 25, 0.5, 1.0, 270])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 65], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary5.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r = sampling.State(truth=[50, 0.25, 25, 0.5, 1.0, 263])
+        ts = [0, 72]
+
+        plotting.magnification(1, theta_r, ts, color="black")
+
+        plt.xlabel('Time [days]')
+        plt.ylabel('Magnification')
+        plt.tick_params(axis="both", which="major", labelsize=12)
+        plt.tight_layout()
+
+        plt.axes([0.225, 0.505, 0.4, 0.4])
+        plotting.magnification(1, theta_r, [35, 66], caustics=0.02, color="orange")
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+
+        plt.savefig('figures/binary6.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
 
 
         theta_r = sampling.State(truth=[50, 0.5, 10])
@@ -47,7 +160,7 @@ if __name__ == "__main__":
         plt.tick_params(axis="both", which="major", labelsize=12)
         plt.tight_layout()
 
-        plt.savefig('figures/single.png', bbox_inches="tight", dpi=250, transparent=True)
+        #plt.savefig('figures/single.png', bbox_inches="tight", dpi=50, transparent=True)
         plt.clf()
 
 
