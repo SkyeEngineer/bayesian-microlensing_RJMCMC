@@ -25,8 +25,6 @@ def read_light_curve(file_name):
 
     data = mm.MulensData(data_list = [array[:, 0], array[:, 1], array[:, 2]], phot_fmt = "flux", chi2_fmt = "flux")
 
-    test=5
-
     return data
 
 
