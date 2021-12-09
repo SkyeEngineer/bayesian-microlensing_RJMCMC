@@ -140,14 +140,20 @@ class Model(object):
         s: [float] Mixing parameter (see Haario et al 2001).
     """
 
-    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc):
+    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc, samples=None):
         """Initialises the model."""
         self.m = m
         self.D = D
         self.priors = priors
         self.centre = centre
+
+        #if samples is not None:
+        #    self.sampled = samples
+
+        #else:
         self.sampled = Chain(m, centre)
         self.scaled_avg_state = centre.scaled
+        
         self.acc = [1] # First state always accepted.
         self.covariance = covariance
         self.covariances = [covariance]
@@ -176,7 +182,7 @@ class Model(object):
 
         self.covariances.append(self.covariance)
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
-        self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
+        #self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
 
         return
 
@@ -336,7 +342,7 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
     """
     l = theta.scaled - model.centre.scaled # Offset from initial model's centre.
 
-    if model is proposed_model: # Intra-model move.
+    if proposed_model.D == model.D:#model is proposed_model: # Intra-model move.
 
         # Use the covariance at the proposed model's centre for local shape.
         u = gaussian_proposal(np.zeros((proposed_model.D)), proposed_model.covariance)
@@ -450,6 +456,8 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
     for m_i in range(len(models)):
         models[m_i] = warm_up_model(models[m_i], adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
 
+    #print(models[1].covariance)
+
     random.seed(42)
 
     # Choose a random model to start in.
@@ -476,6 +484,7 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta, v = v, v_D = v_D)
 
+    np.set_printoptions(precision=2)
 
     if user_feedback: print("Running ARJMH.")
     for i in range(1, iterations): # ARJMH algorithm.
@@ -486,9 +495,12 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
 
         # Propose a new model and state and calculate the resulting density.
         proposed_model = random.choice(models)
+
         proposed = State(scaled = ARJMH_proposal(model, proposed_model, theta, lv))
         log_likelihood_proposed = proposed_model.log_likelihood(proposed)
         log_prior_proposed = proposed_model.log_prior_density(proposed, v = v, v_D = v_D)
+        #print(proposed_model)
+        #print(theta.truth, proposed.truth, np.exp(log_likelihood_proposed - log_likelihood), np.exp(log_prior_proposed - log_prior))
 
         # Metropolis acceptance criterion.
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
@@ -528,8 +540,10 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
 
     if user_feedback:
         print(f"\n average acc: {np.average(total_acc):4f}")
-        print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
-        print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
+        for i in range(len(models)):
+            print("P(m"+str(i)+"|y): " + str(joint_model_chain.model_indices.count(i) / iterations))
+        #    print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
+        #print(joint_model_chain.model_indices)
 
     return joint_model_chain, total_acc, inter_model_history
 

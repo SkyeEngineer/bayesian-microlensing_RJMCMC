@@ -25,19 +25,19 @@ if __name__ == "__main__":
     """User Settings"""
 
     # Synthetic light curve to generate.
-    n_suite = 3
+    n_suite = 0
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
-    use_surrogate_posterior = False#True
+    use_surrogate_posterior = True
 
     # Warm up parameters.
     fixed_warm_up_iterations = 25#25
     adaptive_warm_up_iterations = 975#975
-    warm_up_repititions = 2#2
+    warm_up_repititions = 1#2
 
     # Algorithm parameters.
-    iterations = 20000#20000
+    iterations = 4000#20000
 
     # Output parameters.
     n_pixels = 2#25 # Density for posterior contour plot.
@@ -50,14 +50,14 @@ if __name__ == "__main__":
 
     # Synthetic event parameters.
     model_parameters = [
-        [15, 0.1, 10, 0.01, 0.2, 60],  # 0
+        [15, 0.1, 10, 0.00001, 0.3, 60],  # 0
         [15, 0.1, 10, 0.01, 0.3, 60],  # 1
         [15, 0.1, 10, 0.01, 0.5, 60],  # 2
         [15, 0.1, 10, 0.01, 0.7, 60]]  # 3
     event_params = sampling.State(truth = model_parameters[n_suite])
 
     # Model index for parameters.
-    model_types = [0, 1, 1, 1]
+    model_types = [1, 1, 1, 1]
     model_type = model_types[n_suite]
 
     # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
@@ -78,10 +78,26 @@ if __name__ == "__main__":
 
     # Get initial centre points.
     if use_surrogate_posterior == True:
-        single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
-        fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
+        single_sp = surrogate_posteriors.Surrogate_Posterior(0, data.flux)
+        single_sp.sample(50000)
+        single_sp.get_modes()
+        #print(single_sp.modes[0])
+        single_centre = sampling.State(truth=single_sp.modes[0])#max_aposteriori())#single_sp.modes[0])
+        #single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
+        binary_sp = surrogate_posteriors.Surrogate_Posterior(1, light_curve_simulation.synthetic_binary(event_params, 7200, sn_base).flux-1)
+        binary_sp.sample(50000)
+        binary_sp.get_modes()
+        fin_rho = binary_sp.modes[0]#max_aposteriori()
         # Remove finite source size parameter from neural network.
         binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+        fin_rho2 = binary_sp.modes[1]#max_aposteriori()
+        # Remove finite source size parameter from neural network.
+        ternary_centre = sampling.State(truth = np.array([fin_rho2[0], fin_rho2[1], fin_rho2[2], fin_rho2[4], fin_rho2[5], fin_rho2[6]]))
+
+
+        #fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
+        # Remove finite source size parameter from neural network.
+        #binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
 
     else: # Use known values from previous maximising of posterior for centres.
         single_centres = [
@@ -104,11 +120,14 @@ if __name__ == "__main__":
     np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [1, 0.1, 1]))
     binary_covariance = np.zeros((6, 6))
     np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [1, 0.1, 1, 0.1, 0.1, 10]))
+    ternary_covariance = np.zeros((6, 6))
+    np.fill_diagonal(ternary_covariance, np.multiply(covariance_scale, [1, 0.1, 1, 0.1, 0.1, 10]))
 
     # Models.
     single_Model = sampling.Model(0, 3, single_centre, priors, single_covariance, data, light_curve_simulation.single_log_likelihood)
     binary_Model = sampling.Model(1, 6, binary_centre, priors, binary_covariance, data, light_curve_simulation.binary_log_likelihood)
-    Models = [single_Model, binary_Model]
+    ternary_Model = sampling.Model(2, 6, ternary_centre, priors, ternary_covariance, data, light_curve_simulation.binary_log_likelihood)
+    Models = [single_Model, binary_Model, ternary_Model]
 
     # Run algorithm.
     start_time = (time.time())

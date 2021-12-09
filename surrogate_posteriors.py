@@ -8,6 +8,11 @@ import os
 import os.path
 from pathlib import Path
 
+import pickle
+import io
+from sbi.inference.posteriors.direct_posterior import DirectPosterior
+import torch
+
 from sklearn.cluster import OPTICS
 from sklearn.preprocessing import MinMaxScaler
 
@@ -29,12 +34,16 @@ class Surrogate_Posterior(object):
         #path = (str(Path(path).parents[0]))
 
         if m == 0:
-            with open(path+"/distributions/single_25K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
+            #with open(path+"/distributions/single_25K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
+            self.distribution = load_posterior(path+"/distributions/single_25K_720.pkl")
 
         if m == 1:
-            with open(path+"/distributions/binary_100K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
+            #with open(path+"/distributions/binary_100K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
+            self.distribution = load_posterior(path+"/distributions/binary_500K_7200_LONG_10.pkl")
 
-        self.distribution = distribution
+
+
+        #self.distribution = distribution
 
         self.data = data
 
@@ -71,6 +80,7 @@ class Surrogate_Posterior(object):
         print(f"{n_clusters_} modes, {n_noise_} samples not assigned... ")
 
         modes = []
+        mode_samples = []
 
         # Go through each cluster and find statistics
         for i in range(n_clusters_):
@@ -96,11 +106,13 @@ class Surrogate_Posterior(object):
                 mode_i[j] = temp[1]
 
             modes.append(mode_i)
+            mode_samples.append(np.array(samples_i))
 
             if latex_output:
                 print(latex_string)
 
         self.modes = np.array(modes)
+        self.mode_samples = np.array(mode_samples)
 
         return
 
@@ -117,7 +129,7 @@ class Surrogate_Posterior(object):
         Returns:
             centre: [list] Estimated parameter values of maximum.
         """
-        centre = np.array(np.float64(self.distribution.map(self.data, num_iter = 100, num_init_samples = 100, show_progress_bars = False)))
+        centre = np.array(np.float64(self.distribution.map(self.data, num_iter=100, num_init_samples=100, show_progress_bars=False)))
         
         print(centre)
 
@@ -125,6 +137,48 @@ class Surrogate_Posterior(object):
 
 
 
+
+
+def fix(map_loc):
+    # Closure rather than a lambda to preserve map_loc
+    return lambda b: torch.load(io.BytesIO(b), map_location=map_loc)
+
+
+class MappedUnpickler(pickle.Unpickler):
+    """Open a pickle file and map to correct device at the same time. Used to load GPU posteriors on CPU. https://github.com/pytorch/pytorch/issues/16797#issuecomment-633423219."""
+
+    def __init__(self, *args, map_location="cpu", **kwargs):
+        """Create mapped unpickler which loads pickle file onto specified device.
+
+        Args:
+            map_location (str, optional): location to load pickle file onto. Defaults to "cpu".
+        """
+        self._map_location = map_location
+        super().__init__(*args, **kwargs)
+
+    def find_class(self, module, name):
+        if module == "torch.storage" and name == "_load_from_bytes":
+            return fix(self._map_location)
+        else:
+            return super().find_class(module, name)
+
+
+def load_posterior(filename: str) -> DirectPosterior:
+    """Load pickled posterior onto CPU.
+
+    Args:
+        filename (str): path to pickled posterior.
+
+    Returns:
+        DirectPosterior: posterior transferred to CPU.
+    """
+    with open(filename, "rb") as handle:
+        unpickler = MappedUnpickler(handle, map_location="cpu")
+        posterior = unpickler.load()
+
+    posterior._device = torch.device("cpu")
+
+    return posterior
 
 
 
