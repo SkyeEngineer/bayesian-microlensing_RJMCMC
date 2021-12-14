@@ -55,40 +55,6 @@ class Log_Uniform(object):
         return self.dist.logpdf(x)
 
 
-class Cut_Log_Uniform(object):
-    """A log uniform distribution.
-
-    The log of the data is uniformly distributed.
-
-    Attributes:
-        lb: [float] Lower bound for support.
-        rb: [float] Upper bound for support.
-        tl: [float] Lower bound for support.
-        tr: [float] Upper bound for support.
-
-    """
-
-    def __init__(self, left, right, t_lower, t_upper):
-        """Initialises Log uniform with bounds and sampler."""
-        self.lb = left
-        self.rb = right
-        self.tl = t_lower
-        self.tr = t_upper
-        self.dist = loguniform(left, right)
-
-        # Probability that is otherwise truncated to zero, distributed uniformly (aprroximation).
-        self.truncation = (1-(self.dist.cdf(t_upper)-self.dist.cdf(t_lower))) / (t_upper - t_lower)
-
-    def in_bound(self, x):
-        """Check if value is in support."""
-        if self.tl <= x <= self.tr: return 1
-        else: return 0
-
-    def log_pdf(self, x):
-        """Calculate log probability density."""
-        if  self.tl <= x <= self.tr: return np.log(self.dist.pdf(x) + self.truncation)
-        else: return -math.inf # If out of support.
-
 
 class Truncated_Log_Normal(object):
     """A truncated log normal distribution.

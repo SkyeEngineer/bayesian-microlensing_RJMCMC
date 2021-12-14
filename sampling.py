@@ -35,6 +35,9 @@ class State(object):
             self.truth = truth
             self.D = len(truth)
 
+            if self.D > 3:
+                self.truth[5] = truth[5] % 360 # Radial symmetry of alpha.
+
             self.scaled = deepcopy(self.truth)
             for p in range(self.D):
                 if p == 3:
@@ -43,6 +46,9 @@ class State(object):
         elif scaled is not None:
             self.scaled = scaled
             self.D = len(scaled)
+
+            if self.D > 3:
+                self.scaled[5] = scaled[5] % 360 # Radial symmetry of alpha.
 
             self.truth = deepcopy(self.scaled)
             for p in range(self.D):

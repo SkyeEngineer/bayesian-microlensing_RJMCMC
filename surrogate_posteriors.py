@@ -49,6 +49,7 @@ class Surrogate_Posterior(object):
 
 
     def sample(self, n):
+        np.random.RandomState(42)
         self.samples = self.distribution.sample((n,), x=self.data, show_progress_bars=False)
         
         return
@@ -68,7 +69,7 @@ class Surrogate_Posterior(object):
         scaled_samples = MinMaxScaler().fit_transform(self.samples.numpy())
 
         # Apply OPTICS sampler with specified settings and fit to samples
-        clust = OPTICS(min_samples=50, min_cluster_size=100, xi=0.05, max_eps=0.1).fit(
+        clust = OPTICS(min_samples=50, min_cluster_size=100, xi=0.1, max_eps=0.1).fit(
             scaled_samples
         )
 
