@@ -25,22 +25,22 @@ if __name__ == "__main__":
     """User Settings"""
 
     # Synthetic light curve to generate.
-    n_suite = 0
+    n_suite = 1
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
     use_surrogate_posterior = True
 
     # Warm up parameters.
-    fixed_warm_up_iterations = 50
-    adaptive_warm_up_iterations = 950#975
-    warm_up_repititions = 1#2
+    fixed_warm_up_iterations = 250
+    adaptive_warm_up_iterations = 750#975
+    warm_up_repititions = 2
 
     # Algorithm parameters.
-    iterations = 5000#20000
+    iterations = 10000#20000
 
     # Output parameters.
-    #n_pixels = 2#25 # Density for posterior contour plot.
+    n_pixels = 2#25 # Density for posterior contour plot.
     dpi = 100
     user_feedback = True
 
@@ -50,9 +50,9 @@ if __name__ == "__main__":
 
     # Synthetic event parameters.
     model_parameters = [
-        [15, 0.1, 10, 0.01, 0.3, 60],  # 0
+        [15, 0.1, 10, 0.01, 0.2, 60],  # 0
         [15, 0.1, 10, 0.01, 0.3, 60],  # 1
-        [15, 0.1, 10, 0.01, 0.5, 60],  # 2
+        [15, 0.1, 10, 0.01, 0.4, 60],  # 2
         [15, 0.1, 10, 0.01, 0.7, 60]]  # 3
     event_params = sampling.State(truth = model_parameters[n_suite])
 
@@ -81,7 +81,6 @@ if __name__ == "__main__":
         single_sp = surrogate_posteriors.Surrogate_Posterior(0, light_curve_simulation.synthetic_binary(event_params, 720, sn_base).flux)
         single_sp.sample(10000)
         single_sp.get_modes()
-        #print(single_sp.modes[0])
         single_centre = sampling.State(truth=single_sp.modes[0])#max_aposteriori())#single_sp.modes[0])
         #single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
         binary_sp = surrogate_posteriors.Surrogate_Posterior(1, light_curve_simulation.synthetic_binary(event_params, 7200, sn_base).flux-1)
@@ -156,7 +155,7 @@ if __name__ == "__main__":
     #pltf.adaption_contraction(single_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-single', dpi)
     #pltf.adaption_contraction(inter_model_history, iterations, name+'-inter', dpi)
 
-    acf.plot_act(joint_model_chain, symbols, name, dpi)
+    #acf.plot_act(joint_model_chain, symbols, name, dpi)
     #acf.attempt_truncation(Models, joint_model_chain)
     #sampling.output_file(Models, adaptive_warm_up_iterations + fixed_warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn_base, letters, name, event_params)
 
@@ -164,11 +163,25 @@ if __name__ == "__main__":
     plt.plot(np.linspace(0, joint_model_chain.n, joint_model_chain.n), joint_model_chain.model_indices, linewidth = 0.25, color = 'purple')
     plt.xlabel('Samples')
     plt.ylabel(r'$m_i$')
-    #plt.locator_params(axis = "y", nbins = 2) # only two ticks
+    plt.locator_params(axis = "y", nbins = 2) # only two ticks
     plt.savefig('results/'+name+'-mtrace.png', bbox_inches = 'tight', dpi = dpi, transparent=True)
     plt.clf()
 
-    #pltf.density_heatmaps(binary_Model, n_pixels, data, symbols, event_params, 1, name, dpi)
-    pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
+    warm_up_iterations = adaptive_warm_up_iterations + fixed_warm_up_iterations
+    # Extract points.
+    #if isinstance(supset_model, list):
+    #    supset_states = np.concatenate((supset_model[0].sampled.states_array(scaled = True)[:, warm_up_iterations:], supset_model[1].sampled.states_array(scaled = True)[:, warm_up_iterations:]), axis=1)
+    #else:
+    binary_states = binary_Model.sampled.states_array(scaled = True)[:, warm_up_iterations:]
+    single_states = single_Model.sampled.states_array(scaled = True)[:, warm_up_iterations:]
+
+    import pickle 
+    object = [binary_states, single_states, warm_up_iterations, symbols, event_params, name, dpi]
+    filehandler = open('temp.obj', 'wb') 
+    pickle.dump(object, filehandler)
+
+    pltf.joint_samples_pointilism_2(binary_states, single_states, warm_up_iterations, symbols, event_params, name, dpi)
+    #pltf.surrogate_samples_pointilism(binary_Model, single_Model, binary_sp, single_sp, symbols, name, dpi)
     #pltf.joint_samples_pointilism(ternary_Model, single_Model, joint_model_chain, symbols, '1/1sussybaka', dpi)
     #pltf.centre_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)
+    #ltf.density_heatmaps(binary_Model, n_pixels, data, symbols, event_params, 1, name, dpi)

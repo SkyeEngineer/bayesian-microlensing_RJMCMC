@@ -82,15 +82,24 @@ class Surrogate_Posterior(object):
 
         modes = []
         mode_samples = []
+        n_samples = []
+
+        # Sort by samples.
+        for i in range(n_clusters_):
+            n_samples.append(len(self.samples[labels == i]))
+        order = np.argsort(n_samples)
+        order = np.flip(order)
 
         # Go through each cluster and find statistics
-        for i in range(n_clusters_):
+        k = 0
+        for i in order:
+
             samples_i = self.samples[labels == i]
 
             mode_i = np.zeros((samples_i.shape[1]))
 
-            print(f"\nMode: {i}")
-
+            print(f"\nMode: {k} assigned {len(samples_i)}")
+            k += 1
             latex_string = ""
 
             for j in range(samples_i.shape[1]):

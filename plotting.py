@@ -15,6 +15,7 @@ import scipy
 from scipy.stats import chi2
 import corner
 import light_curve_simulation
+import seaborn as sns
 
 
 def adaption_contraction(model, total_iterations, name = '', dpi = 100):
@@ -502,6 +503,317 @@ def joint_samples_pointilism(supset_model, subset_model, joint_model_chain, symb
                 #axt.locator_params(nbins = n_lb) # 3 ticks max
 
     figure.savefig('results/' + name + '-joint-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
+    figure.clf()
+
+    return
+
+from matplotlib.colors import ListedColormap
+
+def faded_cmap(cmap):
+    # Get the colormap colors
+    my_cmap = cmap(np.arange(cmap.N))
+
+    # Set alpha
+    my_cmap[:,-1] = (np.linspace(0, 1, cmap.N))
+
+    # Create new colormap
+    faded_cmap = ListedColormap(my_cmap)
+
+    return faded_cmap
+
+def joint_samples_pointilism_2(supset_states, subset_states, warm_up_iterations, symbols, event_params = None, name = '', dpi = 100):
+    """Plot the joint posterior surface of two models.
+
+    Args:
+        supset_model: [model] Larger parameter space model.
+        subset_model: [model] Smaller parameter space model.
+        joint_model_chain: [chain] Generalised chain with states from both models.
+        symbols: [list] Strings to label plots with.
+    """
+
+    # Fonts/visibility.
+    label_size = 20
+    #lr = 45 # label rotation
+    n_ticks = 3 # tick labels
+    plt.locator_params(axis='both', nbins=n_ticks)
+
+    # Model sizing.
+    N_dim = 6#supset_model.D
+    n_dim = 3#subset_model.D
+
+    figure = corner.corner(supset_states.T)
+
+    style()
+ # Use corner for layout/sizing.
+
+    # Fonts/visibility.
+    plt.rcParams['font.size'] = 14
+    #plt.rcParams['axes.titlesize'] = 20
+    plt.rcParams['axes.labelsize'] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((N_dim, N_dim))
+
+    # Loop diagonal.
+    for i in range(N_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+
+        if i<3:
+            ax.hist(np.concatenate((supset_states[i, :], subset_states[i, :])), bins = 10, density = True, color = 'black', alpha = 1)
+            #ax.hist(np.concatenate((surrogate_supset_states[i, :], surrogate_subset_states[i, :])), bins = 10, density = True, color = 'pink', alpha = 0.75)
+        else:
+            ax.hist(supset_states[i, :], bins = 10, density = True, color = 'black', alpha = 1)
+            #ax.hist(surrogate_supset_states[i, :], bins = 10, density = True, color = 'pink', alpha = 0.75)
+
+        if event_params is not None:
+            xlim = ax.get_xlim()                
+            ax.axvline(event_params.scaled[i], label = r'$\theta$', color = 'tab:orange', ls = '-', lw = 3)
+            ax.set_xlim(xlim)
+
+        if i == 0: # First diagonal tile.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.tick_params(axis='y',  labelrotation = 45)
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        elif i == N_dim - 1: # Last diagonal tile.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.tick_params(axis = 'x',  labelrotation = 45)
+            plt.setp(ax.xaxis.get_majorticklabels(), ha="right", rotation_mode="anchor")
+
+            #ax.axes.get_xaxis().set_ticklabels([])
+
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        ax.locator_params(axis='both', nbins=n_ticks)
+
+    # Loop lower triangular.
+    for yi in range(N_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            #ax.scatter(surrogate_supset_states[xi, :], surrogate_supset_states[yi, :], c = 'pink', alpha = 0.1, marker = ".", s = 75, linewidth = 0.0)
+            if yi<3 and xi<3:
+                ax.scatter(subset_states[xi, :], subset_states[yi, :], c = 'white', alpha = 0.0, marker = ".", s = 75, linewidth = 0.0)
+            ax.scatter(supset_states[xi, :], supset_states[yi, :], c = np.linspace(0.0, 1.0, len(supset_states[yi, :])), cmap = faded_cmap(plt.get_cmap('binary')), alpha = 0.5, marker = "o", s = 25, linewidth = 0.0)
+            #ax.scatter(supset_states[xi, :], supset_states[yi, :], c = 'black', alpha = 1.0, marker = ".", s = 75, linewidth = 0.0)
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+            sns.kdeplot(x=supset_states[xi, :], y=supset_states[yi, :], ax=ax, levels=[0.393, 0.865, 0.989], color='tab:cyan', bw_adjust=1.25)
+            ax.scatter(event_params.scaled[xi], event_params.scaled[yi], color = 'tab:orange', alpha = 1.0, marker = "o", s = 100, linewidth = 0.0)
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
+
+            if xi<3 and yi>=3:
+                ax.set_xlim(axes[2, xi].get_xlim())
+                #ax.set_xlim(np.amin(np.concatenate((subset_states[xi, :], supset_states[xi, :]))), np.amax(np.concatenate((subset_states[xi, :], supset_states[xi, :]))))
+                
+            if yi == N_dim - 1: # Bottom row.
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis = 'x',  labelrotation = 45)
+                plt.setp(ax.xaxis.get_majorticklabels(), ha="right", rotation_mode="anchor")
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0: # First column.
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = 'y',  labelrotation = 45)
+                plt.setp(ax.yaxis.get_majorticklabels(), va="bottom", rotation_mode="anchor")
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+            #ax.locator_params(nbins = n_lb) # 3 ticks max
+            ax.locator_params(axis='both', nbins=n_ticks)
+
+            # Add upper triangular plots.
+            if xi < n_dim and yi < n_dim:
+                
+                # Acquire axes and plot.
+                axs = figure.get_axes()[4].get_gridspec()
+                axt = figure.add_subplot(axs[xi, yi])
+                #axt.scatter(surrogate_subset_states[yi, :], surrogate_subset_states[xi, :], c = 'pink', alpha = 0.1, marker = ".", s = 75, linewidth = 0.0)
+                axt.scatter(supset_states[yi, :], supset_states[xi, :], c = 'white', alpha = 0.0, marker = ".", s = 75, linewidth = 0.0) #shared axis
+                axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, len(subset_states[xi, :])), cmap = faded_cmap(plt.get_cmap('binary')), alpha = 0.5, marker = "o", s = 25, linewidth = 0.0)
+                #axt.scatter(subset_states[yi, :], subset_states[xi, :], c = 'black', alpha = 1.0, marker = ".", s = 75, linewidth = 0.0)
+                xlim = axt.get_xlim()
+                ylim = axt.get_ylim()
+                sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:cyan', bw_adjust=1.25)
+                axt.set_xlim(xlim)
+                axt.set_ylim(ylim)
+
+                if yi == n_dim - 1: # Last column.
+                    axt.set_ylabel(symbols[xi])
+                    #ax.yaxis.label.set_size(label_size)
+                    axt.yaxis.tick_right()
+                    axt.yaxis.set_label_position("right")
+                    axt.tick_params(axis = 'y',  labelrotation = 45)#, )
+                    plt.setp(axt.yaxis.get_majorticklabels(), va="top", rotation_mode="anchor")
+                
+                else:
+                    axt.axes.get_yaxis().set_ticklabels([])
+                
+                if xi == 0: # First row.
+                    axt.set_xlabel(symbols[yi])
+                    axt.tick_params(axis = 'x',  labelrotation = 45)
+                    #ax.xaxis.label.set_size(label_size)
+                    axt.xaxis.tick_top()
+                    axt.xaxis.set_label_position("top")
+                    plt.setp(axt.xaxis.get_majorticklabels(), ha="left", rotation_mode="anchor")
+                
+                else:
+                    axt.axes.get_xaxis().set_ticklabels([])
+                
+
+
+                axt.locator_params(axis='both', nbins=n_ticks)
+                #axt.locator_params(nbins = n_lb) # 3 ticks max
+
+    plt.locator_params(axis='both', nbins=n_ticks)
+
+    figure.savefig('results/' + name + '-joint-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
+    figure.clf()
+
+    return
+
+
+def surrogate_samples_pointilism(supset_model, subset_model, supset_surrogate, subset_surrogate, symbols, name = '', dpi = 100):
+    """Plot the joint posterior surface of two models.
+
+    Args:
+        supset_model: [model] Larger parameter space model.
+        subset_model: [model] Smaller parameter space model.
+        joint_model_chain: [chain] Generalised chain with states from both models.
+        symbols: [list] Strings to label plots with.
+    """
+
+    # Fonts/visibility.
+    label_size = 20
+    #lr = 45 # label rotation
+    #n_lb = 3 # tick labels
+
+    # Model sizing.
+    N_dim = supset_model.D
+    n_dim = subset_model.D
+
+    # Extract points.
+    supset_states = supset_model.sampled.states_array(scaled = True)
+    subset_states = subset_model.sampled.states_array(scaled = True)
+
+    style()
+    figure = corner.corner(supset_states.T) # Use corner for layout/sizing.
+
+    # Fonts/visibility.
+    plt.rcParams['font.size'] = 15
+    #plt.rcParams['axes.titlesize'] = 20
+    plt.rcParams['axes.labelsize'] = 20
+
+    # Extract axes.
+    axes = np.array(figure.axes).reshape((N_dim, N_dim))
+
+    #print(supset_surrogate.samples.numpy())
+
+    surrogate_subset_states = np.transpose(subset_surrogate.samples.numpy())
+    surrogate_supset_states = np.delete(np.transpose(supset_surrogate.samples.numpy()), 3, 0)
+    surrogate_supset_states[3, :] = np.log10(surrogate_supset_states[3, :])
+
+    # Loop diagonal.
+    for i in range(N_dim):
+        ax = axes[i, i]
+
+        ax.cla()
+
+        if i<3:
+            ax.hist(np.concatenate((surrogate_supset_states[i, :], surrogate_subset_states[i, :])), bins = 10, density = True, color = 'purple', alpha = 1.0)
+        else:
+            ax.hist(surrogate_supset_states[i, :], bins = 10, density = True, color = 'purple', alpha = 1.0)
+
+        if i == 0: # First diagonal tile.
+            ax.set_ylabel(symbols[i])
+            ax.yaxis.label.set_size(label_size)
+            ax.tick_params(axis='y',  labelrotation = 45)
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+        elif i == N_dim - 1: # Last diagonal tile.
+            ax.set_xlabel(symbols[i])
+            ax.xaxis.label.set_size(label_size)
+            ax.axes.get_yaxis().set_ticklabels([])
+            ax.axes.get_xaxis().set_ticklabels([])
+
+        else:
+            ax.axes.get_xaxis().set_ticklabels([])
+            ax.axes.get_yaxis().set_ticklabels([])
+
+
+    # Loop lower triangular.
+    for yi in range(N_dim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.cla()
+            
+            ax.scatter(surrogate_supset_states[xi, :], surrogate_supset_states[yi, :], c = 'purple', alpha = 0.25, marker = ".", s = 75, linewidth = 0.0)
+
+            if yi == N_dim - 1: # Bottom row.
+                ax.set_xlabel(symbols[xi])
+                ax.xaxis.label.set_size(label_size)
+                ax.tick_params(axis = 'x',  labelrotation = 45)
+
+            else:    
+                ax.axes.get_xaxis().set_ticklabels([])
+
+            if xi == 0: # First column.
+                ax.set_ylabel(symbols[yi])
+                ax.yaxis.label.set_size(label_size)
+                ax.tick_params(axis = 'y',  labelrotation = 45)
+
+            else:    
+                ax.axes.get_yaxis().set_ticklabels([])
+
+            #ax.locator_params(nbins = n_lb) # 3 ticks max
+
+
+            # Add upper triangular plots.
+            if xi < n_dim and yi < n_dim:
+                
+                # Acquire axes and plot.
+                axs = figure.get_axes()[4].get_gridspec()
+                axt = figure.add_subplot(axs[xi, yi])
+                axt.scatter(surrogate_subset_states[xi, :], surrogate_subset_states[yi, :], c = 'purple', alpha = 0.25, marker = ".", s = 75, linewidth = 0.0)
+                
+                if yi == n_dim - 1: # Last column.
+                    axt.set_ylabel(symbols[xi])
+                    #ax.yaxis.label.set_size(label_size)
+                    axt.yaxis.tick_right()
+                    axt.yaxis.set_label_position("right")
+                    axt.tick_params(axis = 'y',  labelrotation = 45)
+                
+                else:
+                    axt.axes.get_yaxis().set_ticklabels([])
+                
+                if xi == 0: # First row.
+                    axt.set_xlabel(symbols[yi])
+                    axt.tick_params(axis = 'x',  labelrotation = 45)
+                    #ax.xaxis.label.set_size(label_size)
+                    axt.xaxis.tick_top()
+                    axt.xaxis.set_label_position("top") 
+                
+                else:
+                    axt.axes.get_xaxis().set_ticklabels([])
+
+                #axt.locator_params(nbins = n_lb) # 3 ticks max
+
+    figure.savefig('results/' + name + '-surrogate-pointilism.png', bbox_inches = "tight", dpi = dpi, transparent=True)
     figure.clf()
 
     return

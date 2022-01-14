@@ -30,19 +30,19 @@ if __name__ == "__main__":
     """User Settings"""
 
     # Synthetic light curve to generate.
-    n_suite = 0
+    n_suite = 1
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
     use_surrogate_posterior = True
 
     # Warm up parameters.
-    fixed_warm_up_iterations = 50
-    adaptive_warm_up_iterations = 450#975
+    fixed_warm_up_iterations = 250
+    adaptive_warm_up_iterations = 250#975
     warm_up_repititions = 1#2
 
     # Algorithm parameters.
-    iterations = 5000#20000
+    iterations = 10000#20000
 
     # Output parameters.
     #n_pixels = 2#25 # Density for posterior contour plot.
@@ -55,9 +55,9 @@ if __name__ == "__main__":
 
     # Synthetic event parameters.
     model_parameters = [
-        [15, 0.1, 10, 0.01, 0.4, 60],  # 0
+        [15, 0.1, 10, 0.01, 0.2, 60],  # 0
         [15, 0.1, 10, 0.01, 0.3, 60],  # 1
-        [15, 0.1, 10, 0.01, 0.5, 60],  # 2
+        [15, 0.1, 10, 0.01, 0.4, 60],  # 2
         [15, 0.1, 10, 0.01, 0.7, 60]]  # 3
     event_params = sampling.State(truth = model_parameters[n_suite])
 
@@ -137,10 +137,10 @@ if __name__ == "__main__":
         binary_sp.get_modes()
         fin_rho = binary_sp.modes[0]#max_aposteriori()
         # Remove finite source size parameter from neural network.
-        binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+        binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], 0.3, fin_rho[6]]))
         fin_rho2 = binary_sp.modes[1]#max_aposteriori()
         # Remove finite source size parameter from neural network.
-        ternary_centre = sampling.State(truth = np.array([fin_rho2[0], fin_rho2[1], fin_rho2[2], fin_rho2[4], fin_rho2[5], fin_rho2[6]]))
+        ternary_centre = sampling.State(truth = np.array([fin_rho2[0], fin_rho2[1], fin_rho2[2], fin_rho2[4], 2.5, fin_rho2[6]]))
 
 
         #fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     letters = ['t0', 'u0', 'tE', 'log10(q)', 's', 'a']
     symbols = [r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
     shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
-    names = ['1/1', '2/2', '3/3', '4/4']
+    names = ['1/1-cw', '2/2-cw', '3/3-cw', '4/4-cw']
     name = names[n_suite]
 
     #pltf.adaption_contraction(binary_Model, adapt_MH_warm_up+adapt_MH+iterations, name+'-binary', dpi)
@@ -217,6 +217,9 @@ if __name__ == "__main__":
     plt.clf()
 
     #pltf.density_heatmaps(binary_Model, n_pixels, data, symbols, event_params, 1, name, dpi)
-    pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
-    pltf.joint_samples_pointilism(ternary_Model, single_Model, joint_model_chain, symbols, '1/1sussybaka', dpi)
+    warm_up_iterations = adaptive_warm_up_iterations + fixed_warm_up_iterations
+
+    pltf.joint_samples_pointilism_2([binary_Model, ternary_Model], single_Model, binary_sp, single_sp, warm_up_iterations, symbols, event_params, name, dpi)
+    #pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
+    #pltf.joint_samples_pointilism(ternary_Model, single_Model, joint_model_chain, symbols, '1/1sussybaka', dpi)
     #pltf.centre_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)

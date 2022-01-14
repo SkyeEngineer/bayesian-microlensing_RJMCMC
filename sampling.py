@@ -303,7 +303,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
 
         if user_feedback:
             cf = i / (adaptive_iterations + fixed_iterations - 1)
-            print(f'log score: {log_best_posterior:.4f}, progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end="")
+            print(f'log density: {log_posterior:.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new state and calculate the resulting density.
         proposed = State(scaled = gaussian_proposal(theta.scaled, model.covariance))
@@ -329,7 +329,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
         model.add_state(theta, adapt = True)
 
     if user_feedback:
-        print(f"\n model: {model.m}, average acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, best score: {log_best_posterior:.4f}")
+        print(f"\ninitialised model: {model.m}, mean acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, max log density: {log_best_posterior:.4f}\n")
 
     return best_theta, log_best_posterior
 
@@ -416,7 +416,7 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
     for i in range(repetitions):
         
         if user_feedback:
-            print("Running the "+str(i+1)+"/"+str(repetitions)+"th initialisation per model\n")
+            print("\ninitialising model ("+str(i+1)+"/"+str(repetitions)+")")
 
         model = deepcopy(empty_model) # Fresh model.
 
@@ -492,12 +492,12 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
 
     np.set_printoptions(precision=2)
 
-    if user_feedback: print("Running ARJMH.")
+    if user_feedback: print("\nrunning ARJMH")
     for i in range(1, iterations): # ARJMH algorithm.
         
         if user_feedback:
             cf = i / (iterations - 1)
-            print(f'model: {model.m} progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end="")
+            print(f'model: {model.m}, log density: {(log_likelihood+log_prior):.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new model and state and calculate the resulting density.
         proposed_model = random.choice(models)
@@ -545,7 +545,7 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
         lv[:model.D] = theta.scaled - model.centre.scaled
 
     if user_feedback:
-        print(f"\n average acc: {np.average(total_acc):4f}")
+        print(f"\nmean acc: {np.average(total_acc):4f}")
         for i in range(len(models)):
             print("P(m"+str(i)+"|y): " + str(joint_model_chain.model_indices.count(i) / iterations))
         #    print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
