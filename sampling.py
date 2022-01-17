@@ -35,24 +35,24 @@ class State(object):
             self.truth = truth
             self.D = len(truth)
 
-            if self.D > 3:
-                self.truth[5] = truth[5] % 360 # Radial symmetry of alpha.
+            if self.D > 4:
+                self.truth[6] = truth[6] % 360 # Radial symmetry of alpha.
 
             self.scaled = deepcopy(self.truth)
             for p in range(self.D):
-                if p == 3:
+                if p == 4:
                     self.scaled[p] = np.log10(self.truth[p])
         
         elif scaled is not None:
             self.scaled = scaled
             self.D = len(scaled)
 
-            if self.D > 3:
-                self.scaled[5] = scaled[5] % 360 # Radial symmetry of alpha.
+            if self.D > 4:
+                self.scaled[6] = scaled[6] % 360 # Radial symmetry of alpha.
 
             self.truth = deepcopy(self.scaled)
             for p in range(self.D):
-                if p == 3:
+                if p == 4:
                     self.truth[p] = 10**(self.scaled[p])
 
         else:   raise ValueError("Assigned null state")
@@ -358,7 +358,7 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
 
     else: # Inter-model move.
         
-        s = abs(model.D - proposed_model.D) # Subset size.
+        s = min(model.D, proposed_model.D) # Subset size.
 
         # Use superset model covariance
         if proposed_model.D > model.D: # proposed is superset
@@ -371,7 +371,11 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
         # Jump to smaller model. Fix non-shared parameters.
         if proposed_model.D < model.D:
 
+
+
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
+            #print(u)
+            #print(l[:s])
             proposed_theta = u + l[:s] + proposed_model.centre.scaled
 
             return proposed_theta

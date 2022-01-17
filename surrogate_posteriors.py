@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pickle
 import io
+from sbi.utils.torchutils import BoxUniform
 from sbi.inference.posteriors.direct_posterior import DirectPosterior
 import torch
 
@@ -35,7 +36,8 @@ class Surrogate_Posterior(object):
 
         if m == 0:
             #with open(path+"/distributions/single_25K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
-            self.distribution = load_posterior(path+"/distributions/single_25K_720.pkl")
+            self.distribution = load_posterior(path+"/distributions/single_100K_720_T10.pkl")
+            self.distribution._prior = BoxUniform([0.0, 0.0, 1.0, 1e-4, 0.1], [72.0, 2.0, 100.0, 1e-2, 1.0])
 
         if m == 1:
             #with open(path+"/distributions/binary_100K_720.pkl", "rb") as handle: distribution = pickle.load(handle)
@@ -115,8 +117,13 @@ class Surrogate_Posterior(object):
 
                 mode_i[j] = temp[1]
 
-            modes.append(mode_i)
-            mode_samples.append(np.array(samples_i))
+            modes.append(np.concatenate(([mode_i[-1]], mode_i[:-1])))
+            #print(np.array(samples_i)[:,-1])
+            #print(np.array(samples_i)[:,:-1])            
+            mode_samples.append(np.concatenate((np.array(samples_i)[:,-1:], np.array(samples_i)[:,:-1]), axis=1))
+            #print(np.concatenate(([mode_i[-1]], mode_i[:-1])))
+            #print(np.concatenate((np.array(samples_i)[:,-1:], np.array(samples_i)[:,:-1]), axis=1))
+            #throw=throw
 
             if latex_output:
                 print(latex_string)
