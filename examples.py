@@ -149,7 +149,7 @@ if __name__ == "__main__":
     pltf.style()
     labels = ['fs', 'Impact Time [days]', 'Minimum Impact Parameter', 'Einstein Crossing Time [days]', r'$log_{10}(Mass Ratio)$', 'Separation', 'Alpha']
     letters = ['fs', 't0', 'u0', 'tE', 'log10(q)', 's', 'a']
-    symbols = [r'$fs$', r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
+    symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
     #shifted_symbols = [r'$t_0-\hat{\theta}$', r'$u_0-\hat{\theta}$', r'$t_E-\hat{\theta}$', r'$\rho-\hat{\theta}$', r'$log_{10}(q)-\hat{\theta}$', r'$s-\hat{\theta}$', r'$\alpha-\hat{\theta}$']
     names = ['1/1', '2/2', '3/3', '4/4']
     name = names[n_suite]

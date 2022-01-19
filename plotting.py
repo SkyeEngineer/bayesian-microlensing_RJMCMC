@@ -130,20 +130,22 @@ def broccoli(supset_states, subset_states, surrogate_supset_states, surrogate_su
 
         ax.cla()
 
+        nbins=12
+
         if i<3:
-            ax.hist(np.concatenate((surrogate_supset_states[i, :], surrogate_subset_states[i, :])), bins = 10, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
-            ax.hist(np.concatenate((supset_states[i, :], subset_states[i, :])), bins = 10, density = True, color = 'tab:blue', alpha = 1.0, histtype='step', range=ranges[i])
+            ax.hist(np.concatenate((surrogate_supset_states[i, :], surrogate_subset_states[i, :])), bins = nbins, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
+            ax.hist(np.concatenate((supset_states[i, :], subset_states[i, :])), bins = nbins, density = True, color = 'tab:blue', alpha = 1.0, histtype='step', range=ranges[i])
         
         else:
-            ax.hist(surrogate_supset_states[i, :], bins = 10, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
-            ax.hist(supset_states[i, :], bins = 10, density = True, color = 'tab:blue', alpha = 1.0, histtype='step', range=ranges[i])
+            ax.hist(surrogate_supset_states[i, :], bins = nbins, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
+            ax.hist(supset_states[i, :], bins = nbins, density = True, color = 'tab:blue', alpha = 1.0, histtype='step', range=ranges[i])
 
         if event_params is not None:
             xlim = ax.get_xlim()                
             ax.axvline(event_params.scaled[i], color = 'black', ls = '-', lw = 1)
-            if i<4:
-                ax.axvline(single_theta.scaled[i], color = 'tab:green', ls = ':', lw = 1)
-            ax.axvline(binary_theta.scaled[i], color = 'tab:purple', ls = '--', lw = 1)
+            #if i<4:
+            #    ax.axvline(single_theta.scaled[i], color = 'tab:green', ls = ':', lw = 1)
+            #ax.axvline(binary_theta.scaled[i], color = 'tab:purple', ls = '--', lw = 1)
             ax.set_xlim(xlim)
 
         if i == 0: # First diagonal tile.
@@ -222,7 +224,7 @@ def broccoli(supset_states, subset_states, surrogate_supset_states, surrogate_su
                 sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:orange', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
                 sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:blue', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
 
-                ax.scatter(single_theta.scaled[yi], single_theta.scaled[xi], color = 'tab:green', alpha = 1.0, marker = "o", s = 25, linewidth = 0.0, zorder=10)
+                axt.scatter(x=single_theta.scaled[yi], y=single_theta.scaled[xi], color = 'tab:green', alpha = 1.0, marker = "o", s = 25, linewidth = 0.0, zorder=9)
 
                 axt.set_xlim(ranges[yi])
                 axt.set_ylim(ranges[xi])
@@ -257,7 +259,7 @@ def broccoli(supset_states, subset_states, surrogate_supset_states, surrogate_su
     # Inset light curve plot. 
     axes = figure.get_axes()[4].get_gridspec()
     inset_ax = figure.add_subplot(axes[:2, N_dim-2:])
-    inset_ax.set_ylabel('flux')
+    inset_ax.set_ylabel('normalised flux')
     inset_ax.set_xlabel('time [days]')
     ts = [0, 72]
     #epochs = np.linspace(0, 72, 720)
@@ -271,7 +273,7 @@ def broccoli(supset_states, subset_states, surrogate_supset_states, surrogate_su
     fitted_flux(1, binary_theta, data, ts, label = 'binary fit', color='tab:purple', ls='--')
     fitted_flux(0, single_theta, data, ts, label = 'single fit', color='tab:green', ls=':')
     inset_ax.set_title('b)', loc='left')
-    inset_ax.legend(fontsize = 13, handlelength=0.7, frameon = False)
+    inset_ax.legend(fontsize = 15, handlelength=0.7, frameon = False)
     inset_ax.set_xlim([10, 20])
 
     figure.savefig('results/' + name + '-broccoli.png', bbox_inches = "tight", dpi = dpi, transparent=True)
