@@ -463,8 +463,13 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
     else: inter_model_history = None
 
     # Initialise model chains.
-    for m_i in range(len(models)):
+    MAPs = []
+    MAPest = []
+    n_models = len(models)
+    for m_i in range(n_models):
         models[m_i] = warm_up_model(models[m_i], adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
+        MAPs.append(-math.inf)
+        MAPest.append([])
 
     #print(models[1].covariance)
 
@@ -504,7 +509,8 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
             print(f'model: {model.m}, log density: {(log_likelihood+log_prior):.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new model and state and calculate the resulting density.
-        proposed_model = random.choice(models)
+        rand_m = random.randrange(0, n_models)
+        proposed_model = models[rand_m] #random.choice(models)
 
         proposed = State(scaled = ARJMH_proposal(model, proposed_model, theta, lv))
         log_likelihood_proposed = proposed_model.log_likelihood(proposed)
@@ -529,7 +535,11 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
 
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
-            
+
+            if MAPs[rand_m] < log_likelihood + log_prior:
+                MAPs[rand_m] = log_likelihood + log_prior
+                MAPest[rand_m] = deepcopy(proposed)
+
         else: # Reject proposal.
             total_acc[i] = 0
             
@@ -555,7 +565,7 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
         #    print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
         #print(joint_model_chain.model_indices)
 
-    return joint_model_chain, total_acc, inter_model_history
+    return joint_model_chain, MAPest, total_acc, inter_model_history
 
 
 

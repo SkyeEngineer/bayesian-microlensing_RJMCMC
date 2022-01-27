@@ -25,7 +25,7 @@ if __name__ == "__main__":
     """User Settings"""
 
     # Synthetic light curve to generate.
-    n_suite = 0
+    n_suite = 1
     n_epochs = 720
     sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     warm_up_repititions = 1
 
     # Algorithm parameters.
-    iterations = 10000#20000
+    iterations = 1000#20000
 
     # Output parameters.
     n_pixels = 2#25 # Density for posterior contour plot.
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # Synthetic event parameters.
     model_parameters = [
         [0.5, 15, 0.1, 10, 0.01, 0.2, 60],  # 0
-        [15, 0.1, 10, 0.01, 0.3, 60],  # 1
+        [0.5, 15, 0.1, 10, 0.01, 0.3, 60],  # 1
         [15, 0.1, 10, 0.01, 0.4, 60],  # 2
         [15, 0.1, 10, 0.01, 0.5, 60]]  # 3
     event_params = sampling.State(truth = model_parameters[n_suite])
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     # Run algorithm.
     start_time = (time.time())
     random.seed(42)
-    joint_model_chain, total_acc, inter_model_history = sampling.ARJMH(Models, iterations, adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
+    joint_model_chain, MAPests, total_acc, inter_model_history = sampling.ARJMH(Models, iterations, adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
     duration = (time.time() - start_time)/60
     print(duration, ' minutes')
     single_Model, binary_Model = Models
@@ -189,9 +189,11 @@ if __name__ == "__main__":
     #print(binary_samples[4, :])
 
     import pickle 
-    object = [joint_model_chain, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi]
+    object = [joint_model_chain, MAPests, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi]
     filehandler = open('results/'+name+'_stored_run.mcmc', 'wb') 
     pickle.dump(object, filehandler)
+
+
 
     #pltf.joint_samples_pointilism_2(binary_states, single_states, warm_up_iterations, symbols, event_params, name, dpi)
     #pltf.surrogate_samples_pointilism(binary_Model, single_Model, binary_sp, single_sp, symbols, name, dpi)

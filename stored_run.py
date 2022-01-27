@@ -13,28 +13,21 @@ import time
 import pickle
 import MulensModel as mm
 
-file = open('results/1/1_stored_run.mcmc', 'rb') 
+file = open('results/2/2_stored_run.mcmc', 'rb') 
 object = pickle.load(file)
-joint_model_chain, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi = object
+joint_model_chain, MAPests, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi = object
 #binary_states, single_states, warm_up_iterations, symbols, event_params, name, dpi = object
+
+print(MAPests[0].truth)
+print(MAPests[1].truth)
 
 
 acf.plot_act(joint_model_chain, symbols, name, dpi)
 
-binary_theta = np.zeros(7)
-for i in range(7):
-    y_a, x_a, _ = plt.hist(binary_states[i, :], bins=10)
-    binary_theta[i] = np.mean([x_a[y_a.argmax()], x_a[y_a.argmax()+1]])
-binary_theta = sampling.State(scaled=binary_theta)
+binary_theta = MAPests[1]
 
-single_theta = np.zeros(4)
-for i in range(4):
-    y_a, x_a, _ = plt.hist(single_states[i, :], bins=10)
-    single_theta[i] = np.mean([x_a[y_a.argmax()], x_a[y_a.argmax()+1]])
-single_theta = sampling.State(scaled=single_theta)
-print(single_theta.truth)
-print(binary_theta.truth)
-print(event_params.truth)
+single_theta = MAPests[0]
+
 #print(theta.truth)
 #plt.clf()
 #plt.plot(data.time, data.flux, color='black')
@@ -47,9 +40,9 @@ curves = deepcopy([single_theta, binary_theta, data])
 
 #pltf.joint_samples_pointilism_2(binary_states, single_states, warm_up_iterations, symbols, event_params, name, dpi)
 #ranges=[[0.1, 1], [0, 72], [0, 1], [0, 100], [-6, 0], [0.2, 5], [0, 360]]
-ranges=[[0.45, 0.55], [14.85 -0.05, 15.15 +0.05], [0.08 -0.005, 0.12 + 0.005], [9.0 -0.05, 11.0 +0.05], [-5 -0.15, -1 +0.15], [0.2 -0.15, 5 +0.15], [0 -5, 360 +5]]
+ranges=[[0.45 -0.005, 0.55 +0.005], [14.9 -0.05, 15.1 +0.05], [0.08 -0.005, 0.12 + 0.005], [9.0 -0.5, 11.0 +0.5], [-5 -0.5, -1 +0.5], [0.2-0.1, 5-0.1], [0, 360]]
 symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
-#pltf.broccoli(binary_states, single_states, binary_sp_states, single_sp_states, symbols, ranges, curves, event_params, name, 100)
+pltf.broccoli(binary_states[1:, :], single_states[1:, :], binary_sp_states[1:, :], single_sp_states[1:, :], symbols[1:], ranges[1:], curves, event_params, name, 100)
 
 
 

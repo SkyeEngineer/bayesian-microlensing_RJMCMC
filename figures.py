@@ -1,6 +1,7 @@
 """Figures for project report."""
 
 
+#from turtle import color
 import MulensModel as mm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +16,95 @@ if __name__ == "__main__":
     plotting.style()
 
     if True:
+        ts = [10, 20]
+        s=2.5
+        n=7200
+
+        theta_r = sampling.State(truth=[0.5, 15, 0.1, 10, 0.01, 0.3, 60])
+        data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 42)
+        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.3', c='tab:red')
+
+        #theta_r.truth[5] = 0.4
+        #data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 43)
+        #plt.scatter(y=data.flux, x=data.time, s=s, label='0.4', c='tab:purple')
+
+        #theta_r.truth[5] = 0.5
+        #data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 44)
+        #plt.scatter(y=data.flux, x=data.time, s=s, label='0.4', c='tab:orange')
+
+        theta_r.truth[5] = 0.6
+        data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 45)
+        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.6', c='tab:cyan')
+
+
+
+        plt.xlim(ts)
+        plt.ylim([0.5, 6.5])
+
+        plt.xlabel('time [days]', fontsize=12)
+        plt.ylabel('normalised flux', fontsize=12)
+        plt.tick_params(axis="both", which="major", labelsize=9)
+
+
+
+        plt.gca().tick_params(which='both', top=True, right=True, direction='in')
+        plt.minorticks_on()
+        plt.gca().tick_params(which='major', length=6)
+        plt.gca().tick_params(which='minor', length=3)
+
+        import matplotlib.ticker as ticker
+        plt.gca().yaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+        plt.gca().xaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+
+
+        plt.gca().set_aspect('equal')
+
+        plt.legend(fontsize = 12, frameon = True, markerscale=3, handletextpad=0.2)
+
+        plt.gca().set_box_aspect(1)
+
+        plt.tight_layout()
+
+        plt.savefig('figures/binary_family.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+        theta_r.truth[5] = 1.0
+        plotting.flux(1, theta_r, ts, caustics=0, label=r's = 1.0', color='tab:cyan')
+
+        theta_r.truth[5] = 0.825
+        plotting.flux(1, theta_r, ts, caustics=0.005, label=r's < 1.0', color='tab:red')
+
+
+
+        plt.legend(fontsize = 12, frameon = True, markerscale=20, handletextpad=0.2)
+
+        plt.xlim([-0.505, 0.325])
+        plt.ylim([-0.205, 0.205])
+
+        plt.gca().tick_params(which='both', top=True, right=True, direction='in')
+        plt.minorticks_on()
+        plt.gca().tick_params(which='major', length=6, labelsize=9)
+        plt.gca().tick_params(which='minor', length=3)
+
+        plt.gca().yaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+        plt.gca().xaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+        plt.gca().yaxis.set_major_locator(plt.MaxNLocator(7))
+        plt.gca().xaxis.set_major_locator(plt.MaxNLocator(7))
+
+        plt.gca().set_box_aspect(1)
+
+        #plt.axis('square')
+
+        #plt.gca().set_aspect('equal')
+
+        plt.tight_layout()
+
+
+
+        plt.savefig('figures/caustic_family.png', bbox_inches="tight", dpi=100, transparent=True)
+        plt.clf()
+
+    if False:
 
         theta_r = sampling.State(truth=[50, 0.5, 25, 0.5, 1.0, 295])
         ts = [0, 72]
