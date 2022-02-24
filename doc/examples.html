@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>bayesian-microlensing.examples API documentation</title>
+<meta name="description" content="Library of light curves from Evans, 2019 …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>bayesian-microlensing.examples</code></h1>
+</header>
+<section id="section-intro">
+<p>Library of light curves from Evans, 2019.</p>
+<p>Tests the ARJMH algorithm. Plots slices of the posterior and behavioural diagnostics.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Library of light curves from Evans, 2019.
+
+Tests the ARJMH algorithm. Plots slices of the posterior and behavioural diagnostics.
+&#34;&#34;&#34;
+
+import sampling
+import light_curve_simulation
+import distributions
+import autocorrelation as acf
+import plotting as pltf
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import surrogate_posteriors
+from copy import deepcopy
+import time
+
+
+if __name__ == &#34;__main__&#34;:
+
+    random.seed(42)
+
+
+
+    &#34;&#34;&#34;User Settings&#34;&#34;&#34;
+
+    # Synthetic light curve to generate.
+    n_suite = 3
+    n_epochs = 720
+    sn_base = 23 #(230-23)/2 + 23 (lower = noisier).
+
+    use_surrogate_posterior = False#True
+
+    # Warm up parameters.
+    fixed_warm_up_iterations = 25#25
+    adaptive_warm_up_iterations = 975#975
+    warm_up_repititions = 2#2
+
+    # Algorithm parameters.
+    iterations = 20000#20000
+
+    # Output parameters.
+    n_pixels = 2#25 # Density for posterior contour plot.
+    dpi = 250
+    user_feedback = True
+
+
+
+    &#34;&#34;&#34;Sampling Process&#34;&#34;&#34;
+
+    # Synthetic event parameters.
+    model_parameters = [
+        [15, 0.1, 10, 0.01, 0.2, 60],  # 0
+        [15, 0.1, 10, 0.01, 0.3, 60],  # 1
+        [15, 0.1, 10, 0.01, 0.5, 60],  # 2
+        [15, 0.1, 10, 0.01, 0.7, 60]]  # 3
+    event_params = sampling.State(truth = model_parameters[n_suite])
+
+    # Model index for parameters.
+    model_types = [0, 1, 1, 1]
+    model_type = model_types[n_suite]
+
+    # Generate synthetic light curve. Could otherwise use f.Read_Light_Curve(file_name).
+    if model_type == 0:
+        data = light_curve_simulation.synthetic_single(event_params, n_epochs, sn_base)
+    else: 
+        data = light_curve_simulation.synthetic_binary(event_params, n_epochs, sn_base)
+
+    # Informative priors in true space (Zhang et al).
+    t0_pi = distributions.Uniform(0, 72)
+    u0_pi = distributions.Uniform(0, 2)
+    tE_pi = distributions.Truncated_Log_Normal(1, 100, 10**1.15, 10**0.45)
+    q_pi = distributions.Log_Uniform(10e-6, 1)
+    s_pi = distributions.Log_Uniform(0.2, 5)
+    alpha_pi = distributions.Uniform(0, 360)
+    priors = [t0_pi, u0_pi, tE_pi, q_pi, s_pi, alpha_pi]
+
+
+    # Get initial centre points.
+    if use_surrogate_posterior == True:
+        single_centre = sampling.State(truth = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(0), data.flux))
+        fin_rho = surrogate_posteriors.maximise_posterior(surrogate_posteriors.posterior(1), data.flux)
+        # Remove finite source size parameter from neural network.
+        binary_centre = sampling.State(truth = np.array([fin_rho[0], fin_rho[1], fin_rho[2], fin_rho[4], fin_rho[5], fin_rho[6]]))
+
+    else: # Use known values from previous maximising of posterior for centres.
+        single_centres = [
+        [15.0424, 0.1048, 10**1.0068], # 0
+        [15.0245, 0.1035, 10**1.0063], # 1
+        [15.0186, 0.1015, 10**1.0050], # 2
+        [14.9966, 0.1020, 10**1.0043]] # 3
+        single_centre = sampling.State(truth = np.array(single_centres[n_suite]))
+
+        binary_centres = [
+        [15.0424, 0.1048, 10**1.0068, 10**-2.4101, 10**-0.0311, 67.2737], # 0
+        [15.0245, 0.1035, 10**1.0063, 10**-2.3083, 10**0.5614, 161.0036],    # 1
+        [15.0186, 0.1015, 10**1.0050, 10**-1.9734, 10**-0.3049, 60.4598],  # 2
+        [14.9966, 0.1020, 10**1.0043, 10**-1.9825, 10**-0.1496, 60.2111]]   # 3
+        binary_centre = sampling.State(truth = np.array(binary_centres[n_suite]))
+
+    # Initial diagonal covariances.
+    covariance_scale = 0.001 # Reduce values by scalar
+    single_covariance = np.zeros((3, 3))
+    np.fill_diagonal(single_covariance, np.multiply(covariance_scale, [1, 0.1, 1]))
+    binary_covariance = np.zeros((6, 6))
+    np.fill_diagonal(binary_covariance, np.multiply(covariance_scale, [1, 0.1, 1, 0.1, 0.1, 10]))
+
+    # Models.
+    single_Model = sampling.Model(0, 3, single_centre, priors, single_covariance, data, light_curve_simulation.single_log_likelihood)
+    binary_Model = sampling.Model(1, 6, binary_centre, priors, binary_covariance, data, light_curve_simulation.binary_log_likelihood)
+    Models = [single_Model, binary_Model]
+
+    # Run algorithm.
+    start_time = (time.time())
+    random.seed(42)
+    joint_model_chain, total_acc, inter_model_history = sampling.ARJMH(Models, iterations, adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
+    duration = (time.time() - start_time)/60
+    print(duration, &#39; minutes&#39;)
+    single_Model, binary_Model = Models
+
+
+
+
+    &#34;&#34;&#34;Plot Results&#34;&#34;&#34;
+
+    # Initialise text.
+    pltf.style()
+    labels = [&#39;Impact Time [days]&#39;, &#39;Minimum Impact Parameter&#39;, &#39;Einstein Crossing Time [days]&#39;, r&#39;$log_{10}(Mass Ratio)$&#39;, &#39;Separation&#39;, &#39;Alpha&#39;]
+    letters = [&#39;t0&#39;, &#39;u0&#39;, &#39;tE&#39;, &#39;log10(q)&#39;, &#39;s&#39;, &#39;a&#39;]
+    symbols = [r&#39;$t_0$&#39;, r&#39;$u_0$&#39;, r&#39;$t_E$&#39;, r&#39;$log_{10}(q)$&#39;, r&#39;$s$&#39;, r&#39;$\alpha$&#39;]
+    shifted_symbols = [r&#39;$t_0-\hat{\theta}$&#39;, r&#39;$u_0-\hat{\theta}$&#39;, r&#39;$t_E-\hat{\theta}$&#39;, r&#39;$\rho-\hat{\theta}$&#39;, r&#39;$log_{10}(q)-\hat{\theta}$&#39;, r&#39;$s-\hat{\theta}$&#39;, r&#39;$\alpha-\hat{\theta}$&#39;]
+    names = [&#39;1/1&#39;, &#39;2/2&#39;, &#39;3/3&#39;, &#39;4/4&#39;]
+    name = names[n_suite]
+
+    #pltf.adaption_contraction(binary_Model, adapt_MH_warm_up+adapt_MH+iterations, name+&#39;-binary&#39;, dpi)
+    #pltf.adaption_contraction(single_Model, adapt_MH_warm_up+adapt_MH+iterations, name+&#39;-single&#39;, dpi)
+    pltf.adaption_contraction(inter_model_history, iterations, name+&#39;-inter&#39;, dpi)
+
+    acf.plot_act(joint_model_chain, symbols, name, dpi)
+    #acf.attempt_truncation(Models, joint_model_chain)
+    sampling.output_file(Models, adaptive_warm_up_iterations + fixed_warm_up_iterations, joint_model_chain, total_acc, n_epochs, sn_base, letters, name, event_params)
+
+    # Trace of model index.
+    plt.plot(np.linspace(0, joint_model_chain.n, joint_model_chain.n), joint_model_chain.model_indices, linewidth = 0.25, color = &#39;purple&#39;)
+    plt.xlabel(&#39;Samples&#39;)
+    plt.ylabel(r&#39;$m_i$&#39;)
+    plt.locator_params(axis = &#34;y&#34;, nbins = 2) # only two ticks
+    plt.savefig(&#39;results/&#39;+name+&#39;-mtrace.png&#39;, bbox_inches = &#39;tight&#39;, dpi = dpi, transparent=True)
+    plt.clf()
+
+    pltf.density_heatmaps(binary_Model, n_pixels, data, symbols, event_params, 1, name, dpi)
+    pltf.joint_samples_pointilism(binary_Model, single_Model, joint_model_chain, symbols, name, dpi)
+    #pltf.centre_offsets_pointilism(binary_Model, single_Model, shifted_symbols, name, dpi)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="bayesian-microlensing" href="index.html">bayesian-microlensing</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
