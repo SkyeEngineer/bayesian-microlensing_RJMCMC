@@ -42,7 +42,9 @@ single_covariance = [[1.0, 0.0, 0.0],
 single_centre = sampling.State(truth=[15.0, 1.1, 32.0])
 
 # Initialise the single model.
-single_Model = sampling.Model(0, 3, single_centre, single_priors, single_covariance, \
+m = 0
+D = 3
+single_Model = sampling.Model(m, D, single_centre, single_priors, single_covariance, \
                                   data, light_curve_simulation.single_log_likelihood)
 ```
 
