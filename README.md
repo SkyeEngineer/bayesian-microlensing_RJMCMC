@@ -4,7 +4,7 @@ This is a Python library that uses a reversible-jump algorithm which adapts a su
 ## An Example Posterior
 To estimate the marginal model probabilities, the adaptive reversible-jump algorithm constructs a discrete posterior that is joint over all candidate models. For example, the following figure joins the single and binary lens models for microlensing:
 
-<img src="source/figures/1-broccoli.png" width="650" height="650">
+<img src="source/figures/1-broccoli.png" width="300" height="300">
 
 The data from this figure was constructed with **example_inference.py**
 
