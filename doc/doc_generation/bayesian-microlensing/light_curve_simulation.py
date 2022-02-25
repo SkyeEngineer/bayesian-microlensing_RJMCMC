@@ -46,12 +46,12 @@ def synthetic_single(theta, n_epochs, sn, seed = 42):
         data: [mulensdata] Object for a synthetic light curve.
     """
     # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
+    model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth[1:])))
     model.set_magnification_methods([0., "point_source", 72.])
 
     # Exact signal (fs=1, fb=0).
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    truth_signal = model.magnification(epochs)
+    truth_signal = (model.magnification(epochs)-1)*theta.truth[0]+1
 
     # Simulate noise in gaussian errored flux space.
     np.random.seed(seed)
@@ -83,12 +83,12 @@ def synthetic_binary(theta, n_epochs, sn, seed = 42):
         data: [mulensdata] Object for a synthetic light curve.
     """
     # Create MulensModel.
-    model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
+    model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth[1:])))
     model.set_magnification_methods([0., "point_source", 72.])
 
     # Exact signal (fs=1, fb=0).
     epochs = np.linspace(0, 72, n_epochs + 1)[:n_epochs]
-    truth_signal = model.magnification(epochs)
+    truth_signal = (model.magnification(epochs)-1)*theta.truth[0]+1
 
     # Simulate noise in gaussian errored flux space.
     np.random.seed(seed)
@@ -117,14 +117,15 @@ def binary_log_likelihood(self, theta):
         log_likelihood: [float] The resulting log likelihood.
     """
     try: # MulensModel may throw errors
-        model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth)))
+        model = mm.Model(dict(zip(["t_0", "u_0", "t_E", "q", "s", "alpha"], theta.truth[1:])))
         model.set_magnification_methods([0., "point_source", 72.])
 
         a = model.magnification(self.data.time) # The proposed magnification signal.
         y = self.data.flux # The observed flux signal.
         
         # Fit proposed flux as least squares solution.
-        F = least_squares_signal(a, y)
+        #F = least_squares_signal(a, y)
+        F = (a-1)*theta.truth[0]+1
 
         sd = self.data.err_flux
         chi2 = np.sum((y - F)**2/sd**2)
@@ -155,14 +156,15 @@ def single_log_likelihood(self, theta):
         log_likelihood: [float] The resulting log likelihood.
     """
     try: # MulensModel may throw errors
-        model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth)))
+        model = mm.Model(dict(zip(["t_0", "u_0", "t_E"], theta.truth[1:])))
         model.set_magnification_methods([0., "point_source", 72.])
 
         a = model.magnification(self.data.time) # The proposed magnification signal.
         y = self.data.flux # The observed flux signal.
         
         # Fit proposed flux as least squares solution.
-        F = least_squares_signal(a, y)
+        #F = least_squares_signal(a, y)
+        F = (a-1)*theta.truth[0]+1
 
         sd = self.data.err_flux
         chi2 = np.sum((y - F)**2/sd**2)

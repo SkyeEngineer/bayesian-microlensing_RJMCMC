@@ -35,18 +35,24 @@ class State(object):
             self.truth = truth
             self.D = len(truth)
 
+            if self.D > 4:
+                self.truth[6] = truth[6] % 360 # Radial symmetry of alpha.
+
             self.scaled = deepcopy(self.truth)
             for p in range(self.D):
-                if p == 3:
+                if p == 4:
                     self.scaled[p] = np.log10(self.truth[p])
         
         elif scaled is not None:
             self.scaled = scaled
             self.D = len(scaled)
 
+            if self.D > 4:
+                self.scaled[6] = scaled[6] % 360 # Radial symmetry of alpha.
+
             self.truth = deepcopy(self.scaled)
             for p in range(self.D):
-                if p == 3:
+                if p == 4:
                     self.truth[p] = 10**(self.scaled[p])
 
         else:   raise ValueError("Assigned null state")
@@ -140,14 +146,20 @@ class Model(object):
         s: [float] Mixing parameter (see Haario et al 2001).
     """
 
-    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc):
+    def __init__(self, m, D, centre, priors, covariance, data, log_likelihood_fnc, samples=None):
         """Initialises the model."""
         self.m = m
         self.D = D
         self.priors = priors
         self.centre = centre
+
+        #if samples is not None:
+        #    self.sampled = samples
+
+        #else:
         self.sampled = Chain(m, centre)
         self.scaled_avg_state = centre.scaled
+        
         self.acc = [1] # First state always accepted.
         self.covariance = covariance
         self.covariances = [covariance]
@@ -176,7 +188,7 @@ class Model(object):
 
         self.covariances.append(self.covariance)
         self.scaled_avg_state = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n)
-        self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
+        #self.centre = State(scaled = iterative_mean(self.scaled_avg_state, theta.scaled, self.sampled.n))
 
         return
 
@@ -291,7 +303,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
 
         if user_feedback:
             cf = i / (adaptive_iterations + fixed_iterations - 1)
-            print(f'log score: {log_best_posterior:.4f}, progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end="")
+            print(f'log density: {log_posterior:.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new state and calculate the resulting density.
         proposed = State(scaled = gaussian_proposal(theta.scaled, model.covariance))
@@ -317,7 +329,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
         model.add_state(theta, adapt = True)
 
     if user_feedback:
-        print(f"\n model: {model.m}, average acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, best score: {log_best_posterior:.4f}")
+        print(f"\ninitialised model: {model.m}, mean acc: {(np.sum(model.acc) / (adaptive_iterations + fixed_iterations)):4f}, max log density: {log_best_posterior:.4f}\n")
 
     return best_theta, log_best_posterior
 
@@ -336,7 +348,7 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
     """
     l = theta.scaled - model.centre.scaled # Offset from initial model's centre.
 
-    if model is proposed_model: # Intra-model move.
+    if proposed_model.D == model.D:#model is proposed_model: # Intra-model move.
 
         # Use the covariance at the proposed model's centre for local shape.
         u = gaussian_proposal(np.zeros((proposed_model.D)), proposed_model.covariance)
@@ -346,7 +358,7 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
 
     else: # Inter-model move.
         
-        s = abs(model.D - proposed_model.D) # Subset size.
+        s = min(model.D, proposed_model.D) # Subset size.
 
         # Use superset model covariance
         if proposed_model.D > model.D: # proposed is superset
@@ -359,7 +371,11 @@ def ARJMH_proposal(model, proposed_model, theta, lv):
         # Jump to smaller model. Fix non-shared parameters.
         if proposed_model.D < model.D:
 
+
+
             u = gaussian_proposal(np.zeros((s)), conditioned_cov)
+            #print(u)
+            #print(l[:s])
             proposed_theta = u + l[:s] + proposed_model.centre.scaled
 
             return proposed_theta
@@ -404,7 +420,7 @@ def warm_up_model(empty_model, adaptive_iterations, fixed_iterations = 25, repet
     for i in range(repetitions):
         
         if user_feedback:
-            print("Running the "+str(i+1)+"/"+str(repetitions)+"th initialisation per model\n")
+            print("\ninitialising model ("+str(i+1)+"/"+str(repetitions)+")")
 
         model = deepcopy(empty_model) # Fresh model.
 
@@ -447,8 +463,15 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
     else: inter_model_history = None
 
     # Initialise model chains.
-    for m_i in range(len(models)):
+    MAPs = []
+    MAPest = []
+    n_models = len(models)
+    for m_i in range(n_models):
         models[m_i] = warm_up_model(models[m_i], adaptive_warm_up_iterations, fixed_warm_up_iterations, warm_up_repititions, user_feedback)
+        MAPs.append(-math.inf)
+        MAPest.append([])
+
+    #print(models[1].covariance)
 
     random.seed(42)
 
@@ -476,19 +499,24 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta, v = v, v_D = v_D)
 
+    np.set_printoptions(precision=2)
 
-    if user_feedback: print("Running ARJMH.")
+    if user_feedback: print("\nrunning ARJMH")
     for i in range(1, iterations): # ARJMH algorithm.
         
         if user_feedback:
             cf = i / (iterations - 1)
-            print(f'model: {model.m} progress: [{"#"*round(50*cf)+"-"*round(50*(1-cf))}] {100.*cf:.2f}%\r', end="")
+            print(f'model: {model.m}, log density: {(log_likelihood+log_prior):.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
 
         # Propose a new model and state and calculate the resulting density.
-        proposed_model = random.choice(models)
+        rand_m = random.randrange(0, n_models)
+        proposed_model = models[rand_m] #random.choice(models)
+
         proposed = State(scaled = ARJMH_proposal(model, proposed_model, theta, lv))
         log_likelihood_proposed = proposed_model.log_likelihood(proposed)
         log_prior_proposed = proposed_model.log_prior_density(proposed, v = v, v_D = v_D)
+        #print(proposed_model)
+        #print(theta.truth, proposed.truth, np.exp(log_likelihood_proposed - log_likelihood), np.exp(log_prior_proposed - log_prior))
 
         # Metropolis acceptance criterion.
         if random.random() < np.exp(log_likelihood_proposed - log_likelihood + log_prior_proposed - log_prior):
@@ -507,7 +535,11 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
 
             log_likelihood = log_likelihood_proposed
             log_prior = log_prior_proposed
-            
+
+            if MAPs[rand_m] < log_likelihood + log_prior:
+                MAPs[rand_m] = log_likelihood + log_prior
+                MAPest[rand_m] = deepcopy(proposed)
+
         else: # Reject proposal.
             total_acc[i] = 0
             
@@ -527,11 +559,13 @@ def ARJMH(models, iterations,  adaptive_warm_up_iterations, fixed_warm_up_iterat
         lv[:model.D] = theta.scaled - model.centre.scaled
 
     if user_feedback:
-        print(f"\n average acc: {np.average(total_acc):4f}")
-        print("P(m1|y): " + str(1 - np.sum(joint_model_chain.model_indices) / iterations))
-        print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
+        print(f"\nmean acc: {np.average(total_acc):4f}")
+        for i in range(len(models)):
+            print("P(m"+str(i)+"|y): " + str(joint_model_chain.model_indices.count(i) / iterations))
+        #    print("P(m2|y): " + str(np.sum(joint_model_chain.model_indices) / iterations))
+        #print(joint_model_chain.model_indices)
 
-    return joint_model_chain, total_acc, inter_model_history
+    return joint_model_chain, MAPest, total_acc, inter_model_history
 
 
 
