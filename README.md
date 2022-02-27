@@ -19,7 +19,7 @@ import light_curve_simulation
 import sampling
 
 # Generate a discrete synthetic single event with noise.
-parameters = [15.0, 1.1, 32.0]
+parameters = [0.9, 15.0, 1.1, 32.0]
 theta = sampling.State(truth=parameters)
 n_obs = 720
 snr = 23
@@ -27,23 +27,23 @@ snr = 23
 data = light_curve_simulation.synthetic_single(theta, n_obs, snr)
 
 # Create a list of single parameter prior distributions.
-fs_pi = distributions.Uniform(0.1, 1)
+fs_pi = distributions.LogUniform(0.1, 1)
 t0_pi = distributions.Uniform(0, 72)
 u0_pi = distributions.Uniform(0, 2)
-tE_pi = distributions.Uniform(1, 100)
+tE_pi = distributions.LogUniform(1, 100)
 
 single_priors = [fs_pi, t0_pi, u0_pi, tE_pi]
 
-# Initialise a single lens model Gaussian proposal distribution.
+# Initialise the single lens model Gaussian proposal distribution.
 single_covariance = [[0.1, 0.0, 0.0, 0.0],
                      [0.0, 1.0, 0.0, 0.0],
                      [0.0, 0.0, 0.1, 0.0],
                      [0.0, 0.0, 0.0, 1.0]]
 
-# Initialise a single lens model centre.
+# Initialise the single lens model centre (a guess at the true parameters).
 single_centre = sampling.State(truth=[0.9, 15.0, 1.1, 32.0])
 
-# Initialise the single model.
+# Initialise the single lens model.
 m = 0
 D = 4
 single_Model = sampling.Model(m, D, single_centre, single_priors, single_covariance, \
