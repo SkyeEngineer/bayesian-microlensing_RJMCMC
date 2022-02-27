@@ -52,7 +52,7 @@ single_Model = sampling.Model(m, D, single_centre, single_priors, single_covaria
                                   data, light_curve_simulation.single_log_likelihood)
 ```
 
-To sample from a joint single (1L1S)/binary (2L1S) model posterior:
+To sample from a joint single/binary lens model posterior:
 
 ```python
 # Create pool of models.
