@@ -40,7 +40,7 @@ def flux(m, theta, ts, caustics = None, label = None, color = None, alpha = None
     if caustics is not None:
         if caustics > 0:
             model.plot_trajectory(t_start = ts[0], t_stop = ts[1], color = 'black', linewidth = 1, ls='-', alpha = alpha, arrow = False)
-        model.plot_caustics(color = color, s = 0.25, marker = 'o', n_points = 25000, label = label)
+        model.plot_caustics(color = color, s = 0.75, marker = 'o', n_points = 5000, label = label)
 
     else:
         A = (model.magnification(epochs)-1)*theta.truth[0]+1
