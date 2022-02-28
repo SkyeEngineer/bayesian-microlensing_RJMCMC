@@ -254,7 +254,7 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
                 #axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, len(subset_states[yi, :])), cmap = plt.get_cmap('RdBu'), alpha = 0.05, marker = "o", s = 25, linewidth = 0.0)
                 
                 sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:orange', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
-                sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:blue', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
+                #sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:blue', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
 
                 axt.scatter(x=single_theta.scaled[yi+1], y=single_theta.scaled[xi+1], color = 'tab:green', alpha = 1.0, marker = "8", s = 50, linewidth = 1, zorder=9)
 
@@ -292,9 +292,40 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
                 else:
                     axt.axes.get_xaxis().set_ticklabels([])
 
+    # Inset light curve plot.
+    inset_curve = figure.add_axes([0.625, 0.745, 0.345, 0.225]) 
+    inset_curve.set_ylabel('normalised flux', fontsize = 18)
+    inset_curve.set_xlabel('time [days]', fontsize = 18)
+    ts = [0, 72]
 
+    flux(1, event_params, ts, label = 'truth', color = 'black', lw=2)
+    flux(0, single_theta, ts, label = 'single MAP', color='tab:green', ls=':', lw=2)
+    flux(1, binary_theta, ts, label = 'binary MAP', color='tab:purple', ls='--', lw=2)
 
-    figure.savefig('results/' + name + '-broccoli.png', bbox_inches = "tight", dpi = dpi, transparent=True)
+    inset_curve.set_title('(b)', loc='left', fontsize=20)
+    inset_curve.legend(fontsize = 16, handlelength=0.7, frameon = False, handletextpad=0.4)
+    inset_curve.set_xlim([10, 20])
+    #inset_curve.set_ylim([1.1, 5.9])#1
+    inset_curve.set_ylim([1.1, 6.3])#4
+
+    inset_curve.tick_params(which='both', top=True, right=True, direction='in', labelsize = 12)
+    inset_curve.yaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+    inset_curve.xaxis.set_minor_locator(ticker.AutoMinorLocator(5))
+    inset_curve.tick_params(which='major', length=8)
+    inset_curve.tick_params(which='minor', length=4)
+
+    # Autocorrelation time.
+    inset_act = figure.add_axes([0.75, 0.475, 0.22, 0.15]) 
+    inset_act.set_xlim([1000, 10000])
+    #inset_act.set_ylim([10, 100])#1
+    inset_act.set_ylim([1, 10])#4
+    autocorrelation.plot_act(inset_act, joint_model_chain)
+    inset_act.set_title('(c)', loc='left', fontsize=20)
+    inset_act.tick_params(which='both', direction='in', labelsize = 12)
+    inset_act.tick_params(which='major', length=10)
+    inset_act.tick_params(which='minor', length=5, labelsize = 0, labelcolor = (0, 0, 0, 0))
+
+    figure.savefig('results/' + name + '-broccoli.pdf', bbox_inches = "tight", dpi = dpi, transparent=True)
     figure.clf()
 
     return

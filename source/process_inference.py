@@ -20,6 +20,7 @@ if __name__ == "__main__":
     file = open('results/'+name+'_stored_run.mcmc', 'rb') 
     object = pickle.load(file)
     joint_model_chain, MAPests, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi = object
+    dpi=100
 
     # MAP estimates.
     print(f'single MAP {MAPests[0].truth}')
@@ -29,14 +30,15 @@ if __name__ == "__main__":
     curves = deepcopy([single_theta, binary_theta, data])
 
     # PLotting info.
-    ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.1 +0.15], [0.08 -0.005, 0.12 + 0.025], [9.0+0.05, 10.7], [-5, -1+0.1], [0.2, 5], [1, 360]] #1
+    #ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.1 +0.15], [0.08 -0.005, 0.12 + 0.025], [9.0+0.05, 10.7], [-5, -1+0.1], [0.2, 5], [1, 360]] #1
     #ranges=[[0.45 -0.005, 0.55 +0.005], [15.0 -0.05, 15.1 +0.05], [0.1 -0.01, 0.13 + 0.005], [9.0 -0.0, 10.5 +0.25], [-2.25 -0.025, -1.25 +0.025], [0.2, 2.5], [40, 200]]
-    #ranges=[[0.45 -0.005, 0.55 +0.005], [15.0 -0.06, 15.1 +0.05], [0.092, 0.13], [9.0 -0.1, 10.5 +0.25], [-2.35, -1.675], [0.5, 1.8], [55, 63]] #4
+    ranges=[[0.45 -0.005, 0.55 +0.005], [15.0 -0.06, 15.1 +0.05], [0.092, 0.13], [9.0 -0.1, 10.5 +0.25], [-2.35, -1.675], [0.5, 1.8], [55, 63]] #4
     symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
 
     # Joint posterior.
     pltf.broccoli(joint_model_chain, binary_states[1:, :], single_states[1:, :], binary_sp_states[1:, :], single_sp_states[1:, :], symbols[1:], ranges[1:], curves, event_params, name, dpi)
 
+    '''
     # Autocorrelation time.
     import matplotlib.ticker as ticker
     plt.figure()
@@ -79,7 +81,9 @@ if __name__ == "__main__":
 
     plt.savefig('results/' + name + '-lc.png', bbox_inches = "tight", dpi = dpi, transparent=True)
     plt.clf()
-
+    '''
+    
+    '''
     # Trace of model index.
     plt.plot(np.linspace(0, joint_model_chain.n, joint_model_chain.n), joint_model_chain.model_indices, linewidth = 0.25, color = 'purple')
     plt.xlabel('Samples')
@@ -87,6 +91,7 @@ if __name__ == "__main__":
     plt.locator_params(axis = "y", nbins = 2) # only two ticks
     plt.savefig('results/'+name+'-mtrace.png', bbox_inches = 'tight', dpi = dpi, transparent=True)
     plt.clf()
+    '''
 
     # Marginal probabilities.
     for i in range(2):
