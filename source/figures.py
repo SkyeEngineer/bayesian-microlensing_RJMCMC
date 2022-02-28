@@ -64,7 +64,7 @@ if __name__ == "__main__":
         plt.tight_layout()
 
         #plt.gcf().set_size_inches(18.5, 10.5)
-        plt.savefig('figures/binary_family.png', bbox_inches="tight", dpi=250, transparent=True)
+        plt.savefig('figures/binary_family.pdf', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
 
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
 
         #plt.gcf().set_size_inches(18.5, 18.5)
-        plt.savefig('figures/caustic_family.png', bbox_inches="tight", dpi=250, transparent=True)
+        plt.savefig('figures/caustic_family.pdf', bbox_inches="tight", dpi=250, transparent=True)
         plt.clf()
 
     if False:
