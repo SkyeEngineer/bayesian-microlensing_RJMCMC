@@ -3,7 +3,7 @@ Parameter estimation in gravitational microlensing typically proceeds by fitting
 
 This library implements an adaptive reversible-jump algorithm that efficiently refines a suite of surrogate posteriors to the true joint model posterior by utilising the topological information they provide. This enables marginal model probability estimation which can be used to remove model complexity bias when inferring gravitational microlensing events from data.
 
-## An Example Posterior
+## Exemplar Posterior
 To estimate the marginal model probabilities, the adaptive reversible-jump algorithm constructs a discrete analogue of the true posterior that is joint over all candidate models. For example, the following figure displays the single and binary lens joint model posterior for a simulated microlensing event:
 
 <img src="source/figures/1-broccoli.png" width="device-width" height="device-width">
