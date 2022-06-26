@@ -205,8 +205,8 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
             #xlim = ax.get_xlim()
             #ylim = ax.get_ylim()
             
-            sns.kdeplot(x=surrogate_supset_states[xi, :], y=surrogate_supset_states[yi, :], ax=ax, levels=[0.393, 0.865, 0.989], color='tab:orange', bw_adjust=1.2, clip=[ranges[xi], ranges[yi]])
-            sns.kdeplot(x=supset_states[xi, :], y=supset_states[yi, :], ax=ax, levels=[0.393, 0.865, 0.989], color='tab:blue', bw_adjust=1.2, clip=[ranges[xi], ranges[yi]])
+            sns.kdeplot(x=surrogate_supset_states[xi, :], y=surrogate_supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=2, clip=[ranges[xi], ranges[yi]])
+            sns.kdeplot(x=supset_states[xi, :], y=supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=2, clip=[ranges[xi], ranges[yi]])
             
 
             ax.scatter(event_params.scaled[xi+1], event_params.scaled[yi+1], color = 'black', alpha = 1.0, marker = "D", s = 50, linewidth = 1, zorder=9)
@@ -253,8 +253,8 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
 
                 #axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, len(subset_states[yi, :])), cmap = plt.get_cmap('RdBu'), alpha = 0.05, marker = "o", s = 25, linewidth = 0.0)
                 
-                sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:orange', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
-                #sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[0.393, 0.865, 0.989], color='tab:blue', bw_adjust=1.2, clip=[ranges[yi], ranges[xi]])
+                sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=2, clip=[ranges[yi], ranges[xi]])
+                #sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=2, clip=[ranges[yi], ranges[xi]])
 
                 axt.scatter(x=single_theta.scaled[yi+1], y=single_theta.scaled[xi+1], color = 'tab:green', alpha = 1.0, marker = "8", s = 50, linewidth = 1, zorder=9)
 
@@ -316,9 +316,9 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
 
     # Autocorrelation time.
     inset_act = figure.add_axes([0.75, 0.475, 0.22, 0.15]) 
-    inset_act.set_xlim([1000, 10000])
+    #inset_act.set_xlim([1000, 10000])
     #inset_act.set_ylim([10, 100])#1
-    inset_act.set_ylim([1, 10])#4
+    #inset_act.set_ylim([1, 10])#4
     autocorrelation.plot_act(inset_act, joint_model_chain)
     inset_act.set_title('(c)', loc='left', fontsize=20)
     inset_act.tick_params(which='both', direction='in', labelsize = 12)

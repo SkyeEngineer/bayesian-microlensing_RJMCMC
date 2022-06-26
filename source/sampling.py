@@ -266,6 +266,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
     log_likelihood = model.log_likelihood(theta)
     log_prior = model.log_prior_density(theta)
     log_best_posterior = log_likelihood + log_prior
+    log_posterior = log_likelihood + log_prior
 
     # Warm up walk to establish an empirical covariance.
     for i in range(1, fixed_iterations):
@@ -304,6 +305,7 @@ def AMH(model, adaptive_iterations, fixed_iterations = 25, user_feedback = False
         if user_feedback:
             cf = i / (adaptive_iterations + fixed_iterations - 1)
             print(f'log density: {log_posterior:.4f}, progress: [{"#"*round(25*cf)+"-"*round(25*(1-cf))}] {100.*cf:.2f}%\r', end="")
+            
 
         # Propose a new state and calculate the resulting density.
         proposed = State(scaled = gaussian_proposal(theta.scaled, model.covariance))
