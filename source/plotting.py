@@ -129,13 +129,22 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
     #print(supset_surrogate.samples.numpy())
     single_theta, binary_theta, data = curves
 
+
+    event_params.scaled[5] = np.log10(event_params.scaled[5])
+    binary_theta.scaled[5] = np.log10(binary_theta.scaled[5])
+
+    surrogate_supset_states[4, :] = np.log10(surrogate_supset_states[4, :])
+    supset_states[4, :] = np.log10(supset_states[4, :])
+
+    symbols[4] = r'$log_{10}(s)$'
+
     # Loop diagonal.
     for i in range(N_dim):
         ax = axes[i, i]
 
         ax.cla()
 
-        nbins = 20
+        nbins = 30
 
         if i < 3:
             ax.hist(np.concatenate((surrogate_supset_states[i, :], surrogate_subset_states[i, :])), bins = nbins, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
@@ -146,9 +155,10 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
             ax.hist(surrogate_supset_states[i, :], bins = nbins, density = True, color = 'tab:orange', alpha = 1.0, histtype='step', range=ranges[i])
             ax.hist(supset_states[i, :], bins = nbins, density = True, color = 'tab:blue', alpha = 1.0, histtype='step', range=ranges[i])
 
-        if event_params is not None:             
+        if event_params is not None:
             ax.axvline(event_params.scaled[i+1], color = 'black', ls = '-', lw = 2)
             ax.axvline(binary_theta.scaled[i+1], color='tab:purple', ls='-', lw=1)
+
 
 
 
@@ -204,9 +214,9 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
 
             #xlim = ax.get_xlim()
             #ylim = ax.get_ylim()
-            
-            sns.kdeplot(x=surrogate_supset_states[xi, :], y=surrogate_supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=2, clip=[ranges[xi], ranges[yi]])
-            sns.kdeplot(x=supset_states[xi, :], y=supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=2, clip=[ranges[xi], ranges[yi]])
+
+            sns.kdeplot(x=surrogate_supset_states[xi, :], y=surrogate_supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=1.5, clip=[ranges[xi], ranges[yi]], fill=True)
+            sns.kdeplot(x=supset_states[xi, :], y=supset_states[yi, :], ax=ax, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=1.5, clip=[ranges[xi], ranges[yi]], fill=True)
             
 
             ax.scatter(event_params.scaled[xi+1], event_params.scaled[yi+1], color = 'black', alpha = 1.0, marker = "D", s = 50, linewidth = 1, zorder=9)
@@ -253,8 +263,9 @@ def broccoli(joint_model_chain, supset_states, subset_states, surrogate_supset_s
 
                 #axt.scatter(subset_states[yi, :], subset_states[xi, :], c = np.linspace(0.0, 1.0, len(subset_states[yi, :])), cmap = plt.get_cmap('RdBu'), alpha = 0.05, marker = "o", s = 25, linewidth = 0.0)
                 
-                sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=2, clip=[ranges[yi], ranges[xi]])
-                #sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=2, clip=[ranges[yi], ranges[xi]])
+                sns.kdeplot(x=surrogate_subset_states[yi, :], y=surrogate_subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:orange', bw_adjust=1.5, clip=[ranges[yi], ranges[xi]], fill=True)
+                
+                #sns.kdeplot(x=subset_states[yi, :], y=subset_states[xi, :], ax=axt, levels=[1-0.989, 1-0.865, 1-0.393], color='tab:blue', bw_adjust=1.5, clip=[ranges[yi], ranges[xi]], fill=True)
 
                 axt.scatter(x=single_theta.scaled[yi+1], y=single_theta.scaled[xi+1], color = 'tab:green', alpha = 1.0, marker = "8", s = 50, linewidth = 1, zorder=9)
 

@@ -20,9 +20,9 @@ if __name__ == "__main__":
         s=2.5
         n=7200
 
-        theta_r = sampling.State(truth=[0.5, 15, 0.1, 10, 0.01, 0.3, 60])
-        data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 42)
-        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.3', c='tab:orange')
+        theta_r = sampling.State(truth=[0.5, 15, 0.1, 10, 0.01, 0.2, 60])
+        data=light_curve_simulation.synthetic_binary(theta_r, n, 60, seed = 42)
+        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.2', c='tab:orange')
 
         #theta_r.truth[5] = 0.4
         #data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 43)
@@ -32,9 +32,9 @@ if __name__ == "__main__":
         #data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 44)
         #plt.scatter(y=data.flux, x=data.time, s=s, label='0.4', c='tab:orange')
 
-        theta_r.truth[5] = 0.6
-        data=light_curve_simulation.synthetic_binary(theta_r, n, 23, seed = 45)
-        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.6', c='tab:blue')
+        theta_r.truth[5] = 0.4
+        data=light_curve_simulation.synthetic_binary(theta_r, n, 60, seed = 43)
+        plt.scatter(y=data.flux, x=data.time, s=s, label=r's = 0.4', c='tab:blue')
 
 
 
@@ -64,9 +64,10 @@ if __name__ == "__main__":
         plt.tight_layout()
 
         #plt.gcf().set_size_inches(18.5, 10.5)
-        #plt.savefig('figures/binary_family.pdf', bbox_inches="tight", dpi=100, transparent=True)
+        plt.savefig('figures/binary_family.pdf', bbox_inches="tight", dpi=100, transparent=True)
         plt.clf()
 
+        throw=throw
 
         theta_r.truth[5] = 0.825
         plotting.flux(1, theta_r, [5, 25], caustics=0.005, label=r's < 1.0', color='tab:orange')

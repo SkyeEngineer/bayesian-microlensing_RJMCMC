@@ -17,7 +17,7 @@ class Data:
 
 if __name__ == "__main__":
 
-    for q in [5]:
+    for q in [2]:
 
         # Result file to process.
         n_suite = q
@@ -29,10 +29,14 @@ if __name__ == "__main__":
         joint_model_chain, MAPests, binary_states, single_states, binary_sp_states, single_sp_states, warm_up_iterations, symbols, event_params, data, name, dpi = object
         dpi=100
 
+        #binary_states[5, :] = np.log10(binary_states[5, :])
+        #binary_sp_states[5, :] = np.log10(binary_sp_states[5, :])
+
         # MAP estimates.
         print(f'single MAP {MAPests[0].truth}')
         print(f'binary MAP {MAPests[1].truth}')
         binary_theta = MAPests[1]
+        
         single_theta = MAPests[0]
         curves = deepcopy([single_theta, binary_theta, data])
 
@@ -40,8 +44,8 @@ if __name__ == "__main__":
         #ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.1 +0.15], [0.08 -0.005, 0.12 + 0.025], [9.0+0.05, 10.7], [-5, -1+0.1], [0.2, 5], [1, 360]] #1
         #ranges=[[0.45 -0.005, 0.55 +0.005], [15.0 -0.05, 15.1 +0.05], [0.1 -0.01, 0.13 + 0.005], [9.0 -0.0, 10.5 +0.25], [-2.25 -0.025, -1.25 +0.025], [0.2, 2.5], [40, 200]]
         #ranges=[[0.45 -0.005, 0.55 +0.005], [15.0 -0.06, 15.1 +0.05], [0.092, 0.13], [9.0 -0.1, 10.5 +0.25], [-2.35, -1.675], [0.5, 1.8], [55, 63]] #4
-        #ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.1], [0.08, 0.12], [9.0, 11], [-5, -1], [0, 5], [0, 360]]
-        ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.2], [0.08, 0.13], [9.0, 11], [-3, -1], [0, 2], [50, 80]]
+        ranges=[[0.45 -0.005, 0.55 +0.005], [14.95, 15.1], [0.09, 0.12], [9.5, 10.5], [-3, -0.5], [-0.8, 0.8], [20, 320]] #3
+        #ranges=[[0.45 -0.005, 0.55 +0.005], [14.9, 15.2], [0.08, 0.13], [9.0, 11], [-3, -1], [0, 2], [50, 80]]
         symbols = [r'$f_s$', r'$t_0$', r'$u_0$', r'$t_E$', r'$log_{10}(q)$', r'$s$', r'$\alpha$']
 
         # Joint posterior.
